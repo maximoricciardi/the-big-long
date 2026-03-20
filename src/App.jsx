@@ -66,8 +66,29 @@ function useFonts(dark) {
       .fade-up{animation:fadeUp .45s ease both}
       .fade-up-1{animation-delay:.05s}.fade-up-2{animation-delay:.1s}.fade-up-3{animation-delay:.15s}.fade-up-4{animation-delay:.2s}
       button:focus-visible,a:focus-visible{outline:2px solid #B0782A;outline-offset:2px}
+      .mobile-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      @media(max-width:640px){
+        .hide-mobile{display:none!important}
+        .mobile-px{padding-left:14px!important;padding-right:14px!important}
+        .mobile-stack{flex-direction:column!important}
+        .mobile-full{width:100%!important;min-width:0!important}
+        .mobile-text-sm{font-size:11px!important}
+        .mobile-hero-title{font-size:34px!important}
+        .mobile-tab-label{display:none}
+        .mobile-tab-icon{display:inline!important}
+      }
     `;
   }, [dark]);
+}
+
+function useWindowSize() {
+  const [width, setWidth] = React.useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return width;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -124,12 +145,15 @@ const SUMMARIES = [
       },
     ],
     intl:[
-      {n:"S&P 500",  v:"en baja",  ch:"2ª jornada",    neg:true},
-      {n:"Nasdaq",   v:"en baja",  ch:"tech lidera",   neg:true},
-      {n:"Oro",      v:"<$4.700",  ch:"-cae",          neg:true},
-      {n:"Brent",    v:"modera",   ch:"Qatar/geopolít.",neg:false},
+      {n:"S&P 500",  v:"6.530",   ch:"-1,51%",   neg:true},
+      {n:"Nasdaq",   v:"21.830",  ch:"-2,01%",   neg:true},
+      {n:"Dow Jones",v:"45.815",  ch:"-0,96%",   neg:true},
+      {n:"VIX",      v:"26,50",   ch:"+10,1%",   neg:true},
+      {n:"Brent",    v:"USD 108,5",ch:"+3,2%",   neg:false},
+      {n:"WTI",      v:"USD 96,7", ch:"+2,8%",   neg:false},
+      {n:"Oro",      v:"USD 4.495",ch:"-2,48%",  neg:true},
     ],
-    intlNote:"Fuertes pérdidas en <b>Tesla, Meta, Nvidia y Apple</b>. El mercado descuenta que la <b>Fed no recortará tasas en todo 2026</b>. Qatar: ataques a plantas de gas generaron impacto inicial en energía, aunque el petróleo moderó la suba. Europa, Reino Unido y Japón <b>mantuvieron tasas sin cambios</b>.",
+    intlNote:"S&P 500 acumula su <b>cuarta semana consecutiva en rojo</b> — la racha más larga en un año. Fuertes pérdidas en <b>Tesla, Meta, Nvidia y Apple</b>. Trump dijo que <b>no quiere un alto el fuego con Irán</b>. El vencimiento masivo de opciones ('triple witching') por USD 5,7 billones amplificó la volatilidad al cierre. El mercado descuenta que la Fed <b>no recortará tasas en todo 2026</b>. Europa, Reino Unido y Japón mantuvieron tasas sin cambios.",
   },
   {
     id:"s19", date:"19 MAR 2026", label:"CIERRE DE MERCADO",
@@ -432,6 +456,32 @@ const PERFILES = [
 
 const NOTICIAS = [
   {
+    id:"n7", fecha:"20 MAR 2026", cat:"EMPRESAS · $BIOX", catColor:"red",
+    titulo:"Bioceres (BIOX) en riesgo de desliste en Nasdaq: cotizó debajo de US$1 durante 30 ruedas",
+    cuerpo:`<strong>Bioceres Crop Solutions ($BIOX)</strong> recibió una advertencia formal del Nasdaq por cotizar debajo del <strong>mínimo de US$1</strong> durante 30 ruedas hábiles consecutivas. La compañía tiene plazo hasta <strong>septiembre de 2026</strong> para recuperar el umbral mínimo exigido por el mercado.
+
+Para evitar el desliste, la acción deberá mantenerse <strong>por encima de US$1 durante al menos 10 ruedas hábiles consecutivas</strong>. De no lograrlo, quedará expuesta a un proceso formal de exclusión del mercado.
+
+<em>Dato vs. interpretación:</em> el caso BIOX es un ejemplo contundente de la importancia del análisis fundamental previo a cualquier decisión de inversión. Entender el valor agregado real de una empresa, su estructura financiera y sus fundamentos operativos es la única forma de separar una oportunidad de una trampa de valor. El FOMO y las redes sociales nunca son sustitutos del trabajo de research.`,
+    relevancia:"alta",
+  },
+  {
+    id:"n8", fecha:"20 MAR 2026", cat:"AGENDA · MERCADOS", catColor:"blue",
+    titulo:"Semana que viene: petróleo volátil, Fed habla, PMIs globales y cumbre del G7",
+    cuerpo:`La semana que comienza el <strong>23 de marzo</strong> concentra una agenda densa para los mercados internacionales:
+
+<strong>🛢️ Petróleo:</strong> los precios seguirán dependiendo de los titulares de Medio Oriente y los datos de oferta. Semana clave para monitorear la evolución del conflicto en Irán y el estrecho de Ormuz.
+
+<strong>🏦 Reserva Federal habla:</strong> varios funcionarios de la Fed darán discursos durante la semana, incluyendo la vicepresidencia de supervisión y presidentes de reservas regionales. El mercado estará atento a señales sobre tasas — cualquier lectura hawkish amplificará la presión sobre activos de riesgo.
+
+<strong>📊 PMIs globales (martes):</strong> primer termómetro del impacto económico del conflicto en Medio Oriente sobre la actividad global. Dato clave para evaluar si el shock energético ya está afectando el ciclo.
+
+<strong>🌎 G7 (jueves):</strong> los cancilleres del G7 se reúnen para discutir la guerra en Irán. Evento político relevante — cualquier señal de coordinación o escalada definirá el tono de la segunda parte de la semana.
+
+<em>Dato vs. interpretación:</em> semana de alta densidad informativa. El dato más movedor del mercado será el PMI del martes y los discursos Fed. Si los PMIs muestran deterioro + Fed hawkish, el risk-off seguirá presionando activos de riesgo.`,
+    relevancia:"alta",
+  },
+  {
     id:"n1", fecha:"18 MAR 2026", cat:"POLÍTICA MONETARIA · EEUU", catColor:"blue",
     titulo:"Fed mantiene tasas en 3,75% con primer voto disidente a favor de un recorte",
     cuerpo:`La Reserva Federal dejó sin cambios su tasa de referencia en <strong>3,75%</strong>, en línea con lo esperado por el mercado. Sin embargo, la reunión dejó señales que vale la pena leer con atención.
@@ -500,6 +550,20 @@ En paralelo, el gobernador de Corrientes aprovechó la oportunidad para reiterar
     relevancia:"media",
   },
 ];
+
+/* ════════════════════════════════════════════════════════════════
+   BCRA DATA — 20 MAR 2026
+   Fuente: BCRA Informe Monetario / La Macro (último dato disponible)
+════════════════════════════════════════════════════════════════ */
+const BCRA_DATA = {
+  fecha: "20 MAR 2026",
+  tamar:     { val: "26,56%", nota: "TNA · Bcos. Privados" },
+  badlar:    { val: "26,25%", nota: "TNA · Bcos. Privados" },
+  comprasUSD:{ val: "USD 172M", nota: "Compra de divisas del día" },
+  reservas:  { val: "USD 43.808M", nota: "Reservas brutas" },
+  mayorista: { val: "$1.414", nota: "Tipo de cambio minorista" },
+  nota: "El BCRA aceleró compras a USD 172M en la rueda del viernes. Reservas brutas en USD 43.808M, presionadas por la baja del oro en la semana.",
+};
 
 /* ════════════════════════════════════════════════════════════════
    UI PRIMITIVES
@@ -834,90 +898,95 @@ const EQUITIES = [
   {t:"CEPU", e:"Central Puerto",           p:14.60,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"EDN",  e:"Edenor",                   p:32.19,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"MEDIA",    val:null,       mom:"MUY FUERTE",sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"TGS",  e:"Transportadora Gas Sur",   p:30.82,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
-  {t:"VIST", e:"Vista Energy",             p:73.60,   mkt:"ARG",tg:76.72,  an:"BUY", fpe:11.64, fpg:1.63, rw:7.30,  ma:31.16,  up:"MEDIO",    cal:"MEDIA",    val:"RAZONABLE", mom:"MUY FUERTE",sc:91.97,s1:14.14,m1:31.96,a1:53.03, ytd:42.68},
+  {t:"VIST", e:"Vista Energy",             p:73.6,   mkt:"ARG",tg:77.45,  an:"BUY", fpe:11.37, fpg:1.44, rw:7.5,  ma:35.52,  up:"MEDIO",    cal:"MEDIA",    val:"RAZONABLE", mom:"MUY FUERTE",sc:91.48,s1:11.31,m1:29.95,a1:53.03, ytd:49.94},
   {t:"LOMA", e:"Loma Negra",              p:10.70,   mkt:"ARG",tg:null,   an:"HOLD",fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"MEDIA",    val:null,       mom:"NEUTRO",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"GLOB", e:"Globant",                 p:61.20,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
-  {t:"MELI", e:"MercadoLibre",           p:1670.0, mkt:"ARG",tg:2634.43,an:"BUY", fpe:31.91, fpg:0.91, rw:11.25, ma:-30.60, up:"MUY ALTO",  cal:"ALTA",     val:"BARATA",   mom:"DÉBIL",     sc:48.32,s1:-0.21,m1:-15.14,a1:-18.85,ytd:-16.09},
+  {t:"MELI", e:"MercadoLibre",           p:1670.0, mkt:"ARG",tg:2624.01,an:"BUY", fpe:31.47, fpg:0.9, rw:11.27, ma:-32.5, up:"MUY ALTO",  cal:"ALTA",     val:"BARATA",   mom:"DÉBIL",     sc:48.09,s1:-2.05,m1:-18.58,a1:-18.85,ytd:-17.24},
   {t:"TEO",  e:"Telecom Argentina",       p:12.89,   mkt:"ARG",tg:null,   an:"HOLD",fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"MEDIA",    val:null,       mom:"NEUTRO",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   // ── ESTADOS UNIDOS · Robinhood/TradingView 19 MAR 2026 ──────
-  {t:"MU",   e:"Micron Technology",      p:448.2,  mkt:"US", tg:472.76, an:"BUY", fpe:8.03,  fpg:0.03, rw:48.75, ma:54.52,  up:"MEDIO",    cal:"EXCELENTE",val:"BARATA",   mom:"MUY FUERTE",sc:89.70,s1:5.56, m1:7.03,  a1:319.25,ytd:61.78},
-  {t:"NVDA", e:"NVIDIA Corp.",           p:179.17,  mkt:"US", tg:264.57, an:"BUY", fpe:21.67, fpg:0.43, rw:81.32, ma:1.32,   up:"MUY ALTO", cal:"EXCELENTE",val:"BARATA",   mom:"FUERTE",    sc:75.07,s1:0.87, m1:-4.86, a1:49.75, ytd:-3.27},
-  {t:"AVGO", e:"Broadcom Inc.",          p:319.84,  mkt:"US", tg:467.02, an:"BUY", fpe:27.59, fpg:0.47, rw:19.01, ma:-2.79,  up:"MUY ALTO", cal:"ALTA",     val:"BARATA",   mom:"FUERTE",    sc:73.44,s1:1.70, m1:-6.98, a1:58.18, ytd:-8.72},
-  {t:"AMAT", e:"Applied Materials",      p:357.21,  mkt:"US", tg:407.73, an:"BUY", fpe:31.66, fpg:1.52, rw:19.12, ma:32.49,  up:"ALTO",     cal:"ALTA",     val:"RAZONABLE", mom:"MUY FUERTE",sc:72.93,s1:0.84, m1:-5.30, a1:120.19,ytd:35.99},
-  {t:"AMD",  e:"Advanced Micro Dev.",    p:203.27,  mkt:"US", tg:280.14, an:"BUY", fpe:30.20, fpg:0.51, rw:-0.21, ma:3.81,   up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"FUERTE",    sc:61.40,s1:1.59, m1:-4.93, a1:81.75, ytd:-6.86},
+  {t:"MU",   e:"Micron Technology",      p:448.20,  mkt:"US", tg:501.78, an:"BUY", fpe:7.88,  fpg:0.03, rw:57.05, ma:50.64,  up:"ALTO",     cal:"EXCELENTE",val:"BARATA",   mom:"MUY FUERTE",sc:90.90,s1:-0.76,m1:0.46,  a1:319.25,ytd:55.66},
+  {t:"NVDA", e:"NVIDIA Corp.",           p:179.17,  mkt:"US", tg:264.57, an:"BUY", fpe:21.44, fpg:0.43, rw:81.24, ma:0.16,   up:"MUY ALTO", cal:"EXCELENTE",val:"BARATA",   mom:"DÉBIL",    sc:74.86,s1:-4.19, m1:-8.13, a1:49.75, ytd:-4.26},
+  {t:"AVGO", e:"Broadcom Inc.",          p:319.84,  mkt:"US", tg:467.02, an:"BUY", fpe:27.93, fpg:0.48, rw:19.0, ma:-1.63,  up:"MUY ALTO", cal:"ALTA",     val:"BARATA",   mom:"DÉBIL",    sc:74.3,s1:-3.62, m1:-6.9, a1:58.18, ytd:-7.59},
+  {t:"AMAT", e:"Applied Materials",      p:357.21,  mkt:"US", tg:407.73, an:"BUY", fpe:32.36, fpg:1.55, rw:19.11, ma:32.87,  up:"MEDIO",     cal:"ALTA",     val:"RAZONABLE", mom:"MUY FUERTE",sc:72.37,s1:4.55, m1:-3.31, a1:120.19,ytd:39.0},
+  {t:"AMD",  e:"Advanced Micro Dev.",    p:203.27,  mkt:"US", tg:280.14, an:"BUY", fpe:31.08, fpg:0.52, rw:-0.21, ma:6.32,   up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"NEUTRO",    sc:62.27,s1:4.11, m1:0.6, a1:81.75, ytd:-4.15},
   {t:"INTC", e:"Intel Corp.",            p:45.77,   mkt:"US", tg:46.07,  an:"HOLD",fpe:88.83, fpg:1.49, rw:-6.52, ma:25.24,  up:"BAJO",     cal:"BAJA",     val:"RAZONABLE", mom:"FUERTE",    sc:51.68,s1:null, m1:-4.88, a1:82.11, ytd:22.03},
-  {t:"ASML", e:"ASML Holding",          p:1376.3, mkt:"US", tg:1444.70,an:"BUY", fpe:39.05, fpg:1.61, rw:34.05, ma:25.39,  up:"MEDIO",    cal:"EXCELENTE",val:"RAZONABLE", mom:"FUERTE",    sc:72.18,s1:1.84, m1:-7.19, a1:79.31, ytd:26.67},
-  {t:"TSM",  e:"Taiwan Semiconductor",   p:330.0,  mkt:"US", tg:410.08, an:"BUY", fpe:23.53, fpg:0.77, rw:17.51, ma:17.12,  up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"FUERTE",    sc:69.15,s1:1.84, m1:-9.84, a1:88.98, ytd:11.74},
-  {t:"QCOM", e:"Qualcomm",              p:131.16,  mkt:"US", tg:161.77, an:"HOLD",fpe:11.70, fpg:null,  rw:20.99, ma:-22.53, up:"ALTO",     cal:"EXCELENTE",val:"BARATA",   mom:"DÉBIL",     sc:39.95,s1:null, m1:-8.91, a1:-17.91,ytd:-23.72},
-  {t:"ARM",  e:"ARM Holdings",          p:128.57,  mkt:"US", tg:146.21, an:"BUY", fpe:73.50, fpg:4.72, rw:5.51,  ma:-7.73,  up:"ALTO",     cal:"MEDIA",    val:"CARA",     mom:"FUERTE",    sc:38.76,s1:9.29, m1:-0.85, a1:6.70,  ytd:17.43},
+  {t:"ASML", e:"ASML Holding",          p:1376.3, mkt:"US", tg:1444.7,an:"BUY", fpe:39.37, fpg:1.63, rw:34.12, ma:26.03,  up:"MEDIO",    cal:"EXCELENTE",val:"RAZONABLE", mom:"FUERTE",    sc:71.42,s1:-2.11, m1:-10.31, a1:79.31, ytd:27.72},
+  {t:"TSM",  e:"Taiwan Semiconductor",   p:330.0,  mkt:"US", tg:410.08, an:"BUY", fpe:23.48, fpg:0.77, rw:17.55, ma:16.63,  up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"FUERTE",    sc:69.8,s1:-2.68, m1:-9.11, a1:88.98, ytd:11.48},
+  {t:"QCOM", e:"Qualcomm",              p:129.9,  mkt:"US", tg:161.77, an:"HOLD",fpe:11.77, fpg:0.0,  rw:20.96, ma:-21.85, up:"ALTO",     cal:"EXCELENTE",val:"BARATA",   mom:"DÉBIL",     sc:40.63,s1:0.06, m1:-9.31, a1:-17.91,ytd:-23.25},
+  {t:"ARM",  e:"ARM Holdings",          p:132.35,  mkt:"US", tg:149.7, an:"BUY", fpe:74.33, fpg:4.69, rw:5.52,  ma:-6.27,  up:"MEDIO",     cal:"MEDIA",    val:"CARA",     mom:"DÉBIL",    sc:40.71,s1:14.34, m1:4.02, a1:6.70,  ytd:18.76},
   // mega-cap tech
-  {t:"AAPL", e:"Apple Inc.",            p:248.96,  mkt:"US", tg:291.24, an:"BUY", fpe:29.17, fpg:2.36, rw:71.63, ma:1.44,   up:"ALTO",     cal:"EXCELENTE",val:"CARA",     mom:"FUERTE",    sc:60.02,s1:1.70, m1:-5.84, a1:15.44, ytd:-8.06},
+  {t:"AAPL", e:"Apple Inc.",            p:248.96,  mkt:"US", tg:291.24, an:"BUY", fpe:29.05, fpg:2.35, rw:71.6, ma:0.95,   up:"ALTO",     cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:60.03,s1:-0.85, m1:-6.19, a1:15.44, ytd:-8.42},
   {t:"MSFT", e:"Microsoft Corp.",       p:389.02,  mkt:"US", tg:595.55, an:"BUY", fpe:23.57, fpg:1.34, rw:23.92, ma:-23.23, up:"MUY ALTO", cal:"EXCELENTE",val:"RAZONABLE", mom:"FUERTE",    sc:49.32,s1:1.94, m1:-1.79, a1:0.50,  ytd:-18.99},
   {t:"AMZN", e:"Amazon.com Inc.",       p:208.76,  mkt:"US", tg:279.13, an:"BUY", fpe:26.91, fpg:1.60, rw:7.16,  ma:-7.23,  up:"MUY ALTO", cal:"MEDIA",    val:"RAZONABLE", mom:"FUERTE",    sc:47.69,s1:2.48, m1:2.71,  a1:5.66,  ytd:-9.08},
-  {t:"META", e:"Meta Platforms",        p:606.7,  mkt:"US", tg:854.30, an:"BUY", fpe:20.53, fpg:1.06, rw:18.69, ma:-12.38, up:"MUY ALTO", cal:"ALTA",     val:"RAZONABLE", mom:"FUERTE",    sc:51.50,s1:1.11, m1:-4.48, a1:4.56,  ytd:-6.73},
-  {t:"GOOGL",e:"Alphabet Inc.",         p:307.13,  mkt:"US", tg:359.64, an:"BUY", fpe:26.85, fpg:1.99, rw:27.86, ma:16.23,  up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"FUERTE",    sc:66.63,s1:1.03, m1:0.35,  a1:84.93, ytd:-1.70},
-  {t:"TSLA", e:"Tesla Inc.",            p:380.3,  mkt:"US", tg:403.04, an:"HOLD",fpe:192.92,fpg:7.77, rw:-2.43, ma:-0.34,  up:"MEDIO",    cal:"BAJA",     val:"CARA",     mom:"FUERTE",    sc:36.02,s1:1.61, m1:-7.25, a1:61.47, ytd:-12.66},
-  {t:"NFLX", e:"Netflix Inc.",          p:91.74,   mkt:"US", tg:114.16, an:"BUY", fpe:30.14, fpg:1.33, rw:19.24, ma:-14.85, up:"ALTO",     cal:"ALTA",     val:"RAZONABLE", mom:"DÉBIL",     sc:53.97,s1:0.41, m1:22.44, a1:-1.74, ytd:1.00},
-  {t:"ADBE", e:"Adobe Inc.",            p:252.51,  mkt:"US", tg:324.77, an:"BUY", fpe:10.41, fpg:0.82, rw:27.49, ma:-36.56, up:"MUY ALTO", cal:"EXCELENTE",val:"BARATA",   mom:"DÉBIL",     sc:53.59,s1:null, m1:-4.33, a1:-35.76,ytd:-29.71},
+  {t:"META", e:"Meta Platforms",        p:606.7,  mkt:"US", tg:855.97, an:"BUY", fpe:20.23, fpg:1.05, rw:18.64, ma:-14.2, up:"MUY ALTO", cal:"ALTA",     val:"RAZONABLE", mom:"DÉBIL",    sc:51.4,s1:-3.27, m1:-7.7, a1:4.56,  ytd:-8.09},
+  {t:"GOOGL",e:"Alphabet Inc.",         p:307.13,  mkt:"US", tg:359.64, an:"BUY", fpe:26.8, fpg:1.98, rw:27.83, ma:15.92,  up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"FUERTE",    sc:66.8,s1:-0.42, m1:-0.77,  a1:84.93, ytd:-1.88},
+  {t:"TSLA", e:"Tesla Inc.",            p:380.3,  mkt:"US", tg:402.7, an:"HOLD",fpe:186.79,fpg:7.52, rw:-2.52, ma:-3.8,  up:"MEDIO",    cal:"BAJA",     val:"CARA",     mom:"DÉBIL",    sc:35.44,s1:-5.94, m1:-10.54, a1:61.47, ytd:-15.44},
+  {t:"NFLX", e:"Netflix Inc.",          p:91.74,   mkt:"US", tg:114.16, an:"BUY", fpe:29.2, fpg:1.29, rw:19.15, ma:-18.32, up:"ALTO",     cal:"ALTA",     val:"RAZONABLE", mom:"DÉBIL",     sc:53.55,s1:-3.66, m1:17.73, a1:-1.74, ytd:-2.15},
+  {t:"ADBE", e:"Adobe Inc.",            p:248.15,  mkt:"US", tg:324.77, an:"BUY", fpe:10.41, fpg:0.82, rw:27.45, ma:-36.37, up:"MUY ALTO", cal:"EXCELENTE",val:"BARATA",   mom:"DÉBIL",     sc:53.6,s1:-0.47, m1:-5.71, a1:-35.76,ytd:-29.72},
   {t:"ORCL", e:"Oracle Corp.",          p:155.5,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:1.15, m1:null,  a1:null,   ytd:null},
-  {t:"PLTR", e:"Palantir Tech.",        p:155.68,  mkt:"US", tg:189.88, an:"BUY", fpe:114.84,fpg:2.04, rw:30.04, ma:-6.90,  up:"MUY ALTO", cal:"EXCELENTE",val:"CARA",     mom:"FUERTE",    sc:66.36,s1:null, m1:14.13, a1:76.42, ytd:-14.08},
+  {t:"PLTR", e:"Palantir Tech.",        p:155.68,  mkt:"US", tg:189.88, an:"BUY", fpe:117.08,fpg:2.08, rw:30.04, ma:-5.05,  up:"MUY ALTO", cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:66.02,s1:null, m1:11.37, a1:76.42, ytd:-12.4},
   // financials
-  {t:"JPM",  e:"JPMorgan Chase",        p:287.97,  mkt:"US", tg:340.04, an:"BUY", fpe:13.05, fpg:1.46, rw:-5.82, ma:-4.65,  up:"ALTO",     cal:"BAJA",     val:"RAZONABLE", mom:"FUERTE",    sc:49.46,s1:0.30, m1:-6.72, a1:19.82, ytd:-10.70},
+  {t:"JPM",  e:"JPMorgan Chase",        p:287.97,  mkt:"US", tg:338.17, an:"BUY", fpe:13.01, fpg:1.43, rw:-5.86, ma:-4.61,  up:"ALTO",     cal:"BAJA",     val:"RAZONABLE", mom:"DÉBIL",    sc:49.58,s1:1.1, m1:-7.2, a1:19.82, ytd:-10.63},
   {t:"GS",   e:"Goldman Sachs",         p:809.5,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"EXCELENTE",val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"BAC",  e:"Bank of America",       p:47.01,   mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:1.00, m1:null,  a1:null,   ytd:null},
   {t:"MS",   e:"Morgan Stanley",        p:158.54,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"WFC",  e:"Wells Fargo",           p:77.40,   mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
-  {t:"V",    e:"Visa Inc.",             p:299.71,  mkt:"US", tg:400.28, an:"BUY", fpe:23.24, fpg:1.82, rw:91.91, ma:-13.71, up:"MUY ALTO", cal:"EXCELENTE",val:"RAZONABLE", mom:"FUERTE",    sc:50.50,s1:null, m1:-6.34, a1:-11.95,ytd:-14.74},
+  {t:"V",    e:"Visa Inc.",             p:299.71,  mkt:"US", tg:400.28, an:"BUY", fpe:23.3, fpg:1.83, rw:91.88, ma:-13.26, up:"MUY ALTO", cal:"EXCELENTE",val:"RAZONABLE", mom:"DÉBIL",    sc:51.85,s1:null, m1:-5.83, a1:-11.95,ytd:-14.54},
   {t:"MA",   e:"Mastercard",            p:491.14,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"EXCELENTE",val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"AXP",  e:"American Express",      p:298.00,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"EXCELENTE",val:null,       mom:"NEUTRO",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   // energía / industrial
-  {t:"GEV",  e:"GE Vernova",            p:880.22,  mkt:"US", tg:866.83, an:"BUY", fpe:58.32, fpg:0.78, rw:24.06, ma:26.46,  up:"BAJO",     cal:"EXCELENTE",val:"BARATA",   mom:"FUERTE",    sc:82.23,s1:0.37, m1:2.12,  a1:149.11,ytd:31.35},
-  {t:"XOM",  e:"Exxon Mobil",           p:158.15,  mkt:"US", tg:151.31, an:"BUY", fpe:21.67, fpg:2.16, rw:4.98,  ma:23.51,  up:"BAJO",     cal:"BAJA",     val:"CARA",     mom:"FUERTE",    sc:65.60,s1:0.78, m1:7.57,  a1:36.26, ytd:30.95},
-  {t:"CVX",  e:"Chevron Corp.",         p:201.43,  mkt:"US", tg:192.40, an:"BUY", fpe:25.43, fpg:2.52, rw:-1.23, ma:19.86,  up:"BAJO",     cal:"BAJA",     val:"CARA",     mom:"FUERTE",    sc:54.47,s1:0.32, m1:10.53, a1:21.65, ytd:30.31},
-  {t:"GE",   e:"GE Aerospace",          p:291.61,  mkt:"US", tg:361.03, an:"BUY", fpe:40.41, fpg:2.58, rw:18.68, ma:3.28,   up:"ALTO",     cal:"ALTA",     val:"CARA",     mom:"FUERTE",    sc:52.79,s1:0.37, m1:-11.05,a1:41.53, ytd:-2.30},
+  {t:"GEV",  e:"GE Vernova",            p:880.22,  mkt:"US", tg:866.83, an:"BUY", fpe:59.6, fpg:0.8, rw:24.06, ma:28.05,  up:"BAJO",     cal:"EXCELENTE",val:"BARATA",   mom:"FUERTE",    sc:82.14,s1:5.72, m1:4.1,  a1:149.11,ytd:34.25},
+  {t:"XOM",  e:"Exxon Mobil",           p:158.15,  mkt:"US", tg:152.31, an:"BUY", fpe:20.71, fpg:2.11, rw:4.99,  ma:23.34,  up:"BAJO",     cal:"BAJA",     val:"CARA",     mom:"FUERTE",    sc:66.58,s1:2.33, m1:6.02,  a1:36.26, ytd:31.43},
+  {t:"CVX",  e:"Chevron Corp.",         p:201.43,  mkt:"US", tg:193.93, an:"BUY", fpe:18.99, fpg:1.51, rw:-1.19, ma:20.89,  up:"BAJO",     cal:"BAJA",     val:"RAZONABLE",     mom:"FUERTE",    sc:57.92,s1:2.49, m1:9.71, a1:21.65, ytd:32.17},
+  {t:"GE",   e:"GE Aerospace",          p:291.61,  mkt:"US", tg:361.03, an:"BUY", fpe:39.15, fpg:2.5, rw:18.58, ma:-0.01,   up:"MUY ALTO",     cal:"ALTA",     val:"CARA",     mom:"DÉBIL",    sc:51.19,s1:-4.3, m1:-12.98,a1:41.53, ytd:-5.33},
   {t:"RTX",  e:"RTX Corp.",             p:200.73,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"CAT",  e:"Caterpillar Inc.",      p:688.65,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
-  {t:"UBER", e:"Uber Technologies",     p:78.69,   mkt:"US", tg:104.41, an:"BUY", fpe:22.57, fpg:5.21, rw:10.02, ma:-14.15, up:"MUY ALTO", cal:"ALTA",     val:"CARA",     mom:"FUERTE",    sc:35.35,s1:null, m1:9.58,  a1:5.85,  ytd:-6.18},
+  {t:"UBER", e:"Uber Technologies",     p:73.89,   mkt:"US", tg:104.41, an:"BUY", fpe:22.24, fpg:5.27, rw:10.0, ma:-16.56, up:"MUY ALTO", cal:"MEDIA",     val:"CARA",     mom:"DÉBIL",    sc:36.51,s1:0.76, m1:1.54,  a1:5.85,  ytd:-7.8},
   // salud / pharma
-  {t:"LLY",  e:"Eli Lilly",            p:917.5,  mkt:"US", tg:1201.43,an:"BUY", fpe:26.52, fpg:0.85, rw:36.52, ma:2.96,   up:"MUY ALTO", cal:"EXCELENTE",val:"BARATA",   mom:"FUERTE",    sc:83.97,s1:1.33, m1:-11.49,a1:9.56,  ytd:-14.57},
-  {t:"JNJ",  e:"Johnson & Johnson",    p:237.6,  mkt:"US", tg:238.65, an:"BUY", fpe:20.56, fpg:2.62, rw:14.18, ma:18.25,  up:"BAJO",     cal:"ALTA",     val:"CARA",     mom:"FUERTE",    sc:65.09,s1:0.37, m1:-1.98, a1:46.33, ytd:14.66},
-  {t:"UNH",  e:"UnitedHealth Group",   p:280.44,  mkt:"US", tg:363.47, an:"BUY", fpe:15.95, fpg:2.07, rw:4.98,  ma:-10.58, up:"MUY ALTO", cal:"BAJA",     val:"CARA",     mom:"FUERTE",    sc:39.63,s1:2.81, m1:-1.47, a1:-43.39,ytd:-13.87},
+  {t:"LLY",  e:"Eli Lilly",            p:917.5,  mkt:"US", tg:1201.43,an:"BUY", fpe:26.51, fpg:0.85, rw:36.46, ma:2.84,   up:"MUY ALTO", cal:"EXCELENTE",val:"BARATA",   mom:"DÉBIL",    sc:82.66,s1:-7.96, m1:-11.16,a1:9.56,  ytd:-14.63},
+  {t:"JNJ",  e:"Johnson & Johnson",    p:237.6,  mkt:"US", tg:239.61, an:"BUY", fpe:20.58, fpg:2.62, rw:14.16, ma:18.45,  up:"BAJO",     cal:"ALTA",     val:"CARA",     mom:"FUERTE",    sc:65.8,s1:-2.55, m1:-3.93, a1:46.33, ytd:14.81},
+  {t:"UNH",  e:"UnitedHealth Group",   p:275.59,  mkt:"US", tg:363.47, an:"BUY", fpe:15.74, fpg:2.04, rw:4.96,  ma:-12.31, up:"MUY ALTO", cal:"BAJA",     val:"CARA",     mom:"DÉBIL",    sc:39.63,s1:-2.3, m1:-4.38, a1:-43.39,ytd:-15.05},
   {t:"ABBV", e:"AbbVie Inc.",          p:206.21,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:5.21, m1:null,  a1:null,   ytd:null},
-  {t:"PFE",  e:"Pfizer Inc.",          p:28.06,   mkt:"US", tg:28.76,  an:"HOLD",fpe:9.17,  fpg:null,  rw:2.51,  ma:7.50,   up:"BAJO",     cal:"BAJA",     val:"BARATA",   mom:"NEUTRO",    sc:46.71,s1:null, m1:0.40,  a1:4.85,  ytd:9.72},
+  {t:"PFE",  e:"Pfizer Inc.",          p:26.97,   mkt:"US", tg:28.76,  an:"HOLD",fpe:9.2,  fpg:0.0,  rw:2.5,  ma:7.9,   up:"MEDIO",     cal:"BAJA",     val:"BARATA",   mom:"NEUTRO",    sc:47.74,s1:1.5, m1:-1.42,  a1:4.85,  ytd:10.08},
   {t:"AMGN", e:"Amgen Inc.",           p:358.65,  mkt:"US", tg:null,   an:"HOLD",fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"NEUTRO",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"MRK",  e:"Merck & Co.",          p:114.23,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"FUERTE",    sc:null, s1:1.19, m1:null,  a1:null,   ytd:null},
   // consumo
-  {t:"WMT",  e:"Walmart Inc.",         p:121.09,  mkt:"US", tg:134.90, an:"BUY", fpe:41.63, fpg:3.84, rw:8.09,  ma:11.63,  up:"MEDIO",    cal:"MEDIA",    val:"CARA",     mom:"FUERTE",    sc:53.06,s1:2.47, m1:-5.83, a1:40.56, ytd:9.49},
-  {t:"MCD",  e:"McDonald's Corp.",     p:319.42,  mkt:"US", tg:346.68, an:"BUY", fpe:23.87, fpg:2.76, rw:17.99, ma:2.29,   up:"MEDIO",    cal:"ALTA",     val:"CARA",     mom:"NEUTRO",    sc:49.88,s1:null, m1:-3.60, a1:2.90,  ytd:3.30},
-  {t:"KO",   e:"Coca-Cola Co.",        p:75.55,   mkt:"US", tg:83.53,  an:"BUY", fpe:23.49, fpg:3.21, rw:27.27, ma:6.43,   up:"MEDIO",    cal:"EXCELENTE",val:"CARA",     mom:"FUERTE",    sc:61.29,s1:2.07, m1:-4.37, a1:9.82,  ytd:8.67},
-  {t:"PEP",  e:"PepsiCo Inc.",         p:156.15,  mkt:"US", tg:170.52, an:"HOLD",fpe:17.79, fpg:2.82, rw:13.83, ma:4.63,   up:"MEDIO",    cal:"ALTA",     val:"CARA",     mom:"NEUTRO",    sc:46.57,s1:null, m1:-5.07, a1:3.78,  ytd:6.98},
+  {t:"WMT",  e:"Walmart Inc.",         p:121.09,  mkt:"US", tg:134.9, an:"BUY", fpe:41.33, fpg:3.81, rw:8.06,  ma:11.03,  up:"MEDIO",    cal:"MEDIA",    val:"CARA",     mom:"NEUTRO",    sc:53.16,s1:-5.93, m1:-6.0, a1:40.56, ytd:8.69},
+  {t:"MCD",  e:"McDonald's Corp.",     p:319.42,  mkt:"US", tg:346.68, an:"BUY", fpe:23.4, fpg:2.71, rw:17.92, ma:0.35,   up:"MEDIO",    cal:"ALTA",     val:"CARA",     mom:"DÉBIL",    sc:48.92,s1:null, m1:-5.81, a1:2.90,  ytd:1.29},
+  {t:"KO",   e:"Coca-Cola Co.",        p:75.55,   mkt:"US", tg:83.53,  an:"BUY", fpe:23.36, fpg:3.19, rw:27.24, ma:5.97,   up:"MEDIO",    cal:"EXCELENTE",val:"CARA",     mom:"NEUTRO",    sc:60.94,s1:-3.35, m1:-5.96, a1:9.82,  ytd:8.07},
+  {t:"PEP",  e:"PepsiCo Inc.",         p:150.04,  mkt:"US", tg:170.52, an:"HOLD",fpe:17.69, fpg:2.8, rw:13.81, ma:4.14,   up:"MEDIO",    cal:"ALTA",     val:"CARA",     mom:"DÉBIL",    sc:43.83,s1:-6.15, m1:-8.73, a1:3.78,  ytd:6.42},
   {t:"PG",   e:"Procter & Gamble",     p:144.85,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"EXCELENTE",val:null,       mom:"NEUTRO",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"COST", e:"Costco Wholesale",     p:974.78,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"EXCELENTE",val:null,       mom:"FUERTE",    sc:null, s1:1.63, m1:null,  a1:null,   ytd:null},
   {t:"HD",   e:"Home Depot Inc.",      p:328.21,  mkt:"US", tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"EXCELENTE",val:null,       mom:"NEUTRO",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
-  {t:"NKE",  e:"Nike Inc.",            p:54.11,   mkt:"US", tg:75.93,  an:"BUY", fpe:34.58, fpg:4.45, rw:3.98,  ma:-25.66, up:"MUY ALTO", cal:"BAJA",     val:"CARA",     mom:"DÉBIL",     sc:27.13,s1:null, m1:-18.00,a1:-27.18,ytd:-16.07},
-  {t:"DIS",  e:"Walt Disney Co.",      p:100.66,  mkt:"US", tg:130.30, an:"BUY", fpe:14.90, fpg:1.29, rw:-0.68, ma:-13.21, up:"MUY ALTO", cal:"BAJA",     val:"RAZONABLE", mom:"FUERTE",    sc:35.44,s1:0.89, m1:-5.38, a1:-0.52, ytd:-12.61},
-  {t:"BABA", e:"Alibaba Group",        p:123.37,  mkt:"US", tg:197.89, an:"BUY", fpe:22.98, fpg:2.90, rw:-6.24, ma:-9.40,  up:"MUY ALTO", cal:"BAJA",     val:"CARA",     mom:"FUERTE",    sc:33.39,s1:1.46, m1:-21.84,a1:-14.49,ytd:-8.29},
-  {t:"IBM",  e:"IBM Corp.",            p:253.59,  mkt:"US", tg:305.00, an:"BUY", fpe:20.25, fpg:2.58, rw:6.26,  ma:-11.02, up:"ALTO",     cal:"MEDIA",    val:"CARA",     mom:"FUERTE",    sc:39.82,s1:1.19, m1:-2.98, a1:-0.66, ytd:-15.06},
+  {t:"NKE",  e:"Nike Inc.",            p:52.37,   mkt:"US", tg:75.93,  an:"BUY", fpe:34.56, fpg:4.45, rw:3.92,  ma:-26.02, up:"MUY ALTO", cal:"BAJA",     val:"CARA",     mom:"DÉBIL",     sc:28.11,s1:-2.98, m1:-20.11,a1:-27.18,ytd:-16.12},
+  {t:"DIS",  e:"Walt Disney Co.",      p:99.51,  mkt:"US", tg:130.3, an:"BUY", fpe:14.87, fpg:1.29, rw:-0.7, ma:-13.4, up:"MUY ALTO", cal:"BAJA",     val:"RAZONABLE", mom:"DÉBIL",    sc:36.47,s1:0.21, m1:-7.1, a1:-0.52, ytd:-12.81},
+  {t:"BABA", e:"Alibaba Group",        p:122.41,  mkt:"US", tg:192.05, an:"BUY", fpe:25.1, fpg:6.89, rw:-6.41, ma:-17.17,  up:"MUY ALTO", cal:"BAJA",     val:"CARA",     mom:"DÉBIL",    sc:25.84,s1:-9.47, m1:-21.42,a1:-14.49,ytd:-14.79},
+  {t:"IBM",  e:"IBM Corp.",            p:241.77,  mkt:"US", tg:305.0, an:"BUY", fpe:20.16, fpg:2.57, rw:6.25,  ma:-11.9, up:"MUY ALTO",     cal:"MEDIA",    val:"CARA",     mom:"DÉBIL",    sc:40.21,s1:-1.83, m1:-7.29, a1:-0.66, ytd:-15.48},
   // emergentes / commodities
-  {t:"VALE", e:"Vale S.A.",            p:12.17,   mkt:"US", tg:16.32,  an:"BUY", fpe:7.42,  fpg:0.08, rw:6.38,  ma:17.73,  up:"ALTO",     cal:"MEDIA",    val:"BARATA",   mom:"FUERTE",    sc:71.10,s1:0.04, m1:-11.32,a1:38.37, ytd:12.74},
-  {t:"PBR",  e:"Petrobras",            p:20.74,   mkt:"US", tg:16.51,  an:"BUY", fpe:7.54,  fpg:4.52, rw:10.88, ma:33.42,  up:"BAJO",     cal:"ALTA",     val:"CARA",     mom:"MUY FUERTE",sc:60.25,s1:null, m1:32.32, a1:41.66, ytd:66.84},
-  {t:"BBD",  e:"Banco Bradesco",       p:3.62,    mkt:"US", tg:4.13,   an:"BUY", fpe:7.39,  fpg:0.44, rw:-6.73, ma:5.23,   up:"ALTO",     cal:"BAJA",     val:"BARATA",   mom:"NEUTRO",    sc:59.71,s1:null, m1:-12.18,a1:54.64, ytd:6.01},
-  {t:"NIO",  e:"NIO Inc.",             p:5.91,    mkt:"US", tg:6.70,   an:"BUY", fpe:0,     fpg:0,    rw:16.73, ma:8.43,   up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"NEUTRO",    sc:62.07,s1:null, m1:16.36, a1:10.74, ytd:14.12},
+  {t:"VALE", e:"Vale S.A.",            p:12.17,   mkt:"US", tg:16.32,  an:"BUY", fpe:7.39,  fpg:0.08, rw:6.29,  ma:17.2,  up:"ALTO",     cal:"MEDIA",    val:"BARATA",   mom:"FUERTE",    sc:71.24,s1:-4.29, m1:-12.19,a1:38.37, ytd:12.28},
+  {t:"PBR",  e:"Petrobras",            p:20.74,   mkt:"US", tg:16.89,  an:"BUY", fpe:6.56,  fpg:2.47, rw:10.82, ma:35.2,  up:"BAJO",     cal:"ALTA",     val:"CARA",     mom:"MUY FUERTE",sc:63.5,s1:null, m1:22.96, a1:41.66, ytd:66.92},
+  {t:"BBD",  e:"Banco Bradesco",       p:3.41,    mkt:"US", tg:4.13,   an:"BUY", fpe:7.41,  fpg:0.44, rw:-6.8, ma:5.51,   up:"ALTO",     cal:"BAJA",     val:"BARATA",   mom:"NEUTRO",    sc:59.05,s1:-3.4, m1:-14.32,a1:54.64, ytd:6.31},
+  {t:"NIO",  e:"NIO Inc.",             p:5.43,    mkt:"US", tg:6.7,   an:"BUY", fpe:0.0,     fpg:0.0,    rw:16.81, ma:9.97,   up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"NEUTRO",    sc:62.71,s1:-7.34, m1:10.59, a1:10.74, ytd:15.49},
   // crypto / alternative
-  {t:"COIN", e:"Coinbase",             p:196.71,  mkt:"US", tg:255.33, an:"BUY", fpe:59.11, fpg:3.43, rw:12.63, ma:-42.43, up:"MUY ALTO", cal:"ALTA",     val:"CARA",     mom:"FUERTE",    sc:36.53,s1:3.78, m1:16.34, a1:1.79,  ytd:-10.55},
-  {t:"MSTR", e:"MicroStrategy",        p:136.48,  mkt:"US", tg:355.07, an:"BUY", fpe:3.85,  fpg:0.03, rw:-14.04,ma:-95.24, up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"FUERTE",    sc:25.94,s1:6.42, m1:4.07,  a1:-55.99,ytd:-7.50},
-  {t:"HUT",  e:"Hut 8 Corp.",          p:48.39,   mkt:"US", tg:64.07,  an:"BUY", fpe:0,     fpg:0,    rw:-18.69,ma:23.60,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"FUERTE",    sc:45.76,s1:null, m1:-11.11,a1:263.96,ytd:7.44},
+  {t:"COIN", e:"Coinbase",             p:197.5,  mkt:"US", tg:255.46, an:"BUY", fpe:59.29, fpg:3.44, rw:12.57, ma:-41.08, up:"MUY ALTO", cal:"ALTA",     val:"CARA",     mom:"DÉBIL",    sc:36.32,s1:1.01, m1:20.39, a1:1.79,  ytd:-10.27},
+  {t:"MSTR", e:"MicroStrategy",        p:135.66,  mkt:"US", tg:355.07, an:"BUY", fpe:3.7,  fpg:0.03, rw:-14.13,ma:-94.88, up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"DÉBIL",    sc:21.55,s1:-2.87, m1:8.35,  a1:-55.99,ytd:-9.02},
+  {t:"HUT",  e:"Hut 8 Corp.",          p:47.46,   mkt:"US", tg:64.07,  an:"BUY", fpe:0.0,     fpg:0.0,    rw:-18.79,ma:24.69,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"FUERTE",    sc:45.76,s1:-1.78, m1:-11.48,a1:263.96,ytd:9.14},
+  {t:"GPRK", e:"Genie Energy",         p:9.80,    mkt:"US", tg:10.47,  an:"BUY", fpe:7.03, fpg:0.15, rw:13.76, ma:29.33,  up:"MEDIO",    cal:"ALTA",     val:"BARATA",   mom:"FUERTE",    sc:74.38,s1:11.74,m1:18.07, a1:25.32, ytd:37.52},
+  {t:"NBIS", e:"Nebius Group",         p:117.62,  mkt:"US", tg:166.39, an:"BUY", fpe:0.00, fpg:0.00, rw:-9.14, ma:30.09,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"MUY FUERTE",sc:60.61,s1:4.13, m1:15.54, a1:349.36,ytd:45.18},
+  {t:"NU",   e:"Nu Holdings",          p:13.94,   mkt:"US", tg:19.62,  an:"BUY", fpe:15.97,fpg:0.45, rw:-10.09,ma:-7.26,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"DÉBIL",     sc:41.62,s1:0.36, m1:-18.81,a1:22.28, ytd:-15.41},
+  {t:"BITF", e:"Bitfarms Ltd.",        p:2.22,    mkt:"US", tg:5.64,   an:"BUY", fpe:0.00, fpg:0.00, rw:-19.33,ma:3.84,   up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"DÉBIL",     sc:40.64,s1:-3.12,m1:5.34,  a1:108.65,ytd:1.70},
+  {t:"BRKb", e:"Berkshire Hathaway B", p:480.94,  mkt:"US", tg:529.50, an:"BUY", fpe:23.07,fpg:8.30, rw:-6.44, ma:-2.04,  up:"MEDIO",    cal:"BAJA",     val:"CARA",     mom:"DÉBIL",     sc:30.89,s1:-1.81,m1:-3.59, a1:-9.00, ytd:-4.21},
   // ── ETFs SECTORIALES ────────────────────────────────────────
-  {t:"SPY",  e:"S&P 500 ETF",          p:553.00,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:0.93, m1:null,  a1:null,   ytd:null},
-  {t:"QQQ",  e:"Nasdaq 100 ETF",       p:463.50,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:1.18, m1:null,  a1:null,   ytd:null},
-  {t:"XLE",  e:"Energy Sector SPDR",   p:56.91,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:0.78, m1:null,  a1:null,   ytd:null},
-  {t:"XLF",  e:"Financial Sector SPDR",p:48.44,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
-  {t:"XLK",  e:"Technology SPDR",      p:141.87,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
-  {t:"XLV",  e:"Health Care SPDR",     p:163.70,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
-  {t:"GLD",  e:"SPDR Gold Shares",     p:467.31,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"MUY FUERTE",sc:null, s1:3.14, m1:null,  a1:null,   ytd:null},
-  {t:"SLV",  e:"iShares Silver",       p:71.52,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:4.12, m1:null,  a1:null,   ytd:null},
+  {t:"SPY",  e:"S&P 500 ETF",          p:648.57,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:0.93, m1:null,  a1:null,   ytd:null},
+  {t:"QQQ",  e:"Nasdaq 100 ETF",       p:585.72,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:1.18, m1:null,  a1:null,   ytd:null},
+  {t:"XLE",  e:"Energy Sector SPDR",   p:55.92,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:0.78, m1:null,  a1:null,   ytd:null},
+  {t:"XLF",  e:"Financial Sector SPDR",p:48.99,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
+  {t:"XLK",  e:"Technology SPDR",      p:139.5,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
+  {t:"XLV",  e:"Health Care SPDR",     p:160.2,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
+  {t:"GLD",  e:"SPDR Gold Shares",     p:433.5,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"MUY FUERTE",sc:null, s1:3.14, m1:null,  a1:null,   ytd:null},
+  {t:"SLV",  e:"iShares Silver",       p:66.8,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:4.12, m1:null,  a1:null,   ytd:null},
   {t:"EWZ",  e:"iShares Brazil",       p:40.24,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
-  {t:"SMH",  e:"VanEck Semiconductors",p:200.57,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
+  {t:"SMH",  e:"VanEck Semiconductors",p:195.0,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
 ];
 
 const calColor  = {EXCELENTE:"green",ALTA:"blue",MEDIA:"gold",BAJA:"red"};
@@ -1636,8 +1705,38 @@ function MercadosView({ dolar, riesgoPais, fxError, t }) {
         })()}
       </div>
 
+      {/* ── PANEL BCRA ── */}
+      <Card t={t} style={{ marginTop:20 }}>
+        <div style={{ padding:"20px 24px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+            <SectionLabel t={t}>BANCO CENTRAL · DATOS DEL DÍA</SectionLabel>
+            <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"3px 10px", borderRadius:6 }}>{BCRA_DATA.fecha}</span>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10, marginBottom:14 }}>
+            {[
+              { label:"TAMAR",             val:BCRA_DATA.tamar.val,      nota:BCRA_DATA.tamar.nota,      color:t.bl,   bg:t.blBg },
+              { label:"BADLAR",            val:BCRA_DATA.badlar.val,     nota:BCRA_DATA.badlar.nota,     color:t.pu,   bg:t.puBg },
+              { label:"COMPRAS BCRA",      val:BCRA_DATA.comprasUSD.val, nota:BCRA_DATA.comprasUSD.nota, color:t.gr,   bg:t.grBg },
+              { label:"RESERVAS BRUTAS",   val:BCRA_DATA.reservas.val,   nota:BCRA_DATA.reservas.nota,   color:t.rd,   bg:t.rdBg },
+              { label:"TIPO DE CAMBIO REF",val:BCRA_DATA.mayorista.val,  nota:BCRA_DATA.mayorista.nota,  color:t.go,   bg:t.goBg },
+            ].map((item,i) => (
+              <div key={i} style={{ background:item.bg, border:`1px solid ${item.color}22`, borderRadius:10, padding:"12px 14px", borderLeft:`3px solid ${item.color}` }}>
+                <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".1em", color:item.color, marginBottom:5 }}>{item.label}</div>
+                <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, lineHeight:1 }}>{item.val}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4, lineHeight:1.4 }}>{item.nota}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:8, padding:"10px 14px", fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.6 }}>
+            ⚠️ {BCRA_DATA.nota}
+          </div>
+        </div>
+      </Card>
+
       <p style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:16, lineHeight:1.6 }}>
-        Fuentes: <strong>dolarapi.com</strong> (Oficial, Blue, MEP, CCL, Mayorista — tiempo real) · <strong>argentinadatos.com</strong> (Riesgo País — último valor disponible) · Merval, Brent y Oro al cierre del día anterior.
+        Fuentes: <strong>dolarapi.com</strong> (Oficial, Blue, MEP, CCL, Mayorista — tiempo real) · <strong>argentinadatos.com</strong> (Riesgo País — último valor disponible) · <strong>BCRA / La Macro</strong> (TAMAR, BADLAR, Reservas) · Merval, Brent y Oro al cierre del día anterior.
       </p>
     </div>
   );
@@ -1665,7 +1764,7 @@ function NoticiasView({ t }) {
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:22 }}>
         <div>
-          <SectionLabel t={t}>NOTICIAS · 18 MAR 2026</SectionLabel>
+          <SectionLabel t={t}>NOTICIAS · 18-20 MAR 2026</SectionLabel>
           <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:-10 }}>
             {NOTICIAS.length} noticias · Información procesada y diferenciada de interpretación.
           </p>
@@ -1854,7 +1953,7 @@ function RecomendacionesView({ t }) {
 /* ════════════════════════════════════════════════════════════════
    INICIO VIEW — LANDING OVERVIEW
 ════════════════════════════════════════════════════════════════ */
-function InicioView({ dolar, riesgoPais, t, setTab }) {
+function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false }) {
   const latest = SUMMARIES[0];
   // Override the riesgo país KPI with live data if available
   const kpis = latest.kpis.map(k =>
@@ -1875,7 +1974,7 @@ function InicioView({ dolar, riesgoPais, t, setTab }) {
           <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.45)", letterSpacing:".14em", textTransform:"uppercase", marginBottom:10 }}>
             📅 19 DE MARZO DE 2026 · BUENOS AIRES
           </div>
-          <h1 style={{ fontFamily:FH, fontSize:52, fontWeight:700, color:"#FFFFFF", lineHeight:1.05, marginBottom:8, letterSpacing:"-.02em" }}>
+          <h1 style={{ fontFamily:FH, fontSize:isMobile?32:52, fontWeight:700, color:"#FFFFFF", lineHeight:1.05, marginBottom:8, letterSpacing:"-.02em" }}>
             The Big Long
           </h1>
           <p style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.38)", marginBottom:20, letterSpacing:".04em" }}>Máximo Ricciardi</p>
@@ -2116,8 +2215,8 @@ function InicioView({ dolar, riesgoPais, t, setTab }) {
             {[
               {icon:"💹", label:"LECAP Mayo", desc:"Tasa fija ~2,33% TEM. Sin riesgo crediticio soberano en pesos.", badge:"Conservador", bc:"blue"},
               {icon:"📈", label:"Globales XD (GD38)", desc:"Ley NY. Rendimiento ~10% en USD. Compresión de riesgo país.", badge:"Dinámico", bc:"purple"},
-              {icon:"🤖", label:"Cedear NVDA", desc:"Exposición al ciclo de IA. Dolarización implícita.", badge:"Agresivo", bc:"gold"},
-              {icon:"🥇", label:"Oro / GLD", desc:"Refugio ante crisis energética histórica. AIE advierte 6+ meses de disrupción en el Golfo Pérsico.", badge:"Cobertura", bc:"gray"},
+              {icon:"🛢️", label:"Toma de ganancia: Petroleras", desc:"XOM, CVX, VIST, Shell acumulan >10% en 30+ días. Buen momento para realizar parcialmente.", badge:"⚠️ Acción", bc:"gold"},
+              {icon:"🥇", label:"Oro / GLD", desc:"Refugio ante crisis energética histórica. AIE advierte 6+ meses de disrupción en el Golfo.", badge:"Cobertura", bc:"gray"},
             ].map((o,i) => (
               <div key={i} style={{ background:t.alt, borderRadius:10, padding:"14px 16px" }}>
                 <div style={{ fontSize:20, marginBottom:8 }}>{o.icon}</div>
@@ -2214,6 +2313,8 @@ export default function App() {
   const [dolar, setDolar] = useState(null);
   const [riesgoPais, setRiesgoPais] = useState(null);
   const [fxError, setFxError] = useState(false);
+  const winW = useWindowSize();
+  const isMobile = winW < 640;
   const t = dark ? TH.d : TH.l;
   useFonts(dark);
 
@@ -2291,13 +2392,13 @@ export default function App() {
   }, [extra]);
 
   const TABS = [
-    { id:"inicio",          label:"Inicio" },
-    { id:"resumen",         label:"Resumen Diario" },
-    { id:"noticias",        label:"Noticias" },
-    { id:"mercados",        label:"Mercados" },
-    { id:"balances",        label:"Balances" },
-    { id:"instrumentos",    label:"Instrumentos" },
-    { id:"recomendaciones", label:"Recomendaciones" },
+    { id:"inicio",          label:"Inicio",           icon:"🏠" },
+    { id:"resumen",         label:"Resumen Diario",   icon:"📋" },
+    { id:"noticias",        label:"Noticias",          icon:"📰" },
+    { id:"mercados",        label:"Mercados",          icon:"💱" },
+    { id:"balances",        label:"Balances",          icon:"📊" },
+    { id:"instrumentos",    label:"Instrumentos",      icon:"🔬" },
+    { id:"recomendaciones", label:"Recomendaciones",  icon:"💼" },
   ];
 
   const of  = dolar?.oficial?.venta;
@@ -2322,44 +2423,72 @@ export default function App() {
   const tickerFull = `${tickerItems} · ${tickerItems} ·`;
 
   return (
-    <div style={{ fontFamily:FB, background:t.bg, minHeight:"100vh", color:t.tx, transition:"background .3s, color .3s" }}>
+    <div style={{ fontFamily:FB, background:t.bg, minHeight:"100vh", color:t.tx, transition:"background .3s, color .3s",
+      paddingBottom: isMobile ? 64 : 0 }}>
 
       {/* ── HEADER ── */}
       <header style={{ background:t.hdr, borderBottom:`1px solid ${t.brd}`, position:"sticky", top:0, zIndex:100, boxShadow:t.sh }}>
-        <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 20px", display:"flex", alignItems:"center", justifyContent:"space-between", height:56, gap:16 }}>
+        <div style={{ maxWidth:1200, margin:"0 auto", padding:`0 ${isMobile?12:20}px`, display:"flex", alignItems:"center", justifyContent:"space-between", height:isMobile?50:56, gap:isMobile?8:16 }}>
 
           {/* Logo */}
-          <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
-            <div style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:t.tx, letterSpacing:"-.02em", lineHeight:1 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:12, flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
+            <div style={{ fontFamily:FH, fontSize:isMobile?16:20, fontWeight:700, color:t.tx, letterSpacing:"-.02em", lineHeight:1 }}>
               The Big Long
             </div>
-            <div style={{ width:1, height:20, background:t.brd }} />
-            <div style={{ fontFamily:FB, fontSize:11, color:t.mu, letterSpacing:".04em" }}>Máximo Ricciardi</div>
+            {!isMobile && <><div style={{ width:1, height:20, background:t.brd }} />
+            <div style={{ fontFamily:FB, fontSize:11, color:t.mu, letterSpacing:".04em" }}>Máximo Ricciardi</div></>}
           </div>
 
-          {/* Nav */}
-          <nav style={{ display:"flex", gap:2, flexWrap:"wrap", justifyContent:"center" }}>
-            {TABS.map(tb => (
-              <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
-                padding:"6px 14px", borderRadius:8, border:"none", fontFamily:FB,
-                fontSize:12, fontWeight:tab===tb.id?700:400,
-                background:tab===tb.id?t.go+"18":"transparent",
-                color:tab===tb.id?t.go:t.mu,
-                cursor:"pointer", transition:"all .2s", whiteSpace:"nowrap",
-              }}>{tb.label}</button>
-            ))}
-          </nav>
+          {/* Nav — desktop only */}
+          {!isMobile && (
+            <nav style={{ display:"flex", gap:2, flexWrap:"nowrap" }}>
+              {TABS.map(tb => (
+                <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
+                  padding:"6px 12px", borderRadius:8, border:"none", fontFamily:FB,
+                  fontSize:11, fontWeight:tab===tb.id?700:400,
+                  background:tab===tb.id?t.go+"18":"transparent",
+                  color:tab===tb.id?t.go:t.mu,
+                  cursor:"pointer", transition:"all .2s", whiteSpace:"nowrap",
+                }}>{tb.label}</button>
+              ))}
+            </nav>
+          )}
 
           {/* Right controls */}
-          <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-            <span style={{ fontFamily:FB, fontSize:10, color:t.fa, whiteSpace:"nowrap" }}>19 MAR 2026</span>
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+            {!isMobile && <span style={{ fontFamily:FB, fontSize:10, color:t.fa, whiteSpace:"nowrap" }}>20 MAR 2026</span>}
             <button onClick={()=>setDark(d=>!d)} style={{
               background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8,
-              padding:"6px 12px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer",
-            }}>{dark?"☀️ Claro":"🌙 Oscuro"}</button>
+              padding:isMobile?"6px 10px":"6px 12px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer",
+            }}>{dark?"☀️":"🌙"}</button>
           </div>
         </div>
       </header>
+
+      {/* ── BOTTOM NAV — mobile only ── */}
+      {isMobile && (
+        <nav style={{
+          position:"fixed", bottom:0, left:0, right:0, zIndex:100,
+          background:t.hdr, borderTop:`1px solid ${t.brd}`,
+          display:"flex", justifyContent:"space-around", alignItems:"center",
+          height:56, boxShadow:"0 -2px 12px rgba(0,0,0,.08)",
+        }}>
+          {TABS.map(tb => (
+            <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
+              display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+              padding:"4px 6px", border:"none", background:"transparent",
+              cursor:"pointer", flex:1,
+            }}>
+              <span style={{ fontSize:18, lineHeight:1 }}>{tb.icon}</span>
+              <span style={{
+                fontFamily:FB, fontSize:8, fontWeight:tab===tb.id?700:400,
+                color:tab===tb.id?t.go:t.fa, letterSpacing:".04em",
+                textTransform:"uppercase", whiteSpace:"nowrap",
+              }}>{tb.label.split(" ")[0]}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* ── TICKER ── */}
       <div style={{ background:t.tick, padding:"7px 0", overflow:"hidden" }}>
@@ -2381,7 +2510,7 @@ export default function App() {
       {admin && <AdminPanel onClose={()=>setAdmin(false)} onPublish={publishExtra} t={t} />}
 
       {/* ── MAIN ── */}
-      <main style={{ maxWidth:1200, margin:"0 auto", padding:"28px 20px 60px" }}>
+      <main style={{ maxWidth:1200, margin:"0 auto", padding:isMobile?"16px 12px 80px":"28px 20px 60px" }}>
 
         {/* Extra published content */}
         {extra.length > 0 && (
@@ -2406,7 +2535,7 @@ export default function App() {
         )}
 
         {/* Tab content */}
-        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} />}
+        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} isMobile={isMobile} />}
         {tab==="resumen" && (
           <div>
             <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>

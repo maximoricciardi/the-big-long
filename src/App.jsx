@@ -1532,88 +1532,40 @@ function EquityScreener({ t }) {
    INSTRUMENTOS VIEW — tabs: LECAP | Soberanos | Renta Variable
 ════════════════════════════════════════════════════════════════ */
 /* ── Calcula YTM via bisección numérica (Newton aproximado) ── */
-function calcYTM(price, cashFlows) {
-  // cashFlows: [{t: años, cf: monto}]
-  // precio en mismo $
-  let lo = 0.0001, hi = 2.0, mid = 0.08;
-  for (let iter = 0; iter < 80; iter++) {
-    mid = (lo + hi) / 2;
-    const pv = cashFlows.reduce((s, {t, cf}) => s + cf / Math.pow(1 + mid/2, t*2), 0);
-    if (Math.abs(pv - price) < 0.0001) break;
-    if (pv > price) lo = mid; else hi = mid;
-  }
-  return mid;
-}
-
-/* ── Cash flows simplificados por bono ──────────────────────
-   Estructura real resumida: cupones semestrales + capital residual
-   Fuente: Ministerio de Economía / BYMA (amortization schedules)  */
-const BOND_CF = {
-  // AL29: 8 cuotas sem. cupón 0.5%, amort. desde Jul-27
-  AL29D: { couponRate:0.01,   faceNow:50.00,  semi:6,  amorts:[[5,25],[6,25]] },
-  AL30D: { couponRate:0.0075, faceNow:44.375, semi:8,  amorts:[[6,14.375],[7,15],[8,15]] },
-  AL35D: { couponRate:0.055,  faceNow:82.50,  semi:18, amorts:[[14,25],[15,25],[16,25],[17,25]] },
-  AE38D: { couponRate:0.065,  faceNow:91.375, semi:23, amorts:[[18,22.35],[19,22.35],[20,22.35],[21,22.35]] },
-  AL41D: { couponRate:0.0425, faceNow:100,    semi:30, amorts:[[24,33.33],[26,33.33],[28,33.34]] },
-  AO27D: { couponRate:0.0425, faceNow:70.375, semi:3,  amorts:[[2,35.1875],[3,35.1875]] },
-  AN29D: { couponRate:0.090,  faceNow:100,    semi:7,  amorts:[[6,50],[7,50]] },
-  GD29D: { couponRate:0.01,   faceNow:50.00,  semi:6,  amorts:[[5,25],[6,25]] },
-  GD30D: { couponRate:0.0075, faceNow:44.375, semi:8,  amorts:[[6,14.375],[7,15],[8,15]] },
-  GD35D: { couponRate:0.0388, faceNow:74.125, semi:18, amorts:[[14,25],[15,25],[16,25],[17,25]] },
-  GD38D: { couponRate:0.0125, faceNow:95.625, semi:23, amorts:[[10,4.375],[11,4.375],[12,4.375],[13,4.375],[14,4.375],[15,4.375],[16,4.375],[17,4.375],[18,4.375],[19,4.375],[20,4.375],[21,4.375],[22,4.375],[23,4.375]] },
-  GD41D: { couponRate:0.0425, faceNow:100,    semi:30, amorts:[[24,33.33],[26,33.33],[28,33.34]] },
-  GD46D: { couponRate:0.0500, faceNow:100,    semi:40, amorts:[[30,25],[32,25],[34,25],[36,25]] },
-};
-
-function buildCashFlows(ticker) {
-  const cf = BOND_CF[ticker];
-  if (!cf) return null;
-  const flows = [];
-  const amortMap = {};
-  (cf.amorts||[]).forEach(([per, pct]) => { amortMap[per] = (amortMap[per]||0) + pct; });
-  let remaining = cf.faceNow;
-  for (let i = 1; i <= cf.semi; i++) {
-    const coupon = remaining * cf.couponRate;
-    const amortPct = amortMap[i] || 0;
-    const amort = cf.faceNow * amortPct / 100;
-    remaining = Math.max(0, remaining - amort);
-    flows.push({ t: i/2, cf: coupon + amort });
-  }
-  return flows;
-}
-
 function calcBondMetrics(s, livePrice) {
   const baseP = parseFloat(s.p.replace("$","").replace(",","."));
   const price  = livePrice || baseP;
   const isLive = !!livePrice;
 
-  // Current Yield: cupón anual / precio
-  const baseCYStr = s.cy.replace("%","").replace(",",".");
-  const hasCY = baseCYStr !== "—";
-  const baseCY = hasCY ? parseFloat(baseCYStr)/100 : null;
-  const annualCoupon = hasCY ? baseCY * baseP : null;
-  const newCY = annualCoupon ? (annualCoupon / price * 100) : null;
-
-  // TIR via bisección si tenemos cash flows, sino aproximación por duración
+  // ── TIR por aproximación de duración modificada ───────────────
+  // TIR_live ≈ TIR_base + (P_base - P_live) / (P_base × ModDur)
+  // Estándar de mercado para variaciones de precio < 5-10%
   let newTIR = null;
-  const flows = buildCashFlows(s.t);
-  if (flows && flows.length > 0) {
-    newTIR = calcYTM(price, flows) * 100;
-  } else if (s.tir !== "—") {
+  if (s.tir !== "—") {
     const baseTIR = parseFloat(s.tir.replace("%","").replace(",","."))/100;
-    const modDur  = s.dur / (1 + baseTIR/2);
-    newTIR = (baseTIR + (baseP - price)/(baseP * modDur)) * 100;
+    const modDur  = s.dur / (1 + baseTIR / 2); // duración modificada semestral
+    const dTIR    = (baseP - price) / (baseP * modDur) * 100; // en %
+    newTIR = baseTIR * 100 + dTIR;
   }
 
-  // Paridad = precio / valor técnico implícito
+  // ── Current Yield = cupón anual / precio ─────────────────────
+  // CY_live = CY_base × P_base / P_live  (cupón $ es fijo)
+  let newCY = null;
+  if (s.cy !== "—") {
+    const baseCY = parseFloat(s.cy.replace("%","").replace(",","."))/100;
+    const annualCouponDollar = baseCY * baseP; // cupón anual en $, fijo
+    newCY = (annualCouponDollar / price) * 100;
+  }
+
+  // ── Paridad = precio / valor técnico (VT) ────────────────────
+  // VT es fijo (no depende del precio), P/VT cambia con el precio
   let newPar = null;
   if (s.par !== "—") {
     const basePar  = parseFloat(s.par.replace("%","").replace(",","."))/100;
-    const faceImpl = baseP / basePar;
-    newPar = (price / faceImpl * 100);
+    const vtFixed  = baseP / basePar; // valor técnico fijo
+    newPar = (price / vtFixed) * 100;
   }
 
-  // Variación vs precio base
   const varVsBase = ((price - baseP) / baseP * 100);
 
   return { price, isLive, newTIR, newCY, newPar, varVsBase };
@@ -1688,21 +1640,33 @@ function InstrumentosView({ t }) {
     return () => clearInterval(id);
   }, []);
 
-  // LECAP/BONCAP: precio teórico capitalizado diariamente
-  const calcLECAPLive = (row) => {
-    if (daysSinceBase <= 0) return null;
-    const tem   = parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
-    const pBase = parseFloat(row.pre.replace("$","").replace(/\./g,"").replace(",","."));
-    if (!tem || !pBase) return null;
-    return pBase * Math.pow(1 + tem, daysSinceBase / 30);
-  };
+  // LECAP/BONCAP: cálculo correcto usando VN al vencimiento derivado del rendimiento base
+  // VN_vto = pBase × (1 + r_base) — fijo e independiente del precio de mercado
+  // TEM_live = (VN_vto / pLive)^(30/dias_restantes) - 1
+  const calcLECAPMetrics = (row, g) => {
+    const pBase   = parseFloat(row.pre.replace("$","").replace(/\./g,"").replace(",","."));
+    const rBase   = parseFloat(row.r.replace("%","").replace(",",".")) / 100;
+    const temBase = parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
+    if (!pBase || !rBase || !temBase) return null;
 
-  const calcTEMActual = (pLive, diasRestantes) => {
-    if (!pLive || diasRestantes <= 0) return null;
-    return (Math.pow(100 / pLive, 30 / diasRestantes) - 1) * 100;
-  };
+    const vnVto    = pBase * (1 + rBase);          // valor técnico al vencimiento — fijo
+    const diasBase = g.dias;                        // días al vto al 19-MAR (base)
+    const diasRest = Math.max(1, diasBase - daysSinceBase); // días restantes hoy
 
-  const diasHasta = (vtoStr) => {
+    // precio teórico hoy = capitalización desde precio base
+    const pLive = pBase * Math.pow(1 + temBase, daysSinceBase / 30);
+
+    if (diasRest <= 0) return { pLive, rendimiento:0, tem:0, tna:0, diasRest:0 };
+
+    // rendimiento total desde precio live hasta vto
+    const rendimiento = (vnVto / pLive - 1) * 100;
+    // TEM implícita del mercado hoy
+    const temLive = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
+    // TNA = TEM × 12 (convención mercado ARG para tasa fija)
+    const tnaLive = temLive * 12;
+
+    return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest };
+  };
     const parts = vtoStr.split("/");
     if (parts.length !== 3) return 0;
     const [d, m, y] = parts.map(Number);
@@ -1808,12 +1772,11 @@ function InstrumentosView({ t }) {
                 </tr></thead>
                 <tbody>
                   {LECAP.map((g, i) => g.rows.map((r, j) => {
-                    const pLive   = calcLECAPLive(r);
-                    const diasAct = diasHasta(g.vto);
-                    const temAct  = pLive ? calcTEMActual(pLive, diasAct) : null;
-                    const pBase   = parseFloat(r.pre.replace("$","").replace(/\./g,"").replace(",","."));
-                    const varBase = pLive ? ((pLive - pBase) / pBase * 100) : null;
-                    const isLive  = pLive !== null && daysSinceBase > 0;
+                    const m = calcLECAPMetrics(r, g);
+                    if (!m) return null;
+                    const isLive = daysSinceBase > 0;
+                    const pBase = parseFloat(r.pre.replace("$","").replace(/\./g,"").replace(",","."));
+                    const varBase = ((m.pLive - pBase) / pBase * 100);
                     return (
                       <tr key={`${i}-${j}`} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
                         <Td2 bold>{g.vto}</Td2>
@@ -1824,26 +1787,20 @@ function InstrumentosView({ t }) {
                           </div>
                         </Td2>
                         <Td2 right bold>
-                          {pLive
-                            ? `$${pLive.toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})}`
-                            : r.pre}
+                          ${m.pLive.toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})}
                         </Td2>
-                        <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
-                        <Td2 right color={t.go} bold>
-                          {temAct ? `${(temAct * diasAct / 30).toFixed(2)}%` : r.r}
-                        </Td2>
+                        <Td2 right color={m.diasRest<=30?t.rd:m.diasRest<=90?t.go:t.mu}>{m.diasRest}d</Td2>
+                        <Td2 right color={t.go} bold>{m.rendimiento.toFixed(2)}%</Td2>
                         <Td2 right>
                           <span style={{background:t.goBg,color:t.go,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>
-                            {temAct ? `${(temAct * 12).toFixed(2)}%` : r.tna}
+                            {m.tna.toFixed(2)}%
                           </span>
                         </Td2>
-                        <Td2 right color={t.bl}>
-                          {temAct ? `${temAct.toFixed(2)}%` : r.tem}
-                        </Td2>
+                        <Td2 right color={t.bl}>{m.tem.toFixed(2)}%</Td2>
                         <Td2 right>
-                          {varBase !== null
-                            ? <span style={{fontWeight:600,color:varBase>=0?t.gr:t.rd}}>{varBase>=0?"+":""}{varBase.toFixed(3)}%</span>
-                            : <span style={{color:t.fa}}>—</span>}
+                          <span style={{fontWeight:600,color:varBase>=0?t.gr:t.rd}}>
+                            {varBase>=0?"+":""}{varBase.toFixed(3)}%
+                          </span>
                         </Td2>
                         <Td2 right color={t.mu}>{r.fxbe}</Td2>
                       </tr>

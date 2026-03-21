@@ -32,8 +32,8 @@ const TH = {
   }
 };
 
-const FH = "'Inter',sans-serif";
-const FB = "'Inter',sans-serif";
+const FH = "'IBM Plex Sans',sans-serif";
+const FB = "'IBM Plex Sans',sans-serif";
 
 const CONTACT = {
   name: "Máximo Ricciardi",
@@ -50,7 +50,7 @@ function useFonts(dark) {
     if (!document.getElementById("mr-fonts")) {
       const l = document.createElement("link");
       l.id = "mr-fonts"; l.rel = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap";
+      l.href = "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap";
       document.head.appendChild(l);
     }
     let s = document.getElementById("mr-css");
@@ -1074,6 +1074,7 @@ function EarningsCard({ t }) {
 ════════════════════════════════════════════════════════════════ */
 const EQUITIES = [
   // ── ARGENTINA — ADRs NYSE/NASDAQ · Google Finance 19 MAR ─────
+  {t:"MERV", e:"Índice Merval (BYMA)",       p:2380000, mkt:"ARG",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"MUY FUERTE",sc:null, s1:null,  m1:null,  a1:null,   ytd:null, cur:"ARS"},
   {t:"GGAL", e:"Gpo. Financiero Galicia",  p:49.52,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"MUY FUERTE",sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"BMA",  e:"Banco Macro",              p:78.50,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"ALTA",     val:null,       mom:"MUY FUERTE",sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
   {t:"BBAR", e:"BBVA Argentina",           p:14.10,   mkt:"ARG",tg:null,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:"MEDIA",    val:null,       mom:"FUERTE",    sc:null, s1:null,  m1:null,  a1:null,   ytd:null},
@@ -2580,15 +2581,16 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
         const d1 = await r1.json();
         if (!cancelled && d1.c > 0) setSpy({ price: d1.c, changePct: d1.dp });
 
-        // Merval en USD = Merval ARS (Finnhub: MERV) / MEP en vivo
-        const r2 = await fetch(`https://finnhub.io/api/v1/quote?symbol=MERV&token=${FINNHUB_KEY}`);
+        // Merval en USD = Merval ARS (ArgentinaDatos) / MEP en vivo
+        // ArgentinaDatos provee el índice Merval en pesos directamente
+        const r2 = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
         const d2 = await r2.json();
+        const mervalARS = d2?.valor || d2?.ultimo || (Array.isArray(d2) ? d2[d2.length-1]?.valor : null);
         const mepVenta = mep?.venta;
-        if (!cancelled && d2.c > 0 && mepVenta > 0) {
-          setMervalUSD({ value: Math.round(d2.c / mepVenta), changePct: d2.dp });
-        } else if (!cancelled && d2.c > 0) {
-          // MEP aún no disponible — guardar ARS y calcular después
-          setMervalUSD({ ars: d2.c, changePct: d2.dp, value: null });
+        if (!cancelled && mervalARS > 0 && mepVenta > 0) {
+          setMervalUSD({ value: Math.round(mervalARS / mepVenta), ars: mervalARS, changePct: d2?.variacion ?? null });
+        } else if (!cancelled && mervalARS > 0) {
+          setMervalUSD({ ars: mervalARS, value: null, changePct: null });
         }
 
         if (!cancelled) setChipsStatus("ok");
@@ -3505,11 +3507,11 @@ export default function App() {
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
             <div style={{
-              fontFamily:"'Inter',sans-serif",
+              fontFamily:"'IBM Plex Sans',sans-serif",
               fontSize: isMobile ? 17 : 22,
-              fontWeight: 800,
+              fontWeight: 700,
               color: t.tx,
-              letterSpacing: "-.03em",
+              letterSpacing: "-.02em",
               lineHeight: 1,
             }}>
               The Big Long
@@ -3648,58 +3650,70 @@ export default function App() {
         {tab==="recomendaciones" && <RecomendacionesView t={t} />}
       </main>
 
-      {/* ── FOOTER — ALWAYS VISIBLE — */}
-      <footer style={{ background:t.ft, borderTop:`1px solid ${t.brd}33`, padding:"56px 20px 36px" }}>
+      {/* ── FOOTER ── */}
+      <footer style={{ background:t.ft, padding:"72px 20px 44px" }}>
         <div style={{ maxWidth:1200, margin:"0 auto" }}>
-          {/* Top row */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1px 1fr", gap:0, alignItems:"start", marginBottom:48 }}>
 
-            {/* Brand */}
-            <div style={{ paddingRight:48 }}>
-              <div style={{ marginBottom:20 }}>
-                <div style={{ fontFamily:"'Inter',sans-serif", fontSize:26, fontWeight:800, color:t.ftT, lineHeight:1, letterSpacing:"-.03em" }}>The Big Long</div>
+          {/* Main grid */}
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1.5fr 1fr", gap: isMobile ? 40 : 100, marginBottom:56 }}>
+
+            {/* Left — Brand */}
+            <div>
+              <div style={{ fontFamily:FB, fontSize:30, fontWeight:700, color:t.ftT, letterSpacing:"-.02em", marginBottom:20 }}>
+                The Big Long
               </div>
-              <p style={{ fontFamily:FB, fontSize:13, color:"rgba(255,255,255,.4)", lineHeight:1.8, maxWidth:340 }}>
+              <p style={{ fontFamily:FB, fontSize:14, fontWeight:300, color:"rgba(255,255,255,.36)", lineHeight:1.9, maxWidth:380 }}>
                 Análisis y seguimiento del mercado argentino e internacional. Actualización diaria con datos de renta fija, renta variable, mercado de cambios y contexto macro.
               </p>
             </div>
 
-            {/* Divider */}
-            <div style={{ background:"rgba(255,255,255,.08)", width:1, margin:"0 48px", minHeight:140 }} />
-
-            {/* Contact */}
+            {/* Right — Contact */}
             <div>
-              <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.3)", letterSpacing:".12em", textTransform:"uppercase", marginBottom:20 }}>CONTACTO</div>
-              <div style={{ fontFamily:FB, fontSize:22, fontWeight:700, color:t.ftT, marginBottom:4 }}>{CONTACT.name}</div>
-              <div style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.45)", marginBottom:28, letterSpacing:".02em" }}>{CONTACT.title}</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              <div style={{ fontFamily:FB, fontSize:10, fontWeight:500, color:"rgba(255,255,255,.22)", letterSpacing:".2em", textTransform:"uppercase", marginBottom:28 }}>
+                CONTACTO
+              </div>
+              <div style={{ fontFamily:FB, fontSize:21, fontWeight:600, color:t.ftT, marginBottom:6 }}>
+                {CONTACT.name}
+              </div>
+              <div style={{ fontFamily:FB, fontSize:13, fontWeight:300, color:"rgba(255,255,255,.32)", marginBottom:32 }}>
+                {CONTACT.title}
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
                 <a href={`tel:${CONTACT.phone}`} style={{
                   display:"flex", alignItems:"center", gap:12,
-                  fontFamily:FB, fontSize:14, color:t.go,
-                  textDecoration:"none", fontWeight:500,
-                }}>
-                  <span style={{ fontSize:16 }}>📞</span> {CONTACT.phone}
+                  fontFamily:FB, fontSize:14, fontWeight:500,
+                  color:t.go, textDecoration:"none", transition:"opacity .15s",
+                }}
+                onMouseEnter={e=>e.currentTarget.style.opacity=".7"}
+                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                  <span style={{ fontSize:14, opacity:.6 }}>📞</span> {CONTACT.phone}
                 </a>
                 <a href={`mailto:${CONTACT.email}`} style={{
                   display:"flex", alignItems:"center", gap:12,
-                  fontFamily:FB, fontSize:14, color:t.go,
-                  textDecoration:"none", fontWeight:500,
-                }}>
-                  <span style={{ fontSize:16 }}>✉️</span> {CONTACT.email}
+                  fontFamily:FB, fontSize:14, fontWeight:500,
+                  color:t.go, textDecoration:"none", transition:"opacity .15s",
+                }}
+                onMouseEnter={e=>e.currentTarget.style.opacity=".7"}
+                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                  <span style={{ fontSize:14, opacity:.6 }}>✉️</span> {CONTACT.email}
                 </a>
               </div>
             </div>
           </div>
 
-          {/* Bottom legal */}
-          <div style={{ borderTop:"1px solid rgba(255,255,255,.08)", paddingTop:24, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
-            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.25)", lineHeight:1.7, maxWidth:580 }}>
+          {/* Divider */}
+          <div style={{ height:1, background:"rgba(255,255,255,.06)", marginBottom:28 }} />
+
+          {/* Bottom row */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+            <p style={{ fontFamily:FB, fontSize:11, fontWeight:300, color:"rgba(255,255,255,.18)", lineHeight:1.8, maxWidth:560 }}>
               La información publicada tiene carácter exclusivamente informativo. No constituye asesoramiento de inversión, recomendación de compra o venta de valores, ni oferta pública. Invertir implica riesgos.
             </p>
-            <span style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.2)", whiteSpace:"nowrap" }}>
+            <span style={{ fontFamily:FB, fontSize:11, fontWeight:400, color:"rgba(255,255,255,.15)", whiteSpace:"nowrap" }}>
               Fundada en marzo 2026
             </span>
           </div>
+
         </div>
       </footer>
 

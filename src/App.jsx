@@ -2183,42 +2183,17 @@ function InstrumentosView({ t }) {
 /* ════════════════════════════════════════════════════════════════
    MERCADOS VIEW — LIVE QUOTES (dolarapi.com + argentinadatos.com)
 ════════════════════════════════════════════════════════════════ */
-function MercadosView({ dolar, riesgoPais, fxError, t }) {
+function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
   const cMap = {
     blue:{bg:t.blBg,ac:t.bl}, gold:{bg:t.goBg,ac:t.go}, green:{bg:t.grBg,ac:t.gr},
     red:{bg:t.rdBg,ac:t.rd}, purple:{bg:t.puBg,ac:t.pu}, gray:{bg:t.alt,ac:t.mu},
   };
 
-  // ── Live commodities (Finnhub) ─────────────────────────────
-  const [gold,  setGold]  = useState(null); // { price, changePct }
-  const [brent, setBrent] = useState(null); // { price, changePct }
-  const [mervalARS, setMervalARS] = useState(null); // valor índice ARS
+  // Use liveMarket from App (already fetched globally)
+  const gold     = liveMarket.gold;
+  const brent    = liveMarket.brent;
+  const mervalARS= liveMarket.mervalARS;
 
-  useEffect(() => {
-    let cancelled = false;
-    const fetchCommodities = async () => {
-      try {
-        // Gold — GLD ETF (proxy más líquido)
-        const rg = await fetch(`https://finnhub.io/api/v1/quote?symbol=GLD&token=${FINNHUB_KEY}`);
-        const dg = await rg.json();
-        if (!cancelled && dg.c > 0) setGold({ price: dg.c, changePct: dg.dp });
-
-        // Brent — BNO ETF (United States Brent Oil Fund)
-        const rb = await fetch(`https://finnhub.io/api/v1/quote?symbol=BNO&token=${FINNHUB_KEY}`);
-        const db = await rb.json();
-        if (!cancelled && db.c > 0) setBrent({ price: db.c, changePct: db.dp });
-
-        // Merval ARS — ArgentinaDatos
-        const rm = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
-        const dm = await rm.json();
-        const val = dm?.valor || dm?.ultimo || (Array.isArray(dm) ? dm[dm.length-1]?.valor : null);
-        if (!cancelled && val > 0) setMervalARS({ value: val, changePct: dm?.variacion ?? null });
-      } catch {}
-    };
-    fetchCommodities();
-    const id = setInterval(fetchCommodities, 60_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
 
   // ── LECAP mayor TNA ≤ 6 meses ─────────────────────────────
   const bestLECAP = (() => {
@@ -2636,54 +2611,18 @@ function NoticiasView({ t }) {
 /* ════════════════════════════════════════════════════════════════
    INICIO VIEW — Minimal, clean, great UX
 ════════════════════════════════════════════════════════════════ */
-function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
+function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveMarket={} }) {
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
 
-  // ── Live market chips ─────────────────────────────────────────
-  const [spy,       setSpy]       = useState(null); // { price, changePct }
-  const [mervalUSD, setMervalUSD] = useState(null); // valor en USD
-  const [chipsStatus, setChipsStatus] = useState("loading");
+  // Derive chips from liveMarket (fetched globally in App)
+  const spy       = liveMarket.spy;
+  const mervalARS = liveMarket.mervalARS;
+  const mervalUSD = (mervalARS?.value && mep?.venta)
+    ? { value: Math.round(mervalARS.value / mep.venta), changePct: mervalARS.changePct }
+    : null;
+  const chipsStatus = (spy || mervalARS) ? "ok" : "loading";
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchChips = async () => {
-      try {
-        // SPY — Finnhub
-        const r1 = await fetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB_KEY}`);
-        const d1 = await r1.json();
-        if (!cancelled && d1.c > 0) setSpy({ price: d1.c, changePct: d1.dp });
-
-        // Merval en USD = Merval ARS (ArgentinaDatos) / MEP en vivo
-        // ArgentinaDatos provee el índice Merval en pesos directamente
-        const r2 = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
-        const d2 = await r2.json();
-        const mervalARS = d2?.valor || d2?.ultimo || (Array.isArray(d2) ? d2[d2.length-1]?.valor : null);
-        const mepVenta = mep?.venta;
-        if (!cancelled && mervalARS > 0 && mepVenta > 0) {
-          setMervalUSD({ value: Math.round(mervalARS / mepVenta), ars: mervalARS, changePct: d2?.variacion ?? null });
-        } else if (!cancelled && mervalARS > 0) {
-          setMervalUSD({ ars: mervalARS, value: null, changePct: null });
-        }
-
-        if (!cancelled) setChipsStatus("ok");
-      } catch {
-        if (!cancelled) setChipsStatus("error");
-      }
-    };
-
-    fetchChips();
-    const id = setInterval(fetchChips, 60_000); // cada 60 segundos
-    return () => { cancelled = true; clearInterval(id); };
-  }, [mep?.venta]);
-
-  // Si MEP llega después que el MERV, recalculamos USD
-  useEffect(() => {
-    if (mervalUSD?.ars && mep?.venta > 0) {
-      setMervalUSD(prev => ({ ...prev, value: Math.round(prev.ars / mep.venta) }));
-    }
-  }, [mep?.venta]);
 
   const LiveChip = ({ label, value, sub, color, change, loading }) => (
     <div style={{
@@ -3460,6 +3399,8 @@ export default function App() {
   const [dolar, setDolar] = useState(null);
   const [riesgoPais, setRiesgoPais] = useState(null);
   const [fxError, setFxError] = useState(false);
+  // ── Live market data (shared across ticker + components) ──
+  const [liveMarket, setLiveMarket] = useState({ spy:null, gold:null, brent:null, mervalARS:null });
   const winW = useWindowSize();
   const isMobile = winW < 640;
   const clock = useClock();
@@ -3523,6 +3464,41 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // ── Live: SPY, Oro (GLD), Brent (BNO), Merval ARS — refresh 60s ──
+  useEffect(() => {
+    let cancelled = false;
+    const fetchMarket = async () => {
+      const updates = {};
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB_KEY}`);
+        const d = await r.json();
+        if (d.c > 0) updates.spy = { price: d.c, changePct: d.dp };
+      } catch {}
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=GLD&token=${FINNHUB_KEY}`);
+        const d = await r.json();
+        if (d.c > 0) updates.gold = { price: d.c, changePct: d.dp };
+      } catch {}
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=BNO&token=${FINNHUB_KEY}`);
+        const d = await r.json();
+        if (d.c > 0) updates.brent = { price: d.c, changePct: d.dp };
+      } catch {}
+      try {
+        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
+        const d = await r.json();
+        const val = d?.valor || d?.ultimo || (Array.isArray(d) ? d[d.length-1]?.valor : null);
+        if (val > 0) updates.mervalARS = { value: val, changePct: d?.variacion ?? null };
+      } catch {}
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setLiveMarket(prev => ({ ...prev, ...updates }));
+      }
+    };
+    fetchMarket();
+    const id = setInterval(fetchMarket, 60_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   const handleLogoClick = () => {
     setLogoClicks(n => { const next = n+1; if(next>=5){ setAdmin(true); return 0; } return next; });
   };
@@ -3553,22 +3529,28 @@ export default function App() {
   const bl  = dolar?.blue?.venta;
   const mep = dolar?.bolsa?.venta;
   const ccl = dolar?.ccl?.venta;
-  const bBlueStr = (of && bl) ? `Brecha Blue ${(((bl/of)-1)*100).toFixed(1)}%` : "Brecha Blue —";
-  const bMEPStr  = (of && mep) ? `Brecha MEP ${(((mep/of)-1)*100).toFixed(1)}%` : "Brecha MEP —";
-  const rpStr    = riesgoPais ? `Riesgo País ${riesgoPais.valor} pb` : "Riesgo País 610 pb";
+
+  // ── Última noticia para el ticker ──────────────────────────
+  const lastNews = NOTICIAS[0];
+  const newsSnippet = lastNews ? `📰 ${lastNews.titulo.slice(0, 60)}${lastNews.titulo.length > 60 ? "…" : ""}` : "";
+
+  // ── Ticker items — 100% live ────────────────────────────────
+  const fmt2 = (v, prefix="$") => v ? `${prefix}${Math.round(v).toLocaleString("es-AR")}` : "—";
+  const fmtPct = (v) => v != null ? ` (${v >= 0 ? "+" : ""}${v.toFixed(2)}%)` : "";
 
   const tickerItems = [
-    dolar?.oficial   ? `USD Oficial $${Math.round(of)}` : "USD Oficial —",
-    dolar?.blue      ? `USD Blue $${Math.round(bl)}` : "USD Blue —",
-    dolar?.bolsa     ? `USD MEP $${Math.round(mep)}` : "USD MEP —",
-    dolar?.ccl       ? `USD CCL $${Math.round(ccl)}` : "USD CCL —",
-    bBlueStr, bMEPStr, rpStr,
-    "BCRA compras USD 58M · Dólar mayorista $1.400", "Merval USD +1,4%", "Bonos USD a la baja · presión EM",
-    "Desempleo Q4 7,5% · sube +0,9 p.p.", "YPF · fallo suspendido · Cámara NY",
-    "Inflación feb. 1,0%", "Superávit primario 0,4% PBI",
-  ].join(" · ");
+    `USD Oficial ${fmt2(of)}`,
+    `USD MEP ${fmt2(mep)}`,
+    `USD Blue ${fmt2(bl)}`,
+    liveMarket.spy    ? `SPY USD ${liveMarket.spy.price.toFixed(2)}${fmtPct(liveMarket.spy.changePct)}`       : "SPY —",
+    liveMarket.mervalARS ? `Merval ${liveMarket.mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0})} ARS${fmtPct(liveMarket.mervalARS.changePct)}` : "Merval —",
+    liveMarket.gold   ? `Oro (GLD) USD ${liveMarket.gold.price.toFixed(2)}${fmtPct(liveMarket.gold.changePct)}`   : "Oro —",
+    liveMarket.brent  ? `Brent (BNO) USD ${liveMarket.brent.price.toFixed(2)}${fmtPct(liveMarket.brent.changePct)}` : "Brent —",
+    riesgoPais ? `Riesgo País ${riesgoPais.valor} pb` : "Riesgo País —",
+    newsSnippet,
+  ].filter(Boolean).join("  ·  ");
 
-  const tickerFull = `${tickerItems} · ${tickerItems} ·`;
+  const tickerFull = `${tickerItems}  ·  ${tickerItems}  ·  `;
 
   return (
     <div style={{ fontFamily:FB, background:t.bg, minHeight:"100vh", color:t.tx, transition:"background .3s, color .3s",
@@ -3697,7 +3679,7 @@ export default function App() {
         )}
 
         {/* Tab content */}
-        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} isMobile={isMobile} clock={clock} />}
+        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} isMobile={isMobile} clock={clock} liveMarket={liveMarket} />}
         {tab==="resumen" && (
           <div>
             <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
@@ -3718,7 +3700,7 @@ export default function App() {
           </div>
         )}
         {tab==="noticias" && <NoticiasView t={t} />}
-        {tab==="mercados" && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} />}
+        {tab==="mercados" && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} liveMarket={liveMarket} t={t} />}
         {tab==="informes" && <InformesView t={t} />}
         {tab==="instrumentos" && <InstrumentosView t={t} />}
         {tab==="recomendaciones" && <RecomendacionesView t={t} />}

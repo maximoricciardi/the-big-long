@@ -975,7 +975,7 @@ const EQUITIES = [
   {t:"NBIS", e:"Nebius Group",         p:117.62,  mkt:"US", tg:166.39, an:"BUY", fpe:0.00, fpg:0.00, rw:-9.14, ma:30.09,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"MUY FUERTE",sc:60.61,s1:4.13, m1:15.54, a1:349.36,ytd:45.18},
   {t:"NU",   e:"Nu Holdings",          p:13.94,   mkt:"US", tg:19.62,  an:"BUY", fpe:15.97,fpg:0.45, rw:-10.09,ma:-7.26,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"DÉBIL",     sc:41.62,s1:0.36, m1:-18.81,a1:22.28, ytd:-15.41},
   {t:"BITF", e:"Bitfarms Ltd.",        p:2.22,    mkt:"US", tg:5.64,   an:"BUY", fpe:0.00, fpg:0.00, rw:-19.33,ma:3.84,   up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"DÉBIL",     sc:40.64,s1:-3.12,m1:5.34,  a1:108.65,ytd:1.70},
-  {t:"BRKb", e:"Berkshire Hathaway B", p:480.94,  mkt:"US", tg:529.50, an:"BUY", fpe:23.07,fpg:8.30, rw:-6.44, ma:-2.04,  up:"MEDIO",    cal:"BAJA",     val:"CARA",     mom:"DÉBIL",     sc:30.89,s1:-1.81,m1:-3.59, a1:-9.00, ytd:-4.21},
+  {t:"BRK.B", e:"Berkshire Hathaway B", p:480.94,  mkt:"US", tg:529.50, an:"BUY", fpe:23.07,fpg:8.30, rw:-6.44, ma:-2.04,  up:"MEDIO",    cal:"BAJA",     val:"CARA",     mom:"DÉBIL",     sc:30.89,s1:-1.81,m1:-3.59, a1:-9.00, ytd:-4.21},
   // ── ETFs SECTORIALES ────────────────────────────────────────
   {t:"SPY",  e:"S&P 500 ETF",          p:648.57,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:0.93, m1:null,  a1:null,   ytd:null},
   {t:"QQQ",  e:"Nasdaq 100 ETF",       p:585.72,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:1.18, m1:null,  a1:null,   ytd:null},
@@ -1239,7 +1239,7 @@ function EquityScreener({ t }) {
                     <td style={{ padding:"9px 8px", textAlign:"right", whiteSpace:"nowrap" }}>
                       {(() => {
                         const live = livePrices[e.t];
-                        const isLive = live && (e.mkt === "US" || e.mkt === "ETF");
+                        const isLive = !!live;
                         const displayPrice = isLive ? live.price : e.p;
                         const pct = isLive ? live.changePct : null;
                         return (

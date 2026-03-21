@@ -1000,357 +1000,519 @@ const upColor   = {"MUY ALTO":"green",ALTO:"blue",MEDIO:"gold",BAJO:"gray"};
 const FINNHUB_KEY = "d6uv5a9r01qig5460670d6uv5a9r01qig546067g";
 
 function EquityScreener({ t }) {
-  const [sortCol, setSortCol] = useState("mkt");
-  const [sortDir, setSortDir] = useState(1);
-  const [fAn,   setFAn]   = useState("Todos");
+  // ── Filtros & sort ────────────────────────────────────────────
+  const [sortCol, setSortCol] = useState("sc");
+  const [sortDir, setSortDir] = useState(-1);
   const [fMkt,  setFMkt]  = useState("Todos");
   const [fCal,  setFCal]  = useState("Todas");
   const [fVal,  setFVal]  = useState("Todas");
   const [fMom,  setFMom]  = useState("Todos");
-  const [fUp,   setFUp]   = useState("Todos");
+  const [fAn,   setFAn]   = useState("Todos");
   const [search, setSearch] = useState("");
-  const [livePrices, setLivePrices] = useState({});
-  const [liveStatus, setLiveStatus] = useState("loading"); // loading | ok | error
+  const [viewMode, setViewMode] = useState("perf"); // "perf" | "fund"
 
-  // Fetch live prices from Finnhub — incremental updates, throttled for free tier
+  // ── Live data ─────────────────────────────────────────────────
+  const [livePrices,  setLivePrices]  = useState({});
+  const [liveHistory, setLiveHistory] = useState({});
+  const [liveStatus,  setLiveStatus]  = useState("loading");
+  const [histStatus,  setHistStatus]  = useState("loading");
+  const [quotesComplete, setQuotesComplete] = useState(false);
+  const livePricesRef = useRef({});
+
+  // Phase 1 — Quotes (precio en vivo + cambio 1D)
   useEffect(() => {
     let cancelled = false;
-    const US_TICKERS = EQUITIES.filter(e => e.mkt === "US" || e.mkt === "ETF" || e.mkt === "ARG").map(e => e.t);
-
-    const fetchAll = async () => {
-      let firstHit = false;
-      for (let i = 0; i < US_TICKERS.length; i++) {
+    const tickers = EQUITIES.map(e => e.t);
+    let firstHit = false;
+    const run = async () => {
+      for (let i = 0; i < tickers.length; i++) {
         if (cancelled) return;
-        const ticker = US_TICKERS[i];
         try {
-          const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
-          const data = await res.json();
-          if (data.c && data.c > 0) {
-            // Update prices incrementally — each ticker shows as soon as it arrives
-            setLivePrices(prev => ({ ...prev, [ticker]: { price: data.c, change: data.d, changePct: data.dp } }));
+          const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${tickers[i]}&token=${FINNHUB_KEY}`);
+          const d = await r.json();
+          if (d.c && d.c > 0) {
+            const entry = { price: d.c, change: d.d, changePct: d.dp };
+            livePricesRef.current = { ...livePricesRef.current, [tickers[i]]: entry };
+            setLivePrices(prev => ({ ...prev, [tickers[i]]: entry }));
             if (!firstHit) { firstHit = true; setLiveStatus("ok"); }
           }
-        } catch { /* skip failed tickers */ }
-        // 800ms entre requests — ~75 req/min, dentro del límite gratuito
-        if (i < US_TICKERS.length - 1) await new Promise(r => setTimeout(r, 800));
+        } catch {}
+        if (i < tickers.length - 1) await new Promise(r => setTimeout(r, 820));
       }
-      if (!cancelled && !firstHit) setLiveStatus("error");
+      if (!cancelled) {
+        if (!firstHit) setLiveStatus("error");
+        setQuotesComplete(true);
+      }
     };
-
-    fetchAll();
+    run();
     return () => { cancelled = true; };
   }, []);
 
+  // Phase 2 — Candles semanales (1S, 1M, YTD, 52H) — arranca cuando terminan los quotes
+  useEffect(() => {
+    if (!quotesComplete) return;
+    let cancelled = false;
+    const tickers = EQUITIES.map(e => e.t);
+    const NOW     = Math.floor(Date.now() / 1000);
+    const W52_AGO = NOW - 366 * 86400;
+    const JAN1    = 1735689600; // 1 ene 2026
+    const M1_AGO  = NOW - 30  * 86400;
+    const W1_AGO  = NOW - 7   * 86400;
+
+    const findClose = (times, closes, targetTs) => {
+      for (let j = 1; j < times.length; j++) {
+        if (times[j] > targetTs) return closes[j - 1];
+      }
+      return closes[closes.length - 1];
+    };
+
+    const run = async () => {
+      let firstHit = false;
+      for (let i = 0; i < tickers.length; i++) {
+        if (cancelled) return;
+        try {
+          const url = `https://finnhub.io/api/v1/stock/candle?symbol=${tickers[i]}&resolution=W&from=${W52_AGO}&to=${NOW}&token=${FINNHUB_KEY}`;
+          const r = await fetch(url);
+          const d = await r.json();
+          if (d.s === "ok" && d.c?.length > 1) {
+            const closes = d.c, times = d.t;
+            const cur    = livePricesRef.current[tickers[i]]?.price ?? closes[closes.length - 1];
+            const hi52   = Math.max(...closes);
+            const s1Base = findClose(times, closes, W1_AGO);
+            const m1Base = findClose(times, closes, M1_AGO);
+            const ytdBase= findClose(times, closes, JAN1);
+            setLiveHistory(prev => ({
+              ...prev,
+              [tickers[i]]: {
+                s1:      (cur - s1Base)  / s1Base  * 100,
+                m1:      (cur - m1Base)  / m1Base  * 100,
+                ytd:     (cur - ytdBase) / ytdBase * 100,
+                distHi52:(cur - hi52)    / hi52    * 100,
+              }
+            }));
+            if (!firstHit) { firstHit = true; setHistStatus("ok"); }
+          }
+        } catch {}
+        if (i < tickers.length - 1) await new Promise(r => setTimeout(r, 950));
+      }
+      if (!cancelled && !firstHit) setHistStatus("error");
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [quotesComplete]);
+
+  // ── Helpers ───────────────────────────────────────────────────
+  const getUpCategory = (uPct) => {
+    if (uPct === null) return null;
+    if (uPct > 40)  return "MUY ALTO";
+    if (uPct > 20)  return "ALTO";
+    if (uPct > 5)   return "MEDIO";
+    return "BAJO";
+  };
+
+  // Merge live data into equities for filtering & sorting
+  const equitiesLive = EQUITIES.map(e => {
+    const lp   = livePrices[e.t];
+    const hist = liveHistory[e.t];
+    const price = lp?.price ?? e.p;
+    const upside = e.tg ? (e.tg / price - 1) * 100 : null;
+    return {
+      ...e,
+      p:    price,
+      _1d:  lp?.changePct ?? null,
+      s1:   hist?.s1   ?? e.s1,
+      m1:   hist?.m1   ?? e.m1,
+      ytd:  hist?.ytd  ?? e.ytd,
+      _d52: hist?.distHi52 ?? e.ma,
+      _up:  upside,
+      up:   upside !== null ? getUpCategory(upside) : e.up,
+    };
+  });
 
   const sort = (col) => {
     if (sortCol === col) setSortDir(d => -d);
-    else { setSortCol(col); setSortDir(1); }
+    else { setSortCol(col); setSortDir(col === "sc" ? -1 : 1); }
   };
 
-  const filtered = EQUITIES.filter(e => {
-    if (fMkt !== "Todos"  && e.mkt !== fMkt) return false;
-    if (fAn  !== "Todos"  && e.an  !== fAn)  return false;
-    if (fCal !== "Todas"  && e.cal !== fCal) return false;
-    if (fVal !== "Todas"  && e.val !== fVal) return false;
-    if (fMom !== "Todos"  && e.mom !== fMom) return false;
-    if (fUp  !== "Todos"  && e.up  !== fUp)  return false;
-    if (search && !e.t.toLowerCase().includes(search.toLowerCase()) && !e.e.toLowerCase().includes(search.toLowerCase())) return false;
+  const filtered = equitiesLive.filter(e => {
+    if (fMkt !== "Todos" && e.mkt !== fMkt) return false;
+    if (fAn  !== "Todos" && e.an  !== fAn)  return false;
+    if (fCal !== "Todas" && e.cal !== fCal) return false;
+    if (fVal !== "Todas" && e.val !== fVal) return false;
+    if (fMom !== "Todos" && e.mom !== fMom) return false;
+    if (search && !e.t.toLowerCase().includes(search.toLowerCase())
+               && !e.e.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   }).sort((a, b) => {
     const av = a[sortCol], bv = b[sortCol];
     if (av === null && bv === null) return 0;
     if (av === null) return 1;
     if (bv === null) return -1;
+    if (typeof av === "string") return av.localeCompare(bv) * sortDir;
     return (av > bv ? 1 : -1) * sortDir;
   });
 
-  const getLivePrice = (e) => {
-    const live = livePrices[e.t];
-    if (live) return live.price;
-    return e.p;
-  };
-  const updown = (e) => {
-    const price = getLivePrice(e);
-    return e.tg && price ? (((e.tg / price) - 1) * 100).toFixed(1) : null;
-  };
-
+  // ── Sub-helpers ───────────────────────────────────────────────
   const mktBadge = {
-    ARG:{ bg:"#FEF3C7", tx:"#92400E", label:"🇦🇷 ARG" },
-    US: { bg:"#DBEAFE", tx:"#1E40AF", label:"🇺🇸 US"  },
-    ETF:{ bg:"#EDE9FE", tx:"#6D28D9", label:"📦 ETF"  },
+    ARG:{ bg:"#FEF3C7", tx:"#92400E", label:"🇦🇷" },
+    US: { bg:"#DBEAFE", tx:"#1E40AF", label:"🇺🇸" },
+    ETF:{ bg:"#EDE9FE", tx:"#6D28D9", label:"📦"  },
   };
 
-  const Th = ({ label, col, tip, right }) => (
-    <th onClick={() => sort(col)} style={{
-      padding:"9px 10px", textAlign:right?"right":"left",
-      fontSize:10, fontWeight:700, color:sortCol===col?t.go:t.mu,
-      letterSpacing:".07em", textTransform:"uppercase",
-      borderBottom:`2px solid ${t.brd}`, cursor:"pointer",
-      whiteSpace:"nowrap", background:t.alt,
-      userSelect:"none",
-    }} title={tip}>
-      {label} {sortCol===col ? (sortDir===1?"↑":"↓") : ""}
-    </th>
+  const perfColor = (v) => v === null ? t.fa : v >= 0 ? t.gr : t.rd;
+  const perfFmt   = (v) => v === null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+
+  // Skeleton for cells still loading
+  const Skel = () => (
+    <div style={{
+      width:40, height:9, borderRadius:4,
+      background:t.brd, opacity:0.6,
+      animation:"blink 1.4s ease-in-out infinite",
+    }}/>
   );
 
-  const Flt = ({ label, opts, val, set }) => (
-    <div style={{ display:"flex", flexDirection:"column", gap:3, minWidth:100 }}>
-      <span style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".07em" }}>{label}</span>
-      <select value={val} onChange={e=>set(e.target.value)} style={{
-        fontFamily:FB, fontSize:11, padding:"5px 8px", borderRadius:7,
-        border:`1px solid ${t.brd}`, background:t.srf, color:t.tx, cursor:"pointer",
-      }}>
-        {opts.map(o=><option key={o}>{o}</option>)}
-      </select>
-    </div>
+  const PerfCell = ({ val, loading }) => (
+    <td style={{ padding:"7px 10px", textAlign:"right", whiteSpace:"nowrap" }}>
+      {loading ? <Skel /> :
+        <span style={{ fontSize:12, fontWeight:600, color:perfColor(val) }}>
+          {perfFmt(val)}
+        </span>
+      }
+    </td>
   );
+
+  const Th = ({ label, col, tip, right, center }) => {
+    const active = sortCol === col;
+    return (
+      <th onClick={() => sort(col)} title={tip} style={{
+        padding:"9px 10px", textAlign:center?"center":right?"right":"left",
+        fontSize:9, fontWeight:700,
+        color: active ? t.go : t.mu,
+        letterSpacing:".07em", textTransform:"uppercase",
+        borderBottom:`2px solid ${t.brd}`,
+        background:t.alt, cursor:"pointer", whiteSpace:"nowrap",
+        userSelect:"none", position:"sticky", top:0, zIndex:5,
+        transition:"color .15s",
+      }}>
+        {label}{active ? (sortDir === 1 ? " ↑" : " ↓") : ""}
+      </th>
+    );
+  };
+
+  // Pill filter button
+  const Pill = ({ label, active, onClick, color }) => (
+    <button onClick={onClick} style={{
+      padding:"5px 12px", borderRadius:20, fontFamily:FB, fontSize:11,
+      fontWeight:active?700:400, cursor:"pointer", transition:"all .15s",
+      border:`1.5px solid ${active?(color||t.go)+"88":(t.brd)}`,
+      background:active?(color||t.go)+"18":"transparent",
+      color:active?(color||t.go):t.mu,
+    }}>{label}</button>
+  );
+
+  const clearAll = () => {
+    setFMkt("Todos"); setFCal("Todas"); setFVal("Todas");
+    setFMom("Todos"); setFAn("Todos"); setSearch("");
+  };
+  const hasFilters = fMkt!=="Todos"||fCal!=="Todas"||fVal!=="Todas"||fMom!=="Todos"||fAn!=="Todos"||search;
 
   return (
-    <div>
-      {/* Live status + Disclaimer */}
-      <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap", alignItems:"stretch" }}>
-        <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:8, padding:"10px 16px", fontFamily:FB, fontSize:11, color:t.rd, lineHeight:1.6, flex:1 }}>
-          ⚠️ Uso interno · Solo referencia. No constituye recomendación de inversión. Targets y campos de research: Máximo Ricciardi.
-        </div>
+    <div className="fade-up">
+
+      {/* ── STATUS BAR ────────────────────────────────────────── */}
+      <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        {/* Prices */}
         <div style={{
-          borderRadius:8, padding:"10px 16px", fontFamily:FB, fontSize:11, lineHeight:1.6,
-          border:`1px solid ${liveStatus==="ok"?t.grAcc+"66":liveStatus==="error"?t.rdAcc+"44":t.brd}`,
+          display:"flex", alignItems:"center", gap:7, padding:"7px 14px",
+          borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap",
+          border:`1px solid ${liveStatus==="ok"?t.grAcc+"55":liveStatus==="error"?t.rdAcc+"44":t.brd}`,
           background:liveStatus==="ok"?t.grBg:liveStatus==="error"?t.rdBg:t.alt,
           color:liveStatus==="ok"?t.gr:liveStatus==="error"?t.rd:t.mu,
-          display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap",
         }}>
-          {liveStatus==="loading" && <><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#94a3b8",animation:"blink 1s infinite"}} />Cargando precios...</>}
-          {liveStatus==="ok"     && <><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}} />Precios en vivo · Finnhub<br/><span style={{opacity:.7,fontSize:9}}>US + ETFs en tiempo real · ARG: cierre 20 MAR</span></>}
-          {liveStatus==="error"  && <><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#ef4444"}} />Sin conexión a precios en vivo</>}
+          <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", flexShrink:0,
+            background:liveStatus==="ok"?"#22c55e":liveStatus==="error"?"#ef4444":"#94a3b8",
+            boxShadow:liveStatus==="ok"?"0 0 6px #22c55e":"none",
+            animation:liveStatus==="loading"?"blink 1s infinite":"none",
+          }}/>
+          {liveStatus==="loading" && "Cargando precios..."}
+          {liveStatus==="ok"      && `Precios en vivo · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`}
+          {liveStatus==="error"   && "Sin conexión · Precios estáticos"}
+        </div>
+        {/* History */}
+        <div style={{
+          display:"flex", alignItems:"center", gap:7, padding:"7px 14px",
+          borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap",
+          border:`1px solid ${histStatus==="ok"?t.blBg:t.brd}`,
+          background:histStatus==="ok"?t.blBg:t.alt,
+          color:histStatus==="ok"?t.bl:t.mu,
+        }}>
+          <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", flexShrink:0,
+            background:histStatus==="ok"?"#3b82f6":histStatus==="error"?"#ef4444":"#94a3b8",
+            animation:(histStatus==="loading"||(!quotesComplete))?"blink 1s infinite":"none",
+          }}/>
+          {!quotesComplete         && "Historial: esperando precios..."}
+          {quotesComplete && histStatus==="loading" && `Historial: cargando... ${Object.keys(liveHistory).length}/${EQUITIES.length}`}
+          {histStatus==="ok"       && `1S · 1M · YTD · 52H en vivo · ${Object.keys(liveHistory).length}/${EQUITIES.length}`}
+          {histStatus==="error"    && "Historial: usando datos estáticos"}
+        </div>
+        <div style={{ flex:1, fontFamily:FB, fontSize:10, color:t.fa, textAlign:"right" }}>
+          ⚠️ Uso interno · No constituye asesoramiento de inversión
         </div>
       </div>
 
-      {/* Contadores por mercado */}
-      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
-        {["ARG","US","ETF"].map(m => {
-          const cnt = EQUITIES.filter(e=>e.mkt===m).length;
-          const mb = mktBadge[m];
-          return (
-            <button key={m} onClick={()=>setFMkt(fMkt===m?"Todos":m)} style={{
-              background: fMkt===m ? mb.bg : t.alt,
-              border:`1.5px solid ${fMkt===m?mb.tx+"66":t.brd}`,
-              borderRadius:8, padding:"6px 14px", fontFamily:FB, fontSize:11,
-              fontWeight:fMkt===m?700:400, color:fMkt===m?mb.tx:t.mu, cursor:"pointer",
-            }}>
-              {mb.label} <span style={{ opacity:.7 }}>({cnt})</span>
-            </button>
-          );
-        })}
-        <span style={{ fontFamily:FB, fontSize:11, color:t.fa, alignSelf:"center", marginLeft:4 }}>
-          Total: {EQUITIES.length} instrumentos
-        </span>
-      </div>
-
-      {/* Filtros */}
-      <Card t={t} style={{ marginBottom:16 }}>
-        <div style={{ padding:"14px 18px" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:14 }}>
-            <div style={{ width:3, height:16, background:t.go, borderRadius:2 }} />
-            <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".1em" }}>
-              FILTROS — {filtered.length} de {EQUITIES.length} resultados
-            </span>
+      {/* ── FILTROS ───────────────────────────────────────────── */}
+      <div style={{ marginBottom:14 }}>
+        {/* Búsqueda + mercado */}
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", marginBottom:8 }}>
+          <div style={{ position:"relative", flexShrink:0 }}>
+            <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu, fontSize:13 }}>🔍</span>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker o empresa..."
+              style={{
+                fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px",
+                borderRadius:10, border:`1.5px solid ${t.brd}`,
+                background:t.srf, color:t.tx, width:200, outline:"none",
+              }}
+              onFocus={e=>e.target.style.borderColor=t.go}
+              onBlur={e=>e.target.style.borderColor=t.brd}
+            />
           </div>
-          <div style={{ display:"flex", gap:14, flexWrap:"wrap", alignItems:"flex-end" }}>
-            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-              <span style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".07em" }}>Buscar</span>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Ticker o empresa..."
-                style={{ fontFamily:FB, fontSize:11, padding:"5px 10px", borderRadius:7, border:`1px solid ${t.brd}`, background:t.srf, color:t.tx, width:150, outline:"none" }} />
-            </div>
-            <Flt label="Analistas"   opts={["Todos","BUY","HOLD"]}                                  val={fAn}  set={setFAn} />
-            <Flt label="Calidad"     opts={["Todas","EXCELENTE","ALTA","MEDIA","BAJA"]}              val={fCal} set={setFCal} />
-            <Flt label="Valuación"   opts={["Todas","BARATA","RAZONABLE","CARA"]}                   val={fVal} set={setFVal} />
-            <Flt label="Momentum"    opts={["Todos","MUY FUERTE","FUERTE","NEUTRO","DÉBIL"]}        val={fMom} set={setFMom} />
-            <Flt label="Upside"      opts={["Todos","MUY ALTO","ALTO","MEDIO","BAJO"]}              val={fUp}  set={setFUp} />
-            <button onClick={()=>{setFAn("Todos");setFCal("Todas");setFVal("Todas");setFMom("Todos");setFUp("Todos");setFMkt("Todos");setSearch("");}}
-              style={{ alignSelf:"flex-end", padding:"6px 14px", borderRadius:7, border:`1px solid ${t.brd}`, background:"transparent", color:t.mu, fontFamily:FB, fontSize:11, cursor:"pointer" }}>
-              ✕ Limpiar
-            </button>
+          <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+            <Pill label="🇦🇷 ARG" active={fMkt==="ARG"} onClick={()=>setFMkt(fMkt==="ARG"?"Todos":"ARG")} color="#92400E"/>
+            <Pill label="🇺🇸 US"  active={fMkt==="US"}  onClick={()=>setFMkt(fMkt==="US" ?"Todos":"US")}  color="#1E40AF"/>
+            <Pill label="📦 ETF" active={fMkt==="ETF"} onClick={()=>setFMkt(fMkt==="ETF"?"Todos":"ETF")} color="#6D28D9"/>
+          </div>
+          {/* View mode */}
+          <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
+            {[{id:"perf",label:"Performance"},{id:"fund",label:"Fundamentals"}].map(v=>(
+              <button key={v.id} onClick={()=>setViewMode(v.id)} style={{
+                padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, cursor:"pointer",
+                border:`1.5px solid ${viewMode===v.id?t.go:t.brd}`,
+                background:viewMode===v.id?t.go+"18":"transparent",
+                color:viewMode===v.id?t.go:t.mu, fontWeight:viewMode===v.id?700:400,
+              }}>{v.label}</button>
+            ))}
           </div>
         </div>
-      </Card>
 
-      {/* Tabla */}
+        {/* Filtros categóricos */}
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.mu, letterSpacing:".06em" }}>CALIDAD:</span>
+          {["EXCELENTE","ALTA","MEDIA","BAJA"].map(v=>(
+            <Pill key={v} label={v} active={fCal===v} onClick={()=>setFCal(fCal===v?"Todas":v)}
+              color={v==="EXCELENTE"?t.gr:v==="ALTA"?t.bl:v==="MEDIA"?t.go:t.rd}/>
+          ))}
+          <span style={{ fontFamily:FB, fontSize:10, color:t.mu, letterSpacing:".06em", marginLeft:8 }}>VAL:</span>
+          {["BARATA","RAZONABLE","CARA"].map(v=>(
+            <Pill key={v} label={v} active={fVal===v} onClick={()=>setFVal(fVal===v?"Todas":v)}
+              color={v==="BARATA"?t.gr:v==="RAZONABLE"?t.bl:t.rd}/>
+          ))}
+          <span style={{ fontFamily:FB, fontSize:10, color:t.mu, letterSpacing:".06em", marginLeft:8 }}>ANALISTAS:</span>
+          {["BUY","HOLD"].map(v=>(
+            <Pill key={v} label={v} active={fAn===v} onClick={()=>setFAn(fAn===v?"Todos":v)}
+              color={v==="BUY"?t.gr:t.go}/>
+          ))}
+          {hasFilters && (
+            <button onClick={clearAll} style={{
+              marginLeft:4, padding:"5px 12px", borderRadius:20,
+              border:`1px solid ${t.brd}`, background:"transparent",
+              fontFamily:FB, fontSize:11, color:t.rd, cursor:"pointer",
+            }}>✕ Limpiar</button>
+          )}
+          <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:11, color:t.fa }}>
+            {filtered.length} de {EQUITIES.length} instrumentos
+          </span>
+        </div>
+      </div>
+
+      {/* ── TABLA ─────────────────────────────────────────────── */}
       <Card t={t}>
-        <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
+        <div style={{ overflowX:"auto", maxHeight:"72vh", overflowY:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:12 }}>
             <thead>
               <tr>
-                <Th label="#"         col="r"   tip="Ranking por Score" />
-                <Th label="Mkt"       col="mkt" tip="Mercado / región" />
-                <Th label="Ticker"    col="t"   tip="Símbolo bursátil" />
-                <Th label="Precio"    col="p"   tip="Último cierre" right />
-                <Th label="Target"    col="tg"  tip="Precio objetivo consenso" right />
-                <Th label="Up/Down"   col="tg"  tip="% entre precio y target" right />
-                <Th label="Analistas" col="an"  tip="Consenso: BUY / HOLD" />
-                <Th label="Fwd P/E"   col="fpe" tip="Precio / ganancias est. 12m" right />
-                <Th label="Fwd PEG"   col="fpg" tip="Fwd P/E / tasa de crecimiento" right />
-                <Th label="ROIC–WACC" col="rw"  tip="Retorno s/ capital vs. costo" right />
-                <Th label="Dist MA200" col="ma" tip="% distancia a media 200D" right />
-                <Th label="Upside"    col="up"  tip="Categoría potencial de suba" />
-                <Th label="Calidad"   col="cal" tip="ROIC, ROE y márgenes" />
-                <Th label="Valuación" col="val" tip="Múltiplos vs. histórico" />
-                <Th label="Momentum"  col="mom" tip="Impulso de precio" />
-                <Th label="Score"     col="sc"  tip="Score compuesto 0–100" right />
-                <Th label="1 Sem"     col="s1"  tip="Rendimiento última semana" right />
-                <Th label="1 Mes"     col="m1"  tip="Rendimiento último mes" right />
-                <Th label="YTD"       col="ytd" tip="Rendimiento en el año" right />
+                <Th label="#"       col="_rank" tip="Ranking" />
+                <Th label="Ticker"  col="t"     tip="Símbolo · Empresa · Mercado" />
+                <Th label="Precio"  col="p"     tip="Precio en vivo · Finnhub" right />
+                <Th label="Hoy"     col="_1d"   tip="Variación del día %" right />
+                <Th label="Score"   col="sc"    tip="Score compuesto 0–100" right />
+
+                {viewMode === "perf" ? (<>
+                  <Th label="1 Sem" col="s1"  tip="Retorno última semana" right />
+                  <Th label="1 Mes" col="m1"  tip="Retorno último mes" right />
+                  <Th label="YTD"   col="ytd" tip="Retorno año hasta hoy" right />
+                  <Th label="vs 52H" col="_d52" tip="% vs máximo 52 semanas" right />
+                  <Th label="Target" col="tg" tip="Precio objetivo" right />
+                  <Th label="Potencial" col="_up" tip="Upside al target" right />
+                </>) : (<>
+                  <Th label="Target"   col="tg"  tip="Precio objetivo consenso" right />
+                  <Th label="Potencial" col="_up" tip="Upside al target" right />
+                  <Th label="Fwd P/E"  col="fpe" tip="Precio / ganancias est. fwd" right />
+                  <Th label="ROIC−WACC" col="rw" tip="Creación de valor económico" right />
+                  <Th label="Calidad"  col="cal" tip="Calidad del negocio" center />
+                  <Th label="Valuación" col="val" tip="Múltiplos vs histórico" center />
+                </>)}
+
+                <Th label="Momentum" col="mom" tip="Impulso de precio" center />
+                <Th label="Analistas" col="an" tip="Consenso Wall St." center />
               </tr>
             </thead>
             <tbody>
               {filtered.map((e, i) => {
-                const ud = updown(e);
-                const udN = ud ? parseFloat(ud) : null;
-                const mb = mktBadge[e.mkt] || mktBadge.US;
+                const mb      = mktBadge[e.mkt] || mktBadge.US;
+                const lp      = livePrices[e.t];
+                const hasHist = !!liveHistory[e.t];
+                const histLoading = !hasHist && quotesComplete && histStatus !== "error";
+                const ud      = e._up;
+                const udStr   = ud !== null ? `${ud >= 0 ? "+" : ""}${ud.toFixed(1)}%` : null;
+                const upCat   = e.up;
+
                 return (
-                  <tr key={`${e.t}-${e.mkt}`}
-                    style={{ borderBottom:`1px solid ${t.brd}`, transition:"background .12s" }}
+                  <tr key={e.t}
+                    style={{ borderBottom:`1px solid ${t.brd}44`, transition:"background .1s" }}
                     onMouseEnter={ev=>ev.currentTarget.style.background=t.alt}
                     onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
 
                     {/* # */}
-                    <td style={{ padding:"9px 8px", fontSize:11, color:t.fa, textAlign:"center" }}>{e.sc ? i+1 : "—"}</td>
-
-                    {/* Mercado */}
-                    <td style={{ padding:"9px 8px" }}>
-                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, background:mb.bg, color:mb.tx, padding:"2px 7px", borderRadius:10 }}>
-                        {mb.label}
-                      </span>
+                    <td style={{ padding:"7px 8px", fontSize:10, color:t.fa, textAlign:"center", width:30 }}>
+                      {e.sc ? i+1 : "—"}
                     </td>
 
-                    {/* Ticker + empresa */}
-                    <td style={{ padding:"9px 8px", minWidth:160 }}>
+                    {/* Ticker + empresa + mercado */}
+                    <td style={{ padding:"7px 10px", minWidth:170 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ width:30, height:30, borderRadius:6, background:t.alt, border:`1px solid ${t.brd}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                          <span style={{ fontFamily:"monospace", fontSize:8, fontWeight:700, color:t.go }}>{e.t.slice(0,4)}</span>
-                        </div>
+                        <div style={{
+                          width:28, height:28, borderRadius:6, flexShrink:0,
+                          background:mb.bg, display:"flex", alignItems:"center",
+                          justifyContent:"center", fontSize:14,
+                        }}>{mb.label}</div>
                         <div>
-                          <div style={{ fontSize:12, fontWeight:700, color:t.tx }}>{e.t}</div>
-                          <div style={{ fontSize:10, color:t.mu }}>{e.e}</div>
+                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                            <span style={{ fontSize:12, fontWeight:700, color:t.tx }}>{e.t}</span>
+                            {lp && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", display:"inline-block" }} title="Precio en vivo"/>}
+                          </div>
+                          <div style={{ fontSize:10, color:t.mu, maxWidth:130, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.e}</div>
                         </div>
                       </div>
                     </td>
 
-                    {/* Precio — live si disponible */}
-                    <td style={{ padding:"9px 8px", textAlign:"right", whiteSpace:"nowrap" }}>
-                      {(() => {
-                        const live = livePrices[e.t];
-                        const isLive = !!live;
-                        const displayPrice = isLive ? live.price : e.p;
-                        const pct = isLive ? live.changePct : null;
-                        return (
-                          <div>
-                            <div style={{ fontSize:13, fontWeight:700, color:t.tx, display:"flex", alignItems:"center", gap:4, justifyContent:"flex-end" }}>
-                              {e.cur==="ARS" ? `$${displayPrice.toLocaleString("es-AR")} ARS` : `$${displayPrice.toFixed(2)}`}
-                              {isLive && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", display:"inline-block", flexShrink:0 }} title="Precio en vivo" />}
-                            </div>
-                            {pct !== null && (
-                              <div style={{ fontSize:10, color:pct>=0?t.gr:t.rd, fontWeight:600, textAlign:"right" }}>
-                                {pct>=0?"+":""}{pct.toFixed(2)}% hoy
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                    {/* Precio */}
+                    <td style={{ padding:"7px 10px", textAlign:"right", whiteSpace:"nowrap" }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:t.tx }}>
+                        {e.cur==="ARS" ? `$${e.p.toLocaleString("es-AR")}` : `$${e.p.toFixed(2)}`}
+                      </div>
                     </td>
 
-                    {/* Target */}
-                    <td style={{ padding:"9px 8px", textAlign:"right", fontSize:12, color:t.mu }}>
-                      {e.tg ? `$${e.tg.toFixed(2)}` : <span style={{ color:t.fa }}>—</span>}
-                    </td>
-
-                    {/* Up/Down */}
-                    <td style={{ padding:"9px 8px", textAlign:"right" }}>
-                      {udN !== null
-                        ? <span style={{ fontSize:12, fontWeight:700, color:udN>=0?t.gr:t.rd }}>{udN>=0?"+":""}{ud}%</span>
-                        : <span style={{ color:t.fa, fontSize:11 }}>—</span>}
-                    </td>
-
-                    {/* Analistas */}
-                    <td style={{ padding:"9px 8px" }}>
-                      {e.an
-                        ? <Badge c={e.an==="BUY"?"green":"gold"} sm t={t}>{e.an}</Badge>
-                        : <span style={{ color:t.fa, fontSize:11 }}>—</span>}
-                    </td>
-
-                    {/* Fwd P/E */}
-                    <td style={{ padding:"9px 8px", textAlign:"right", fontSize:12, color:t.mu }}>{e.fpe ?? <span style={{color:t.fa}}>—</span>}</td>
-
-                    {/* Fwd PEG */}
-                    <td style={{ padding:"9px 8px", textAlign:"right", fontSize:12, color:t.mu }}>{e.fpg ?? <span style={{color:t.fa}}>—</span>}</td>
-
-                    {/* ROIC-WACC */}
-                    <td style={{ padding:"9px 8px", textAlign:"right", fontSize:12 }}>
-                      {e.rw !== null
-                        ? <span style={{ color:e.rw>=0?t.gr:t.rd, fontWeight:600 }}>{e.rw>=0?"+":""}{e.rw}%</span>
-                        : <span style={{color:t.fa}}>—</span>}
-                    </td>
-
-                    {/* Dist MA200 */}
-                    <td style={{ padding:"9px 8px", textAlign:"right", fontSize:12 }}>
-                      {e.ma !== null
-                        ? <span style={{ color:e.ma>=0?t.gr:t.rd, fontWeight:600 }}>{e.ma>=0?"+":""}{e.ma}%</span>
-                        : <span style={{color:t.fa}}>—</span>}
-                    </td>
-
-                    {/* Upside */}
-                    <td style={{ padding:"9px 8px" }}>
-                      {e.up ? <Badge c={upColor[e.up]||"gray"} sm t={t}>{e.up}</Badge> : <span style={{color:t.fa,fontSize:11}}>—</span>}
-                    </td>
-
-                    {/* Calidad */}
-                    <td style={{ padding:"9px 8px" }}>
-                      {e.cal ? <Badge c={calColor[e.cal]||"gray"} sm t={t}>{e.cal}</Badge> : <span style={{color:t.fa,fontSize:11}}>—</span>}
-                    </td>
-
-                    {/* Valuación */}
-                    <td style={{ padding:"9px 8px" }}>
-                      {e.val ? <Badge c={valColor[e.val]||"gray"} sm t={t}>{e.val}</Badge> : <span style={{color:t.fa,fontSize:11}}>—</span>}
-                    </td>
-
-                    {/* Momentum */}
-                    <td style={{ padding:"9px 8px" }}>
-                      {e.mom ? <Badge c={momColor[e.mom]||"gray"} sm t={t}>{e.mom}</Badge> : <span style={{color:t.fa,fontSize:11}}>—</span>}
+                    {/* Hoy 1D% */}
+                    <td style={{ padding:"7px 10px", textAlign:"right" }}>
+                      {e._1d !== null
+                        ? <span style={{ fontSize:12, fontWeight:600, color:perfColor(e._1d) }}>{perfFmt(e._1d)}</span>
+                        : <span style={{ color:t.fa }}>—</span>}
                     </td>
 
                     {/* Score */}
-                    <td style={{ padding:"9px 8px", textAlign:"right" }}>
-                      {e.sc !== null
-                        ? <div style={{ display:"flex", alignItems:"center", gap:6, justifyContent:"flex-end" }}>
-                            <div style={{ width:36, height:5, borderRadius:3, background:t.brd, overflow:"hidden" }}>
-                              <div style={{ width:`${e.sc}%`, height:"100%", background:e.sc>=70?t.gr:e.sc>=40?t.go:t.rd, borderRadius:3 }} />
-                            </div>
-                            <span style={{ fontSize:12, fontWeight:700, color:t.tx }}>{e.sc}</span>
+                    <td style={{ padding:"7px 10px", textAlign:"right" }}>
+                      {e.sc !== null ? (
+                        <div style={{ display:"flex", alignItems:"center", gap:6, justifyContent:"flex-end" }}>
+                          <div style={{ width:32, height:4, borderRadius:3, background:t.brd, overflow:"hidden" }}>
+                            <div style={{ width:`${e.sc}%`, height:"100%", borderRadius:3,
+                              background:e.sc>=70?t.grAcc:e.sc>=40?t.go:t.rdAcc }} />
                           </div>
-                        : <span style={{color:t.fa,fontSize:11}}>—</span>}
+                          <span style={{ fontSize:12, fontWeight:800, color:e.sc>=70?t.gr:e.sc>=40?t.go:t.rd }}>
+                            {e.sc.toFixed(1)}
+                          </span>
+                        </div>
+                      ) : <span style={{ color:t.fa }}>—</span>}
                     </td>
 
-                    {/* 1 Sem / 1 Mes / YTD */}
-                    {[e.s1, e.m1, e.ytd].map((v,vi) => (
-                      <td key={vi} style={{ padding:"9px 8px", textAlign:"right" }}>
-                        {v !== null
-                          ? <span style={{ fontSize:12, fontWeight:600, color:parseFloat(v)>=0?t.gr:t.rd }}>{parseFloat(v)>=0?"+":""}{v}%</span>
-                          : <span style={{color:t.fa,fontSize:11}}>—</span>}
+                    {/* PERFORMANCE VIEW */}
+                    {viewMode === "perf" ? (<>
+                      <PerfCell val={e.s1}   loading={histLoading && e.s1===null} />
+                      <PerfCell val={e.m1}   loading={histLoading && e.m1===null} />
+                      <PerfCell val={e.ytd}  loading={histLoading && e.ytd===null} />
+                      <PerfCell val={e._d52} loading={histLoading && e._d52===null} />
+                      {/* Target */}
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12, color:t.mu }}>
+                        {e.tg ? `$${e.tg.toFixed(2)}` : <span style={{ color:t.fa }}>—</span>}
                       </td>
-                    ))}
+                      {/* Potencial */}
+                      <td style={{ padding:"7px 10px", textAlign:"right" }}>
+                        {udStr ? (
+                          <div>
+                            <span style={{ fontSize:12, fontWeight:700, color:ud>=0?t.gr:t.rd }}>{udStr}</span>
+                            {upCat && <div style={{ fontSize:9, color:t.mu, marginTop:1 }}>{upCat}</div>}
+                          </div>
+                        ) : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                    </>) : (<>
+                      {/* FUNDAMENTALS VIEW */}
+                      {/* Target */}
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12, color:t.mu }}>
+                        {e.tg ? `$${e.tg.toFixed(2)}` : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                      {/* Potencial */}
+                      <td style={{ padding:"7px 10px", textAlign:"right" }}>
+                        {udStr ? (
+                          <span style={{ fontSize:12, fontWeight:700, color:ud>=0?t.gr:t.rd }}>{udStr}</span>
+                        ) : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                      {/* Fwd P/E */}
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12 }}>
+                        {e.fpe ? <span style={{ color:e.fpe<20?t.gr:e.fpe<35?t.mu:t.rd }}>{e.fpe}</span>
+                               : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                      {/* ROIC-WACC */}
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12 }}>
+                        {e.rw !== null
+                          ? <span style={{ fontWeight:600, color:e.rw>=0?t.gr:t.rd }}>{e.rw>=0?"+":""}{e.rw}%</span>
+                          : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                      {/* Calidad */}
+                      <td style={{ padding:"7px 10px", textAlign:"center" }}>
+                        {e.cal ? <Badge c={calColor[e.cal]||"gray"} sm t={t}>{e.cal}</Badge>
+                               : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                      {/* Valuación */}
+                      <td style={{ padding:"7px 10px", textAlign:"center" }}>
+                        {e.val ? <Badge c={valColor[e.val]||"gray"} sm t={t}>{e.val}</Badge>
+                               : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                    </>)}
+
+                    {/* Momentum — siempre visible */}
+                    <td style={{ padding:"7px 10px", textAlign:"center" }}>
+                      {e.mom ? <Badge c={momColor[e.mom]||"gray"} sm t={t}>{e.mom}</Badge>
+                             : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+
+                    {/* Analistas */}
+                    <td style={{ padding:"7px 10px", textAlign:"center" }}>
+                      {e.an ? <Badge c={e.an==="BUY"?"green":"gold"} sm t={t}>{e.an}</Badge>
+                            : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        <div style={{ padding:"10px 18px", fontFamily:FB, fontSize:10, color:t.fa, borderTop:`1px solid ${t.brd}` }}>
-          {filtered.length} de {EQUITIES.length} instrumentos · Precios actualizados 19 MAR 2026 · NVDA $180.25 · AAPL $249.94 · VIST $57.00 · Fuente: Robinhood, TradingView, Google Finance · Scores: Café con la Mesa Daily IR
+
+        {/* Footer */}
+        <div style={{
+          padding:"8px 18px", borderTop:`1px solid ${t.brd}`,
+          display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8
+        }}>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            Precios: Finnhub (en vivo) · Historial: Finnhub Weekly Candles · Scores: Research Desk Balanz
+          </span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            {filtered.length} resultados · Ordenado por {sortCol} {sortDir === 1 ? "↑" : "↓"}
+          </span>
         </div>
       </Card>
     </div>
   );
 }
-
 /* ════════════════════════════════════════════════════════════════
    INSTRUMENTOS VIEW — tabs: LECAP | Soberanos | Renta Variable
 ════════════════════════════════════════════════════════════════ */

@@ -2189,6 +2189,58 @@ function MercadosView({ dolar, riesgoPais, fxError, t }) {
     red:{bg:t.rdBg,ac:t.rd}, purple:{bg:t.puBg,ac:t.pu}, gray:{bg:t.alt,ac:t.mu},
   };
 
+  // ── Live commodities (Finnhub) ─────────────────────────────
+  const [gold,  setGold]  = useState(null); // { price, changePct }
+  const [brent, setBrent] = useState(null); // { price, changePct }
+  const [mervalARS, setMervalARS] = useState(null); // valor índice ARS
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCommodities = async () => {
+      try {
+        // Gold — GLD ETF (proxy más líquido)
+        const rg = await fetch(`https://finnhub.io/api/v1/quote?symbol=GLD&token=${FINNHUB_KEY}`);
+        const dg = await rg.json();
+        if (!cancelled && dg.c > 0) setGold({ price: dg.c, changePct: dg.dp });
+
+        // Brent — BNO ETF (United States Brent Oil Fund)
+        const rb = await fetch(`https://finnhub.io/api/v1/quote?symbol=BNO&token=${FINNHUB_KEY}`);
+        const db = await rb.json();
+        if (!cancelled && db.c > 0) setBrent({ price: db.c, changePct: db.dp });
+
+        // Merval ARS — ArgentinaDatos
+        const rm = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
+        const dm = await rm.json();
+        const val = dm?.valor || dm?.ultimo || (Array.isArray(dm) ? dm[dm.length-1]?.valor : null);
+        if (!cancelled && val > 0) setMervalARS({ value: val, changePct: dm?.variacion ?? null });
+      } catch {}
+    };
+    fetchCommodities();
+    const id = setInterval(fetchCommodities, 60_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  // ── LECAP mayor TNA ≤ 6 meses ─────────────────────────────
+  const bestLECAP = (() => {
+    const today = Date.now();
+    const maxDays = 180;
+    const candidates = LECAP.flatMap(g => {
+      const [d,m,y] = g.vto.split("/").map(Number);
+      const dias = Math.floor((new Date(y,m-1,d) - today) / 86400000);
+      if (dias > maxDays || dias <= 0) return [];
+      return g.rows.map(r => ({
+        ticker: r.t,
+        mes: g.vto,
+        tna: parseFloat(r.tna.replace(",",".")),
+        tnaStr: r.tna,
+        tem: r.r,
+        dias,
+      }));
+    });
+    if (!candidates.length) return null;
+    return candidates.reduce((best, cur) => cur.tna > best.tna ? cur : best, candidates[0]);
+  })();
+
   const fmt = (v) => v ? `$${Math.round(v).toLocaleString("es-AR")}` : "—";
   const pct = (num, den) => {
     if (!num || !den) return null;
@@ -2201,11 +2253,253 @@ function MercadosView({ dolar, riesgoPais, fxError, t }) {
   const ccl = dolar?.ccl?.venta;
   const may = dolar?.mayorista?.venta;
 
-  // Brechas
   const bBlue = pct(bl, of);
   const bMEP  = pct(mep, of);
   const bCCL  = pct(ccl, of);
   const bCCLmep = pct(ccl, mep);
+
+  const FxCard = ({ label, value, compra, sub, color, badge, loading }) => {
+    const col = cMap[color] || cMap.gray;
+    return (
+      <div style={{
+        background:col.bg, border:`1px solid ${col.ac}22`,
+        borderRadius:12, padding:"18px 20px", borderLeft:`4px solid ${col.ac}`,
+        transition:"transform .18s, box-shadow .18s",
+        display:"flex", flexDirection:"column", gap:4,
+      }}
+      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=t.sh;}}
+      onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="";}}>
+        <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".1em" }}>{label}</div>
+        <div style={{ display:"flex", alignItems:"baseline", gap:8, flexWrap:"wrap" }}>
+          <span style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:col.ac, lineHeight:1 }}>
+            {loading
+              ? <span style={{ fontSize:20, color:t.fa, animation:"blink 1s infinite" }}>cargando…</span>
+              : fxError ? <span style={{ fontSize:16, color:t.rd }}>sin datos</span>
+              : value}
+          </span>
+          {!loading && !fxError && badge !== null && badge !== undefined && (
+            <span style={{
+              fontFamily:FB, fontSize:11, fontWeight:700,
+              color: parseFloat(badge) > 0 ? t.rd : t.gr,
+              background: parseFloat(badge) > 0 ? t.rdBg : t.grBg,
+              padding:"2px 8px", borderRadius:20,
+            }}>
+              {parseFloat(badge) > 0 ? "+" : ""}{badge}%
+            </span>
+          )}
+        </div>
+        {compra && !fxError && <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>Compra: {compra}</div>}
+        <div style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:2 }}>{sub}</div>
+      </div>
+    );
+  };
+
+  // Chip genérico para el panel de indicadores
+  const LivePanel = ({ label, value, sub, changePct, color, badge, dot }) => {
+    const col = cMap[color] || cMap.gray;
+    return (
+      <div style={{
+        background:col.bg, border:`1px solid ${col.ac}22`,
+        borderRadius:12, padding:"18px 20px", borderLeft:`4px solid ${col.ac}`,
+        position:"relative",
+      }}>
+        {badge && (
+          <div style={{ position:"absolute", top:10, right:12,
+            fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em",
+            color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:10,
+            textTransform:"uppercase" }}>{badge}</div>
+        )}
+        <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:6 }}>
+          <span style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".1em" }}>{label}</span>
+          {dot && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 5px #22c55e", display:"inline-block" }}/>}
+        </div>
+        <div style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:col.ac, lineHeight:1 }}>
+          {value || <span style={{ fontSize:16, color:t.fa, animation:"blink 1s infinite" }}>—</span>}
+        </div>
+        {changePct !== null && changePct !== undefined && (
+          <div style={{ fontFamily:FB, fontSize:11, fontWeight:600,
+            color: changePct >= 0 ? t.gr : t.rd, marginTop:4 }}>
+            {changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}% hoy
+          </div>
+        )}
+        <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>{sub}</div>
+      </div>
+    );
+  };
+
+  const loading = !dolar && !fxError;
+
+  return (
+    <div className="fade-up">
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:20 }}>
+        <SectionLabel t={t}>MERCADO DE CAMBIOS — TIEMPO REAL</SectionLabel>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          {fxError ? (
+            <span style={{ fontFamily:FB, fontSize:11, color:t.rd, background:t.rdBg, padding:"3px 10px", borderRadius:8 }}>
+              ⚠️ Sin conexión a la API — recargá la página
+            </span>
+          ) : (
+            <span style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
+              🔄 dolarapi.com · argentinadatos.com · Finnhub{dolar ? " · live" : ""}
+            </span>
+          )}
+          <div style={{ width:7, height:7, borderRadius:"50%",
+            background: fxError ? t.rd : dolar ? t.gr : t.fa,
+            animation: (!dolar && !fxError) ? "blink 1s infinite" : "none"
+          }} />
+        </div>
+      </div>
+
+      {/* ── PANEL INDICADORES CLAVE — 5 chips en tiempo real ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:10, marginBottom:24 }}>
+
+        {/* Riesgo País — JP Morgan EMBI · ArgentinaDatos */}
+        <LivePanel
+          label="Riesgo País"
+          value={riesgoPais ? `${riesgoPais.valor} pb` : null}
+          sub="EMBI · JP Morgan"
+          changePct={null}
+          color="red"
+          dot={!!riesgoPais}
+        />
+
+        {/* Merval — pesos, ArgentinaDatos */}
+        <LivePanel
+          label="Merval"
+          value={mervalARS ? mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0}) : null}
+          sub="BYMA · pesos"
+          changePct={mervalARS?.changePct ?? null}
+          color="green"
+          dot={!!mervalARS}
+        />
+
+        {/* Oro — GLD ETF, Finnhub */}
+        <LivePanel
+          label="Oro (GLD)"
+          value={gold ? `USD ${gold.price.toFixed(2)}` : null}
+          sub="GLD ETF · Finnhub"
+          changePct={gold?.changePct ?? null}
+          color="gold"
+          dot={!!gold}
+        />
+
+        {/* Brent — BNO ETF, Finnhub */}
+        <LivePanel
+          label="Brent (BNO)"
+          value={brent ? `USD ${brent.price.toFixed(2)}` : null}
+          sub="BNO ETF · Finnhub"
+          changePct={brent?.changePct ?? null}
+          color="gold"
+          dot={!!brent}
+        />
+
+        {/* LECAP mayor TNA ≤ 6 meses — dinámico */}
+        {bestLECAP && (
+          <div style={{
+            background:t.blBg, border:`1px solid ${t.bl}22`,
+            borderRadius:12, padding:"18px 20px", borderLeft:`4px solid ${t.bl}`,
+            position:"relative",
+          }}>
+            <div style={{ position:"absolute", top:10, right:12,
+              fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em",
+              color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:10,
+              textTransform:"uppercase" }}>MAYOR TNA</div>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>
+              LECAP / BONCAP
+            </div>
+            <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:t.bl, lineHeight:1 }}>
+              {bestLECAP.tnaStr} TNA
+            </div>
+            <div style={{ fontFamily:"monospace", fontSize:11, color:t.tx, marginTop:6, background:t.alt, display:"inline-block", padding:"2px 8px", borderRadius:5 }}>
+              {bestLECAP.ticker}
+            </div>
+            <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:6 }}>
+              {bestLECAP.tem} acum. · Vto. {bestLECAP.mes} · {bestLECAP.dias}d
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── FOREX GRID ── */}
+      <div style={{ marginBottom:10 }}>
+        <div style={{ fontFamily:FB, fontSize:10, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
+          TIPOS DE CAMBIO (venta)
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:10, marginBottom:24 }}>
+          <FxCard label="Dólar Oficial (BNA)" value={fmt(of)} compra={fmt(dolar?.oficial?.compra)} sub="Tipo de cambio oficial" color="blue" loading={loading} />
+          <FxCard label="Dólar Mayorista" value={fmt(may)} sub="Mercado de mayoristas" color="blue" loading={loading} />
+          <FxCard label="Dólar Blue" value={fmt(bl)} compra={fmt(dolar?.blue?.compra)} sub="Mercado informal" color="gold" loading={loading} />
+          <FxCard label="Dólar MEP (bolsa)" value={fmt(mep)} sub="Bonos en pesos → USD" color="purple" loading={loading} />
+          <FxCard label="Dólar CCL" value={fmt(ccl)} sub="Contado con liquidación" color="purple" loading={loading} />
+        </div>
+      </div>
+
+      {/* ── BRECHAS ── */}
+      <Card t={t} style={{ marginBottom:20 }}>
+        <div style={{ padding:"18px 22px" }}>
+          <div style={{ fontFamily:FB, fontSize:10, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", marginBottom:14 }}>
+            BRECHAS CAMBIARIAS (vs. Oficial)
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:12 }}>
+            {[
+              { label:"Blue / Oficial", val:bBlue, desc:"Mercado informal vs. BNA" },
+              { label:"MEP / Oficial",  val:bMEP,  desc:"Dólar bolsa vs. BNA" },
+              { label:"CCL / Oficial",  val:bCCL,  desc:"Contado con liqui vs. BNA" },
+              { label:"CCL / MEP",      val:bCCLmep, desc:"Spread financiero interno" },
+            ].map((br, i) => {
+              const v = br.val ? parseFloat(br.val) : null;
+              const isHigh = v !== null && v > 5;
+              const color = v === null ? t.mu : isHigh ? t.rd : t.gr;
+              const bg    = v === null ? t.alt : isHigh ? t.rdBg : t.grBg;
+              return (
+                <div key={i} style={{ background:bg, borderRadius:10, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>{br.label}</div>
+                  <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color, lineHeight:1 }}>
+                    {v !== null ? `+${br.val}%` : "—"}
+                  </div>
+                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>{br.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      {/* ── PANEL BCRA ── */}
+      <Card t={t} style={{ marginTop:4 }}>
+        <div style={{ padding:"20px 24px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+            <SectionLabel t={t}>BANCO CENTRAL · DATOS DEL DÍA</SectionLabel>
+            <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"3px 10px", borderRadius:6 }}>{BCRA_DATA.fecha}</span>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10, marginBottom:14 }}>
+            {[
+              { label:"TAMAR",             val:BCRA_DATA.tamar.val,      nota:BCRA_DATA.tamar.nota,      color:t.bl,   bg:t.blBg },
+              { label:"BADLAR",            val:BCRA_DATA.badlar.val,     nota:BCRA_DATA.badlar.nota,     color:t.pu,   bg:t.puBg },
+              { label:"COMPRAS BCRA",      val:BCRA_DATA.comprasUSD.val, nota:BCRA_DATA.comprasUSD.nota, color:t.gr,   bg:t.grBg },
+              { label:"RESERVAS BRUTAS",   val:BCRA_DATA.reservas.val,   nota:BCRA_DATA.reservas.nota,   color:t.rd,   bg:t.rdBg },
+              { label:"TIPO DE CAMBIO REF",val:BCRA_DATA.mayorista.val,  nota:BCRA_DATA.mayorista.nota,  color:t.go,   bg:t.goBg },
+            ].map((item,i) => (
+              <div key={i} style={{ background:item.bg, border:`1px solid ${item.color}22`, borderRadius:10, padding:"12px 14px", borderLeft:`3px solid ${item.color}` }}>
+                <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".1em", color:item.color, marginBottom:5 }}>{item.label}</div>
+                <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, lineHeight:1 }}>{item.val}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4, lineHeight:1.4 }}>{item.nota}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:8, padding:"10px 14px", fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.6 }}>
+            ⚠️ {BCRA_DATA.nota}
+          </div>
+        </div>
+      </Card>
+
+      <p style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:16, lineHeight:1.6 }}>
+        Fuentes: <strong>dolarapi.com</strong> (FX — tiempo real) · <strong>ArgentinaDatos</strong> (Riesgo País EMBI JP Morgan · Merval ARS) · <strong>Finnhub</strong> (GLD · BNO — tiempo real)
+      </p>
+    </div>
+  );
+}
 
   const FxCard = ({ label, value, compra, sub, color, badge, loading }) => {
     const col = cMap[color] || cMap.gray;
@@ -3651,51 +3945,54 @@ export default function App() {
       </main>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background:t.ft, padding:"72px 20px 44px" }}>
+      <footer style={{ background:t.ft, padding:"80px 20px 48px" }}>
         <div style={{ maxWidth:1200, margin:"0 auto" }}>
 
-          {/* Main grid */}
-          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1.5fr 1fr", gap: isMobile ? 40 : 100, marginBottom:56 }}>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 48 : 80, marginBottom:64 }}>
 
             {/* Left — Brand */}
-            <div>
-              <div style={{ fontFamily:FB, fontSize:30, fontWeight:700, color:t.ftT, letterSpacing:"-.02em", marginBottom:20 }}>
-                The Big Long
+            <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+              <div>
+                <div style={{ fontFamily:FB, fontSize:isMobile?36:52, fontWeight:700, color:t.ftT, letterSpacing:"-.03em", lineHeight:.95, marginBottom:0 }}>
+                  The
+                </div>
+                <div style={{ fontFamily:FB, fontSize:isMobile?36:52, fontWeight:700, color:t.go, letterSpacing:"-.03em", lineHeight:.95 }}>
+                  Big Long
+                </div>
               </div>
-              <p style={{ fontFamily:FB, fontSize:14, fontWeight:300, color:"rgba(255,255,255,.36)", lineHeight:1.9, maxWidth:380 }}>
-                Análisis y seguimiento del mercado argentino e internacional. Actualización diaria con datos de renta fija, renta variable, mercado de cambios y contexto macro.
-              </p>
             </div>
 
             {/* Right — Contact */}
-            <div>
-              <div style={{ fontFamily:FB, fontSize:10, fontWeight:500, color:"rgba(255,255,255,.22)", letterSpacing:".2em", textTransform:"uppercase", marginBottom:28 }}>
-                CONTACTO
+            <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between", gap:32 }}>
+              <div>
+                <div style={{ fontFamily:FB, fontSize:10, fontWeight:500, color:"rgba(255,255,255,.22)", letterSpacing:".2em", textTransform:"uppercase", marginBottom:20 }}>
+                  CONTACTO
+                </div>
+                <div style={{ fontFamily:FB, fontSize:24, fontWeight:600, color:t.ftT, marginBottom:4 }}>
+                  {CONTACT.name}
+                </div>
+                <div style={{ fontFamily:FB, fontSize:13, fontWeight:300, color:"rgba(255,255,255,.35)" }}>
+                  {CONTACT.title}
+                </div>
               </div>
-              <div style={{ fontFamily:FB, fontSize:21, fontWeight:600, color:t.ftT, marginBottom:6 }}>
-                {CONTACT.name}
-              </div>
-              <div style={{ fontFamily:FB, fontSize:13, fontWeight:300, color:"rgba(255,255,255,.32)", marginBottom:32 }}>
-                {CONTACT.title}
-              </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
                 <a href={`tel:${CONTACT.phone}`} style={{
-                  display:"flex", alignItems:"center", gap:12,
-                  fontFamily:FB, fontSize:14, fontWeight:500,
+                  display:"flex", alignItems:"center", gap:14,
+                  fontFamily:FB, fontSize:15, fontWeight:500,
                   color:t.go, textDecoration:"none", transition:"opacity .15s",
                 }}
                 onMouseEnter={e=>e.currentTarget.style.opacity=".7"}
                 onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                  <span style={{ fontSize:14, opacity:.6 }}>📞</span> {CONTACT.phone}
+                  <span style={{ fontSize:16, opacity:.55 }}>📞</span> {CONTACT.phone}
                 </a>
                 <a href={`mailto:${CONTACT.email}`} style={{
-                  display:"flex", alignItems:"center", gap:12,
-                  fontFamily:FB, fontSize:14, fontWeight:500,
+                  display:"flex", alignItems:"center", gap:14,
+                  fontFamily:FB, fontSize:15, fontWeight:500,
                   color:t.go, textDecoration:"none", transition:"opacity .15s",
                 }}
                 onMouseEnter={e=>e.currentTarget.style.opacity=".7"}
                 onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                  <span style={{ fontSize:14, opacity:.6 }}>✉️</span> {CONTACT.email}
+                  <span style={{ fontSize:16, opacity:.55 }}>✉️</span> {CONTACT.email}
                 </a>
               </div>
             </div>

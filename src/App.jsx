@@ -786,6 +786,176 @@ function SummaryCard({ s, t }) {
 /* ════════════════════════════════════════════════════════════════
    EARNINGS CARD
 ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   INFORMES VIEW — Balances · Informes de empresas
+════════════════════════════════════════════════════════════════ */
+function InformesView({ t }) {
+  const [sub, setSub] = useState("balances");
+
+  const SUBTABS = [
+    { id:"balances",  label:"📊 Balances" },
+    { id:"informes",  label:"🔬 Informes" },
+  ];
+
+  return (
+    <div className="fade-up">
+      {/* Sub-tabs */}
+      <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+        {SUBTABS.map(s => (
+          <button key={s.id} onClick={()=>setSub(s.id)} style={{
+            padding:"9px 22px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:600,
+            cursor:"pointer", transition:"all .18s",
+            border:`2px solid ${sub===s.id?t.go:t.brd}`,
+            background:sub===s.id?t.go+"18":"transparent",
+            color:sub===s.id?t.go:t.mu,
+          }}>{s.label}</button>
+        ))}
+      </div>
+
+      {/* ── BALANCES ── */}
+      {sub === "balances" && (
+        <div>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
+            Resultados trimestrales con análisis de ingresos, rentabilidad y guidance. Reportados por Máximo Ricciardi · Balanz Capital.
+          </p>
+          <EarningsCard t={t} />
+        </div>
+      )}
+
+      {/* ── INFORMES ── */}
+      {sub === "informes" && (
+        <div>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
+            Análisis fundamental de empresas con perspectiva de inversión. Research Desk · Balanz Capital.
+          </p>
+          <VISTInformeCard t={t} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Informe VIST ─────────────────────────────────────────────── */
+function VISTInformeCard({ t }) {
+  return (
+    <div className="fade-up">
+      <Card t={t} style={{ borderLeft:`4px solid ${t.gr}` }}>
+        <div style={{ padding:"24px 26px" }}>
+
+          {/* Header */}
+          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:16, marginBottom:20 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+              <div style={{ width:52, height:52, borderRadius:12,
+                background:"linear-gradient(135deg,#1a3a1a,#2d6a2d)",
+                display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <span style={{ color:"#4ade80", fontFamily:FB, fontWeight:900, fontSize:14 }}>VIST</span>
+              </div>
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
+                  <span style={{ fontFamily:FH, fontSize:24, fontWeight:800, color:t.tx }}>Vista Energy</span>
+                  <Badge c="green" sm t={t}>🔬 ANÁLISIS FUNDAMENTAL</Badge>
+                </div>
+                <span style={{ fontFamily:FB, fontSize:12, color:t.mu }}>
+                  E&P Shale · NYSE: VIST · Vaca Muerta · Earnings: 21 ABR 2026
+                </span>
+              </div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontFamily:FH, fontSize:34, fontWeight:800, color:t.tx, lineHeight:1 }}>$73.60</div>
+              <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>
+                NYSE · 20 MAR 2026 · <span style={{color:t.gr,fontWeight:700}}>Score #1 universo 🔥</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tesis */}
+          <div style={{ background:t.grBg, border:`1px solid ${t.gr}22`, borderRadius:12, padding:"16px 20px", marginBottom:20 }}>
+            <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.gr, textTransform:"uppercase", letterSpacing:".08em", marginBottom:10 }}>
+              📌 Tesis de inversión
+            </div>
+            <p style={{ fontFamily:FB, fontSize:13, color:t.tx, lineHeight:1.75, margin:0 }}>
+              Vista Energy es el <strong>pure-play más eficiente de Vaca Muerta</strong>. Con operación casi 100% shale, márgenes EBITDA superiores al 60% y producción creciendo a doble dígito, cotiza a un <strong>Fwd P/E de ~9x</strong> — descuento flagrante frente a pares que operan a 12–15x. El próximo catalizador es el <strong>earnings del 21 ABR 2026</strong>, con potencial de revisión de targets al alza.
+            </p>
+          </div>
+
+          {/* Métricas clave */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:10, marginBottom:20 }}>
+            {[
+              { l:"Fwd P/E",       v:"9.19x",    note:"Descuento vs peers ~12-15x", c:t.gr },
+              { l:"EBITDA (TTM)",  v:"$1.877B",  note:"Margen EBITDA ~63,7%",       c:t.bl },
+              { l:"Revenue (TTM)", v:"$2.474B",  note:"+25% YoY estimado",          c:t.bl },
+              { l:"ROE (TTM)",     v:"34,99%",   note:"Retorno sobre equity",        c:t.gr },
+              { l:"Margen Neto",   v:"29,2%",    note:"Alta calidad de resultados",  c:t.gr },
+              { l:"Score RD",      v:"91.48",    note:"#1 universo Research Desk",   c:t.go },
+            ].map((m,i) => (
+              <div key={i} style={{ background:t.alt, borderRadius:10, padding:"13px 15px" }}>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>{m.l}</div>
+                <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:m.c, lineHeight:1 }}>{m.v}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:4, lineHeight:1.4 }}>{m.note}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Fortalezas / Riesgos */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+            <div style={{ background:t.grBg, border:`1px solid ${t.gr}22`, borderRadius:10, padding:"14px 16px" }}>
+              <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.gr, textTransform:"uppercase", letterSpacing:".08em", marginBottom:8 }}>✅ Fortalezas</div>
+              {[
+                "Vaca Muerta — segundo play shale más grande fuera de EE.UU.",
+                "Producción shale oil >70Kboe/d creciendo a ~15% CAGR.",
+                "EBITDA margin >60% — estructura de costos entre las más bajas del sector.",
+                "Contratos de exportación en USD — cobertura natural cambiaria.",
+                "Management track-record impecable (Galuccio, ex-CEO YPF).",
+              ].map((p,i) => (
+                <div key={i} style={{ display:"flex", gap:8, marginBottom:5 }}>
+                  <span style={{ color:t.gr, fontWeight:700, flexShrink:0 }}>·</span>
+                  <span style={{ fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.5 }}>{p}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:10, padding:"14px 16px" }}>
+              <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.rd, textTransform:"uppercase", letterSpacing:".08em", marginBottom:8 }}>⚠️ Riesgos</div>
+              {[
+                "Precio del petróleo: caída bajo $65–70 presionaría márgenes.",
+                "Riesgo regulatorio argentino: retenciones a exportaciones de crudo.",
+                "Deuda neta elevada (D/E 117%) — expansión CAPEX en curso.",
+                "Liquidez: ADR con menor volumen vs pares globales.",
+                "Ejecución: integración La Amarga Chica debe mostrar sinergias.",
+              ].map((p,i) => (
+                <div key={i} style={{ display:"flex", gap:8, marginBottom:5 }}>
+                  <span style={{ color:t.rd, fontWeight:700, flexShrink:0 }}>·</span>
+                  <span style={{ fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.5 }}>{p}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Targets analistas */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+            <span style={{ fontFamily:FB, fontSize:11, color:t.mu }}>Targets:</span>
+            {[
+              { bank:"Goldman Sachs", target:"$66.90", date:"4 MAR 2026" },
+              { bank:"Jefferies",     target:"BUY",    date:"26 FEB 2026" },
+              { bank:"HSBC",          target:"BUY",    date:"18 MAR 2026" },
+              { bank:"Research Desk", target:"$77.45", date:"20 MAR 2026" },
+            ].map((a,i) => (
+              <span key={i} style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"4px 12px", fontFamily:FB, fontSize:11 }}>
+                <strong style={{ color:t.tx }}>{a.bank}</strong>
+                <span style={{ color:t.gr, marginLeft:6, fontWeight:700 }}>{a.target}</span>
+                <span style={{ color:t.fa, marginLeft:4 }}>· {a.date}</span>
+              </span>
+            ))}
+          </div>
+
+          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, margin:0, lineHeight:1.5 }}>
+            * Análisis orientativo. No constituye recomendación de inversión. Consultar asesor antes de operar. · Máximo Ricciardi · Balanz Capital
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function EarningsCard({ t }) {
   const m = MICRON;
   return (
@@ -2389,6 +2559,266 @@ function NoticiasView({ t }) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   INICIO VIEW — Minimal, clean, great UX
+════════════════════════════════════════════════════════════════ */
+function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
+  const mep    = dolar?.find(d => d.casa === "bolsa");
+  const rp     = riesgoPais?.valor;
+
+  // ── Live market chips ─────────────────────────────────────────
+  const [spy,       setSpy]       = useState(null); // { price, changePct }
+  const [mervalUSD, setMervalUSD] = useState(null); // valor en USD
+  const [chipsStatus, setChipsStatus] = useState("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchChips = async () => {
+      try {
+        // SPY — Finnhub
+        const r1 = await fetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB_KEY}`);
+        const d1 = await r1.json();
+        if (!cancelled && d1.c > 0) setSpy({ price: d1.c, changePct: d1.dp });
+
+        // Merval ARS — Finnhub (ticker MERV en Buenos Aires)
+        // Dividimos por MEP para obtener USD
+        const r2 = await fetch(`https://finnhub.io/api/v1/quote?symbol=MERV&token=${FINNHUB_KEY}`);
+        const d2 = await r2.json();
+        if (!cancelled && d2.c > 0 && mep?.venta) {
+          setMervalUSD({ value: Math.round(d2.c / mep.venta), changePct: d2.dp, raw: d2.c });
+        }
+
+        if (!cancelled) setChipsStatus("ok");
+      } catch {
+        if (!cancelled) setChipsStatus("error");
+      }
+    };
+
+    fetchChips();
+    const id = setInterval(fetchChips, 60_000); // cada 60 segundos
+    return () => { cancelled = true; clearInterval(id); };
+  }, [mep?.venta]);
+
+  const LiveChip = ({ label, value, sub, color, change, loading }) => (
+    <div style={{
+      flex:1, minWidth:isMobile?130:150,
+      background:t.srf, border:`1px solid ${t.brd}`,
+      borderRadius:14, padding:"16px 18px",
+      transition:"transform .15s, box-shadow .15s",
+    }}
+    onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,.07)`;}}
+    onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+        <div style={{ fontFamily:FB, fontSize:9, color:t.fa, letterSpacing:".1em", textTransform:"uppercase" }}>{label}</div>
+        {loading && <div style={{ width:6, height:6, borderRadius:"50%", background:"#94a3b8", animation:"blink 1s infinite" }} />}
+        {!loading && chipsStatus==="ok" && <div style={{ width:6, height:6, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 5px #22c55e" }} />}
+      </div>
+      <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:color||t.tx, lineHeight:1 }}>
+        {loading ? <span style={{color:t.fa,fontSize:14}}>—</span> : value}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:6 }}>
+        {sub && <div style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{sub}</div>}
+        {change !== undefined && change !== null && (
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:change>=0?t.gr:t.rd }}>
+            {change>=0?"+":""}{change.toFixed(2)}%
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const NavCard = ({ icon, title, desc, tab, accent }) => (
+    <button onClick={()=>setTab(tab)} style={{
+      flex:1, minWidth:isMobile?"100%":170,
+      background:t.srf, border:`1px solid ${t.brd}`,
+      borderRadius:16, padding:"22px 22px 20px",
+      textAlign:"left", cursor:"pointer",
+      display:"flex", flexDirection:"column", gap:10,
+      transition:"all .18s",
+    }}
+    onMouseEnter={e=>{e.currentTarget.style.borderColor=accent;e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow=`0 12px 32px rgba(0,0,0,.07)`;}}
+    onMouseLeave={e=>{e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+      <div style={{ fontSize:26, lineHeight:1 }}>{icon}</div>
+      <div>
+        <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx, marginBottom:3 }}>{title}</div>
+        <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }}>{desc}</div>
+      </div>
+      <div style={{ fontFamily:FB, fontSize:11, color:accent, fontWeight:600, marginTop:"auto" }}>Abrir →</div>
+    </button>
+  );
+
+  const loading = chipsStatus === "loading";
+
+  return (
+    <div className="fade-up" style={{ maxWidth:900, margin:"0 auto" }}>
+
+      {/* ── HERO ─────────────────────────────────────────── */}
+      <div style={{
+        borderRadius:20,
+        background:`linear-gradient(145deg, #0d1117 0%, #1a2744 55%, #0d2137 100%)`,
+        padding: isMobile ? "36px 24px 32px" : "52px 52px 44px",
+        marginBottom:20, position:"relative", overflow:"hidden",
+      }}>
+        <div style={{ position:"absolute", right:-60, top:-60, width:280, height:280, borderRadius:"50%",
+          background:"radial-gradient(circle, rgba(176,120,42,.12) 0%, transparent 70%)", pointerEvents:"none" }} />
+        <div style={{ position:"absolute", left:-40, bottom:-80, width:220, height:220, borderRadius:"50%",
+          background:"radial-gradient(circle, rgba(59,130,246,.06) 0%, transparent 70%)", pointerEvents:"none" }} />
+
+        <div style={{ fontFamily:FB, fontSize:9, color:"rgba(255,255,255,.3)", letterSpacing:".18em",
+          textTransform:"uppercase", marginBottom:16 }}>
+          {clock?.date?.toUpperCase() || "THE BIG LONG"} · BUENOS AIRES
+        </div>
+
+        <h1 style={{
+          fontFamily:FH, fontSize: isMobile ? 38 : 64,
+          fontWeight:700, color:"#fff", lineHeight:1,
+          letterSpacing:"-.02em", marginBottom:14,
+        }}>The Big Long</h1>
+
+        <p style={{
+          fontFamily:FB, fontSize: isMobile ? 13 : 15,
+          color:"rgba(255,255,255,.45)", lineHeight:1.7,
+          maxWidth:440, marginBottom:30,
+        }}>
+          Inteligencia financiera para el mercado argentino e internacional.
+        </p>
+
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+          <button onClick={()=>setTab("resumen")} style={{
+            background:t.go, color:"#fff", border:"none", borderRadius:12,
+            padding:"13px 28px", fontFamily:FB, fontWeight:700, fontSize:13,
+            cursor:"pointer", boxShadow:`0 4px 20px rgba(176,120,42,.4)`, transition:"opacity .15s",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.opacity=".88"}
+          onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+            Resumen del día →
+          </button>
+          <button onClick={()=>setTab("mercados")} style={{
+            background:"rgba(255,255,255,.07)", color:"rgba(255,255,255,.75)",
+            border:"1px solid rgba(255,255,255,.13)", borderRadius:12,
+            padding:"13px 28px", fontFamily:FB, fontWeight:600, fontSize:13,
+            cursor:"pointer", transition:"background .15s",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.12)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.07)"}>
+            Cotizaciones en vivo
+          </button>
+        </div>
+      </div>
+
+      {/* ── LIVE KPIs ────────────────────────────────────── */}
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:20 }}>
+        <LiveChip
+          label="Merval USD"
+          value={mervalUSD ? `USD ${mervalUSD.value.toLocaleString("es-AR")}` : "—"}
+          sub="BYMA · CCL"
+          change={mervalUSD?.changePct ?? null}
+          loading={loading && !mervalUSD}
+        />
+        <LiveChip
+          label="SPY"
+          value={spy ? `$${spy.price.toFixed(2)}` : "—"}
+          sub="S&P 500 ETF"
+          change={spy?.changePct ?? null}
+          loading={loading && !spy}
+        />
+        <LiveChip
+          label="Dólar MEP"
+          value={mep ? `$${Math.round(mep.venta).toLocaleString("es-AR")}` : "—"}
+          sub="venta · dolarapi"
+          change={null}
+          loading={false}
+        />
+        <LiveChip
+          label="Riesgo País"
+          value={rp ? `${rp.toLocaleString("es-AR")} pb` : "—"}
+          sub={rp ? (rp < 600 ? "< 600 pb" : "> 600 pb") : "EMBI+"}
+          change={null}
+          color={rp ? (rp < 600 ? t.gr : t.rd) : t.tx}
+          loading={false}
+        />
+      </div>
+
+      {/* ── HIGHLIGHT DEL DÍA ────────────────────────────── */}
+      <div style={{
+        background:t.srf, border:`1px solid ${t.brd}`,
+        borderLeft:`4px solid ${t.go}`, borderRadius:16,
+        padding:"22px 26px", marginBottom:20,
+        display:"flex", alignItems:"center", gap:20, flexWrap:"wrap",
+      }}>
+        <div style={{ flex:1, minWidth:200 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+            <span style={{
+              fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".1em",
+              textTransform:"uppercase", color:t.go,
+              background:t.goBg, padding:"3px 10px", borderRadius:20,
+            }}>● {clock?.dateShort || "21 MAR"} · Último cierre</span>
+          </div>
+          <h2 style={{ fontFamily:FH, fontSize:isMobile?18:22, fontWeight:700, color:t.tx, lineHeight:1.25, marginBottom:8 }}>
+            Bancos +4/+6% · Reservas cubiertas · Wall St. a la baja
+          </h2>
+          <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.7, margin:0 }}>
+            Acciones argentinas suben a contramano del mundo. Fed sin recortes en todo 2026.
+          </p>
+        </div>
+        <button onClick={()=>setTab("resumen")} style={{
+          background:t.go, color:"#fff", border:"none", borderRadius:10,
+          padding:"10px 22px", fontFamily:FB, fontWeight:700, fontSize:12,
+          cursor:"pointer", whiteSpace:"nowrap", flexShrink:0, transition:"opacity .15s",
+        }}
+        onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
+        onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+          Leer resumen →
+        </button>
+      </div>
+
+      {/* ── NAVEGACIÓN RÁPIDA ────────────────────────────── */}
+      <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+        <NavCard icon="📋" tab="resumen"    title="Resumen Diario"  desc="Cierre del mercado argentino e internacional, día a día."    accent={t.go} />
+        <NavCard icon="📈" tab="mercados"   title="Mercados"        desc="Cotizaciones en vivo: dólar, riesgo país, BCRA."             accent={t.bl} />
+        <NavCard icon="🔍" tab="instrumentos" title="Instrumentos" desc="Screener de renta fija, soberanos y renta variable."         accent={t.gr} />
+        <NavCard icon="🗞️" tab="noticias"   title="Noticias"       desc="Las novedades del mercado que importan."                     accent={t.pu} />
+      </div>
+
+      {/* ── ANÁLISIS DESTACADO ───────────────────────────── */}
+      <button onClick={()=>setTab("informes")} style={{
+        width:"100%", marginTop:12,
+        background:"transparent",
+        border:`1.5px solid ${t.brd}`,
+        borderRadius:16, padding:"18px 24px",
+        textAlign:"left", cursor:"pointer",
+        display:"flex", alignItems:"center", gap:16,
+        transition:"all .18s",
+      }}
+      onMouseEnter={e=>{e.currentTarget.style.borderColor=t.gr;e.currentTarget.style.background=t.grBg;}}
+      onMouseLeave={e=>{e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.background="transparent";}}>
+        <div style={{ width:44, height:44, borderRadius:10, flexShrink:0,
+          background:"linear-gradient(135deg,#1a3a1a,#2d6a2d)",
+          display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <span style={{ color:"#4ade80", fontFamily:FB, fontWeight:900, fontSize:12 }}>VIST</span>
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+            <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.gr,
+              background:t.grBg, padding:"2px 8px", borderRadius:20,
+              textTransform:"uppercase", letterSpacing:".08em" }}>🔬 Análisis Destacado</span>
+          </div>
+          <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>Vista Energy — Informe Fundamental</div>
+          <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:2 }}>
+            Pure-play Vaca Muerta · Fwd P/E 9.19x · Score #1 Research Desk · Earnings 21 ABR 2026
+          </div>
+        </div>
+        <div style={{ fontFamily:FB, fontSize:12, color:t.gr, fontWeight:700, flexShrink:0 }}>Leer →</div>
+      </button>
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:24, textAlign:"center" }}>
+        Contenido informativo · No constituye asesoramiento de inversión · The Big Long · Máximo Ricciardi
+      </p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
    RECOMENDACIONES VIEW
 ════════════════════════════════════════════════════════════════ */
 function RecomendacionesView({ t }) {
@@ -2467,282 +2897,226 @@ function RecomendacionesView({ t }) {
 /* ════════════════════════════════════════════════════════════════
    INICIO VIEW — LANDING OVERVIEW
 ════════════════════════════════════════════════════════════════ */
-function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
   const latest = SUMMARIES[0];
-  // Override the riesgo país KPI with live data if available
-  const kpis = latest.kpis.map(k =>
-    k.k === "RIESGO PAÍS" && riesgoPais
-      ? { ...k, v:`${riesgoPais.valor} pb`, b: riesgoPais.valor < 600 ? "< 600" : `${riesgoPais.valor} pb`, bc: riesgoPais.valor < 600 ? "green" : "red" }
-      : k
+
+  // Live FX chips
+  const blue  = dolar?.find(d => d.casa === "blue");
+  const mep   = dolar?.find(d => d.casa === "bolsa");
+  const oficial= dolar?.find(d => d.casa === "oficial");
+  const rp    = riesgoPais?.valor;
+
+  const LiveChip = ({ label, value, sub, color }) => (
+    <div style={{
+      flex:1, minWidth:isMobile?140:160,
+      background:t.srf, border:`1px solid ${t.brd}`,
+      borderRadius:14, padding:"16px 20px",
+      transition:"transform .15s, box-shadow .15s",
+      cursor:"default",
+    }}
+    onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,.08)`;}}
+    onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
+      <div style={{ fontFamily:FB, fontSize:9, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>{label}</div>
+      <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:color||t.tx, lineHeight:1 }}>{value}</div>
+      {sub && <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:5 }}>{sub}</div>}
+    </div>
   );
+
+  const NavCard = ({ icon, title, desc, tab, accent }) => (
+    <button onClick={()=>setTab(tab)} style={{
+      flex:1, minWidth:isMobile?"100%":180,
+      background:t.srf, border:`1px solid ${t.brd}`,
+      borderRadius:16, padding:"22px 24px",
+      textAlign:"left", cursor:"pointer",
+      transition:"all .18s",
+      display:"flex", flexDirection:"column", gap:10,
+    }}
+    onMouseEnter={e=>{
+      e.currentTarget.style.borderColor=accent;
+      e.currentTarget.style.transform="translateY(-3px)";
+      e.currentTarget.style.boxShadow=`0 12px 32px rgba(0,0,0,.08)`;
+    }}
+    onMouseLeave={e=>{
+      e.currentTarget.style.borderColor=t.brd;
+      e.currentTarget.style.transform="translateY(0)";
+      e.currentTarget.style.boxShadow="none";
+    }}>
+      <div style={{ fontSize:28, lineHeight:1 }}>{icon}</div>
+      <div>
+        <div style={{ fontFamily:FH, fontSize:17, fontWeight:700, color:t.tx, marginBottom:4 }}>{title}</div>
+        <div style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.55 }}>{desc}</div>
+      </div>
+      <div style={{ fontFamily:FB, fontSize:11, color:accent, fontWeight:600, marginTop:"auto" }}>
+        Abrir →
+      </div>
+    </button>
+  );
+
   return (
-    <div className="fade-up">
-      {/* Hero */}
+    <div className="fade-up" style={{ maxWidth:900, margin:"0 auto" }}>
+
+      {/* ── HERO ───────────────────────────────────────────────── */}
       <div style={{
-        background:`linear-gradient(135deg, ${t.tx} 0%, #1F3560 60%, #2A4A80 100%)`,
-        borderRadius:16, padding:"40px 36px", marginBottom:20, position:"relative", overflow:"hidden",
+        borderRadius:20, overflow:"hidden",
+        background:`linear-gradient(145deg, #0d1117 0%, #1a2744 55%, #0d2137 100%)`,
+        padding: isMobile ? "36px 24px 32px" : "52px 52px 44px",
+        marginBottom:24, position:"relative",
       }}>
-        <div style={{ position:"absolute", right:-40, top:-40, width:250, height:250, borderRadius:"50%", background:"rgba(255,255,255,.03)" }} />
-        <div style={{ position:"absolute", right:60, bottom:-60, width:160, height:160, borderRadius:"50%", background:"rgba(255,255,255,.02)" }} />
-        <div style={{ maxWidth:680, position:"relative" }}>
-          <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.45)", letterSpacing:".14em", textTransform:"uppercase", marginBottom:10 }}>
-            📅 {clock?.date?.toUpperCase() || "THE BIG LONG"} · BUENOS AIRES
-          </div>
-          <h1 style={{ fontFamily:FH, fontSize:isMobile?32:52, fontWeight:700, color:"#FFFFFF", lineHeight:1.05, marginBottom:8, letterSpacing:"-.02em" }}>
-            The Big Long
-          </h1>
-          <p style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.38)", marginBottom:20, letterSpacing:".04em" }}>Máximo Ricciardi</p>
-          <p style={{ fontFamily:FB, fontSize:14, color:"rgba(255,255,255,.65)", lineHeight:1.75, marginBottom:24, maxWidth:520 }}>
-            Análisis diario del mercado argentino e internacional. Datos, contexto y perspectiva para decisiones de inversión informadas.
-          </p>
-          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-            <button onClick={()=>setTab("resumen")} style={{
-              background:t.go, color:"#fff", border:"none", borderRadius:10,
-              padding:"11px 24px", fontFamily:FB, fontWeight:700, fontSize:13, cursor:"pointer", letterSpacing:".02em",
-            }}>Ver Resumen Diario →</button>
-            <button onClick={()=>setTab("mercados")} style={{
-              background:"rgba(255,255,255,.1)", color:"rgba(255,255,255,.9)", border:"1px solid rgba(255,255,255,.2)",
-              borderRadius:10, padding:"11px 24px", fontFamily:FB, fontWeight:600, fontSize:13, cursor:"pointer",
-            }}>Cotizaciones en vivo</button>
-          </div>
+        {/* Decorative circles */}
+        <div style={{ position:"absolute", right:-60, top:-60, width:280, height:280, borderRadius:"50%",
+          background:"radial-gradient(circle, rgba(176,120,42,.12) 0%, transparent 70%)", pointerEvents:"none" }} />
+        <div style={{ position:"absolute", left:-40, bottom:-80, width:240, height:240, borderRadius:"50%",
+          background:"radial-gradient(circle, rgba(59,130,246,.06) 0%, transparent 70%)", pointerEvents:"none" }} />
+
+        {/* Date */}
+        <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.35)", letterSpacing:".18em",
+          textTransform:"uppercase", marginBottom:18 }}>
+          {clock?.date?.toUpperCase() || "THE BIG LONG"} · BUENOS AIRES
+        </div>
+
+        {/* Title */}
+        <h1 style={{
+          fontFamily:FH, fontSize: isMobile ? 38 : 62,
+          fontWeight:700, color:"#fff", lineHeight:1,
+          letterSpacing:"-.02em", marginBottom:16,
+        }}>
+          The Big Long
+        </h1>
+
+        {/* Tagline */}
+        <p style={{
+          fontFamily:FB, fontSize: isMobile ? 13 : 15,
+          color:"rgba(255,255,255,.5)", lineHeight:1.7,
+          maxWidth:480, marginBottom:32,
+        }}>
+          Inteligencia financiera para el mercado argentino e internacional.
+        </p>
+
+        {/* CTAs */}
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+          <button onClick={()=>setTab("resumen")} style={{
+            background:t.go, color:"#fff", border:"none",
+            borderRadius:12, padding:"13px 28px",
+            fontFamily:FB, fontWeight:700, fontSize:13,
+            cursor:"pointer", letterSpacing:".01em",
+            boxShadow:`0 4px 20px rgba(176,120,42,.4)`,
+            transition:"opacity .15s",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.opacity=".88"}
+          onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+            Resumen del día →
+          </button>
+          <button onClick={()=>setTab("mercados")} style={{
+            background:"rgba(255,255,255,.07)",
+            color:"rgba(255,255,255,.8)",
+            border:"1px solid rgba(255,255,255,.15)",
+            borderRadius:12, padding:"13px 28px",
+            fontFamily:FB, fontWeight:600, fontSize:13,
+            cursor:"pointer", transition:"background .15s",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.12)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.07)"}>
+            Cotizaciones en vivo
+          </button>
         </div>
       </div>
 
-      {/* KPI row */}
-      <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:20 }}>
-        {latest.kpis.slice(0,5).map((k,i) => <KpiChip key={i} item={k} t={t} />)}
+      {/* ── LIVE KPIs ──────────────────────────────────────────── */}
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:24 }}>
+        <LiveChip
+          label="Dólar Blue"
+          value={blue ? `$${Math.round(blue.venta).toLocaleString("es-AR")}` : "—"}
+          sub="venta"
+          color={t.tx}
+        />
+        <LiveChip
+          label="Dólar MEP"
+          value={mep ? `$${Math.round(mep.venta).toLocaleString("es-AR")}` : "—"}
+          sub="venta"
+          color={t.tx}
+        />
+        <LiveChip
+          label="Dólar Oficial"
+          value={oficial ? `$${Math.round(oficial.venta).toLocaleString("es-AR")}` : "—"}
+          sub="BNA venta"
+          color={t.tx}
+        />
+        <LiveChip
+          label="Riesgo País"
+          value={rp ? `${rp.toLocaleString("es-AR")} pb` : "—"}
+          sub={rp ? (rp < 600 ? "por debajo de 600" : "por encima de 600") : null}
+          color={rp ? (rp < 600 ? t.gr : t.rd) : t.tx}
+        />
       </div>
 
-      {/* ── FLASH NEWS: AIE ALERTA ENERGÉTICA ── */}
+      {/* ── HIGHLIGHT DEL DÍA ──────────────────────────────────── */}
       <div style={{
-        background:`linear-gradient(135deg, #431407, #7c2d12)`,
-        border:`1px solid #ea580c55`,
-        borderRadius:14,
-        padding:"18px 22px",
-        marginBottom:20,
-        display:"flex",
-        gap:16,
-        alignItems:"flex-start",
+        background: t.srf, border:`1px solid ${t.brd}`,
+        borderLeft:`4px solid ${t.go}`,
+        borderRadius:16, padding:"24px 28px",
+        marginBottom:24,
+        display:"flex", alignItems:"flex-start", gap:20, flexWrap:"wrap",
       }}>
-        <div style={{ fontSize:26, flexShrink:0, lineHeight:1, paddingTop:2 }}>🛢️</div>
-        <div style={{ flex:1 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, flexWrap:"wrap" }}>
+        <div style={{ flex:1, minWidth:200 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
             <span style={{
-              fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".12em", textTransform:"uppercase",
-              background:"#ea580c", color:"#fff", padding:"3px 10px", borderRadius:20,
-            }}>⚡ FLASH NEWS</span>
-            <span style={{ fontFamily:FB, fontSize:10, color:"#fed7aa", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase" }}>
-              Alerta Energética Global · AIE
-            </span>
-            <span style={{ fontFamily:FB, fontSize:10, color:"#9a3412", marginLeft:"auto" }}>{clock?.dateShort || "20 MAR"} 2026</span>
+              fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".1em",
+              textTransform:"uppercase", color:t.go,
+              background:t.goBg, padding:"3px 10px", borderRadius:20,
+            }}>🔴 Hoy · {clock?.dateShort || "21 MAR"}</span>
           </div>
-          <p style={{ fontFamily:FB, fontSize:13, color:"#ffedd5", lineHeight:1.72, marginBottom:10 }}>
-            El director de la <strong style={{color:"#fed7aa"}}>Agencia Internacional de Energía</strong> calificó la guerra en Irán como <strong style={{color:"#fb923c"}}>"la mayor amenaza a la seguridad energética global en la historia"</strong>, advirtiendo que podría tomar <strong style={{color:"#fed7aa"}}>seis meses o más</strong> restaurar el flujo de petróleo y gas del Golfo Pérsico. El impacto supera los shocks de los años 70 y duplica el corte de gas ruso de 2022 — afectando crudo, fertilizantes, petroquímicos, plásticos y helio.
+          <h2 style={{ fontFamily:FH, fontSize: isMobile?20:26, fontWeight:700, color:t.tx, lineHeight:1.2, marginBottom:10 }}>
+            Bancos +4/+6% · Reservas cubiertas · Wall St. a la baja
+          </h2>
+          <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, margin:0 }}>
+            Acciones argentinas suben a contramano del mundo. Bancos lideran tras habilitación de distribuir hasta el 60% de ganancias. Fed sin recortes en todo 2026.
           </p>
-          <div style={{ display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
-            <span style={{ fontFamily:"monospace", fontSize:12, color:"#fed7aa", background:"rgba(0,0,0,.25)", padding:"4px 12px", borderRadius:8, fontWeight:600 }}>
-              WTI: USD 96,7
-            </span>
-            <span style={{ fontFamily:"monospace", fontSize:12, color:"#fed7aa", background:"rgba(0,0,0,.25)", padding:"4px 12px", borderRadius:8, fontWeight:600 }}>
-              Brent: USD 108,5
-            </span>
-            <span style={{ fontFamily:FB, fontSize:10, color:"#9a3412", marginLeft:"auto" }}>
-              📄 Financial Times · IEA
-            </span>
-          </div>
         </div>
+        <button onClick={()=>setTab("resumen")} style={{
+          alignSelf:"center", background:t.go, color:"#fff",
+          border:"none", borderRadius:10, padding:"10px 22px",
+          fontFamily:FB, fontWeight:700, fontSize:12, cursor:"pointer",
+          whiteSpace:"nowrap", flexShrink:0,
+          transition:"opacity .15s",
+        }}
+        onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
+        onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+          Leer resumen →
+        </button>
       </div>
 
-      {/* ── ANÁLISIS DESTACADO: VISTA ENERGY ── */}
-      <Card t={t} style={{ marginBottom:20, borderLeft:`4px solid ${t.gr}`, overflow:"hidden" }}>
-        <div style={{ padding:"22px 24px" }}>
-          {/* Header */}
-          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:18 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <div style={{ width:48, height:48, borderRadius:12, background:"linear-gradient(135deg,#1a3a1a,#2d6a2d)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <span style={{ color:"#4ade80", fontFamily:FB, fontWeight:900, fontSize:13 }}>VIST</span>
-              </div>
-              <div>
-                <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:3 }}>
-                  <span style={{ fontFamily:FH, fontSize:22, fontWeight:800, color:t.tx }}>Vista Energy</span>
-                  <Badge c="green" t={t}>🔬 ANÁLISIS DESTACADO</Badge>
-                  <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"2px 8px", borderRadius:6 }}>NYSE: VIST · Vaca Muerta</span>
-                </div>
-                <span style={{ fontFamily:FB, fontSize:12, color:t.mu }}>E&P Shale · Argentina + México · Líder en Vaca Muerta · Earnings: 21 ABR 2026</span>
-              </div>
-            </div>
-            {/* Price box */}
-            <div style={{ textAlign:"right" }}>
-              <div style={{ fontFamily:FH, fontSize:34, fontWeight:800, color:t.tx, lineHeight:1 }}>$73.60</div>
-              <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:3 }}>19 MAR 2026 · NYSE · <span style={{color:t.gr,fontWeight:700}}>+6,0% hoy 🔥</span></div>
-              <div style={{ display:"flex", gap:6, justifyContent:"flex-end", marginTop:6 }}>
-                <span style={{ background:t.grBg, color:t.gr, fontFamily:FB, fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:20 }}>
-                  Research Desk: $76.72 (+4,2%)
-                </span>
-                <span style={{ background:t.goBg, color:t.go, fontFamily:FB, fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:20 }}>
-                  Goldman: $66.90 ✅ superado
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Sentiment banner */}
-          <div style={{ background:"linear-gradient(135deg,"+t.grBg+","+t.blBg+")", border:`1px solid ${t.gr}33`, borderRadius:12, padding:"14px 18px", marginBottom:18 }}>
-            <div style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:t.gr, letterSpacing:".08em", textTransform:"uppercase", marginBottom:6 }}>⚡ Tesis de inversión</div>
-            <p style={{ fontFamily:FB, fontSize:13, color:t.tx, lineHeight:1.7, margin:0 }}>
-              Vista Energy es el <strong>pure-play más eficiente de Vaca Muerta</strong>. Con una operación casi 100% shale, márgenes EBITDA superiores al 60% y producción creciendo a doble dígito, cotiza a un <strong>Fwd P/E de ~9x</strong> — un descuento flagrante frente a pares internacionales que operan a 12–15x. Hoy sube <strong>+6%</strong> y ya superó el target de Goldman Sachs ($66.90). El próximo upside apunta al target del Research Desk en <strong>$76.72 (+4,2%)</strong>. Earnings el <strong>21 ABR 2026</strong> como catalizador de revisión de targets.
-            </p>
-          </div>
-
-          {/* Metrics grid */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10, marginBottom:18 }}>
-            {[
-              {l:"Fwd P/E (NTM)",  v:"9.19x",   badge:null, bc:"green",  note:"Descuento vs. peers ~12-15x"},
-              {l:"EBITDA (TTM)",   v:"$1.877B",  badge:null, bc:"blue",   note:"Margen EBITDA ~63,7%"},
-              {l:"Revenue (TTM)",  v:"$2.474B",  badge:null, bc:"blue",   note:"+25% YoY estimado"},
-              {l:"Margen Neto",    v:"29,2%",    badge:null, bc:"green",  note:"Alta calidad de resultados"},
-              {l:"ROE (TTM)",      v:"34,99%",   badge:null, bc:"green",  note:"Retorno sobre equity superior"},
-              {l:"Gross Margin",   v:"47,5%",    badge:null, bc:"green",  note:"Producción de bajo costo"},
-              {l:"52-Week Low",    v:"$31.63",   badge:null, bc:"gray",   note:"Actual: +133% sobre mínimo"},
-              {l:"52-Week High",   v:"$62.42",   badge:null, bc:"gray",   note:"+18% sobre el máximo anterior 🔥"},
-            ].map((m,i) => (
-              <div key={i} style={{ background:t.alt, borderRadius:10, padding:"12px 14px" }}>
-                <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>{m.l}</div>
-                <div style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:t.tx, marginBottom:2 }}>{m.v}</div>
-                <div style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.4 }}>{m.note}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Análisis cualitativo */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
-            <div style={{ background:t.grBg, border:`1px solid ${t.gr}22`, borderRadius:10, padding:"14px 16px" }}>
-              <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.gr, textTransform:"uppercase", letterSpacing:".08em", marginBottom:8 }}>✅ Fortalezas</div>
-              {["Vaca Muerta — reservas de clase mundial, segundo play shale más grande fuera de EE.UU.",
-                "Producción shale oil >70Kboe/d creciendo a ~15% CAGR. Único E&P con 100% shale en Argentina.",
-                "EBITDA margin >60%: estructura de costos operativos de los más bajos del sector.",
-                "Contratos de exportación de petróleo en USD: cobertura natural contra el riesgo cambiario.",
-                "Management track-record impecable. Fundada por Miguel Galuccio (ex-CEO YPF)."].map((p,i)=>(
-                <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                  <span style={{ color:t.gr, fontWeight:700, fontSize:12, flexShrink:0 }}>·</span>
-                  <span style={{ fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.5 }}>{p}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:10, padding:"14px 16px" }}>
-              <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.rd, textTransform:"uppercase", letterSpacing:".08em", marginBottom:8 }}>⚠️ Riesgos a monitorear</div>
-              {["Precio del petróleo (WTI): caída por bajo del rango $65–$70 presionaría márgenes.",
-                "Riesgo regulatorio argentino: cambios en retenciones a exportaciones de crudo.",
-                "Deuda neta elevada (D/E 117%) — expansión CAPEX para escalar Vaca Muerta.",
-                "Liquidez: ADR con menor volumen vs. pares globales. Volatilidad en ruedas de riesgo.",
-                "Ejecución: La Amarga Chica deal (2025) debe mostrar integración y sinergias en Q1-Q2."].map((p,i)=>(
-                <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                  <span style={{ color:t.rd, fontWeight:700, fontSize:12, flexShrink:0 }}>·</span>
-                  <span style={{ fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.5 }}>{p}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Analyst targets */}
-          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
-            <span style={{ fontFamily:FB, fontSize:11, color:t.mu }}>Targets de analistas:</span>
-            {[
-              {bank:"Goldman Sachs", target:"$66.90", rat:"BUY", date:"4 MAR 2026"},
-              {bank:"Jefferies",     target:"BUY",    rat:"BUY", date:"26 FEB 2026"},
-              {bank:"HSBC",          target:"BUY",    rat:"BUY", date:"18 MAR 2026"},
-            ].map((a,i)=>(
-              <span key={i} style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"4px 12px", fontFamily:FB, fontSize:11 }}>
-                <strong style={{ color:t.tx }}>{a.bank}</strong>
-                <span style={{ color:t.gr, marginLeft:6 }}>{a.target}</span>
-                <span style={{ color:t.mu, marginLeft:4 }}>· {a.date}</span>
-              </span>
-            ))}
-          </div>
-
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
-            <p style={{ fontFamily:FB, fontSize:10, color:t.fa, margin:0, lineHeight:1.5, maxWidth:480 }}>
-              * Análisis a modo orientativo. No constituye recomendación de inversión. Toda inversión implica riesgo. Consultar asesor antes de operar.
-            </p>
-            <button onClick={()=>setTab("instrumentos")} style={{ background:t.gr, color:"#fff", border:"none", borderRadius:10, padding:"10px 20px", fontFamily:FB, fontWeight:700, fontSize:12, cursor:"pointer" }}>
-              Ver VIST en Research Desk →
-            </button>
-          </div>
-        </div>
-      </Card>
-
-      {/* 3-col grid: Latest summary, Earnings, Oportunidad */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:14, marginBottom:20 }}>
-        {/* Latest summary teaser */}
-        <Card t={t}>
-          <div style={{ padding:"20px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-              <Badge c="red" t={t}>🔴 ÚLTIMO CIERRE</Badge>
-              <span style={{ fontFamily:FB, fontSize:11, color:t.mu }}>20 MAR</span>
-            </div>
-            <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:10, lineHeight:1.2 }}>Bancos +4/+6% · Reservas cubiertas · Wall St. a la baja</h3>
-            <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.7, marginBottom:14 }}>Acciones argentinas suben a contramano del mundo. Bancos lideran tras habilitación de distribuir hasta el 60% de ganancias como dividendos. Fed sin recortes en todo 2026.</p>
-            <button onClick={()=>setTab("resumen")} style={{ background:"transparent", border:`1px solid ${t.brd}`, borderRadius:8, padding:"7px 16px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer" }}>Leer más →</button>
-          </div>
-        </Card>
-
-        {/* Earnings teaser */}
-        <Card t={t}>
-          <div style={{ padding:"20px" }}>
-            <div style={{ marginBottom:14 }}><Badge c="green" t={t}>📊 EARNINGS</Badge></div>
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-              <div style={{ width:38, height:38, borderRadius:8, background:t.tx, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                <span style={{ color:t.go, fontFamily:FB, fontWeight:800, fontSize:12 }}>MU</span>
-              </div>
-              <div>
-                <h3 style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:t.tx }}>Micron Technology</h3>
-                <span style={{ fontFamily:FB, fontSize:11, color:t.mu }}>Q2 FY2025 · NASDAQ</span>
-              </div>
-            </div>
-            <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.7, marginBottom:14 }}>Revenue $23,86B (+19,7% vs est.). Guidance Q3: $33,50B — beat del <strong style={{color:t.gr}}>+40,8%</strong> al consenso.</p>
-            <button onClick={()=>setTab("balances")} style={{ background:"transparent", border:`1px solid ${t.brd}`, borderRadius:8, padding:"7px 16px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer" }}>Ver análisis →</button>
-          </div>
-        </Card>
-
-        {/* CTA contacto */}
-        <Card t={t}>
-          <div style={{ padding:"20px", height:"100%", display:"flex", flexDirection:"column" }}>
-            <div style={{ marginBottom:14 }}><Badge c="gold" t={t}>💼 ASESORAMIENTO</Badge></div>
-            <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:10, lineHeight:1.2 }}>¿Querés invertir con criterio?</h3>
-            <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.7, marginBottom:16, flex:1 }}>
-              Armá una cartera acorde a tu perfil y objetivos. Análisis personalizado, seguimiento continuo y estrategia a medida.
-            </p>
-            <a href={`mailto:${CONTACT.email}`} style={{
-              display:"block", textAlign:"center", background:t.go, color:"#fff",
-              borderRadius:10, padding:"11px 20px", fontFamily:FB, fontWeight:700, fontSize:13,
-              textDecoration:"none", letterSpacing:".02em",
-            }}>Contactar ahora →</a>
-          </div>
-        </Card>
+      {/* ── NAVEGACIÓN RÁPIDA ──────────────────────────────────── */}
+      <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+        <NavCard
+          icon="📋" tab="resumen"
+          title="Resumen Diario"
+          desc="Cierre del mercado argentino e internacional, día a día."
+          accent={t.go}
+        />
+        <NavCard
+          icon="📈" tab="mercados"
+          title="Mercados"
+          desc="Cotizaciones en vivo: dólar, riesgo país, BCRA."
+          accent={t.bl}
+        />
+        <NavCard
+          icon="🔍" tab="instrumentos"
+          title="Instrumentos"
+          desc="Screener de renta fija, soberanos y renta variable."
+          accent={t.gr}
+        />
+        <NavCard
+          icon="🗞️" tab="noticias"
+          title="Noticias"
+          desc="Las novedades del mercado que importan."
+          accent={t.pu}
+        />
       </div>
 
-      {/* Oportunidades destacadas */}
-      <Card t={t} style={{ marginBottom:20 }}>
-        <div style={{ padding:"20px 24px" }}>
-          <SectionLabel t={t}>OPORTUNIDADES DESTACADAS — A MODO ORIENTATIVO</SectionLabel>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
-            {[
-              {icon:"💹", label:"LECAP Mayo", desc:"Tasa fija ~2,33% TEM. Sin riesgo crediticio soberano en pesos.", badge:"Conservador", bc:"blue"},
-              {icon:"📈", label:"Globales XD (GD38)", desc:"Ley NY. Rendimiento ~10% en USD. Compresión de riesgo país.", badge:"Dinámico", bc:"purple"},
-              {icon:"🛢️", label:"Toma de ganancia: Petroleras", desc:"XOM, CVX, VIST, Shell acumulan >10% en 30+ días. Buen momento para realizar parcialmente.", badge:"⚠️ Acción", bc:"gold"},
-              {icon:"🥇", label:"Oro / GLD", desc:"Refugio ante crisis energética histórica. AIE advierte 6+ meses de disrupción en el Golfo.", badge:"Cobertura", bc:"gray"},
-            ].map((o,i) => (
-              <div key={i} style={{ background:t.alt, borderRadius:10, padding:"14px 16px" }}>
-                <div style={{ fontSize:20, marginBottom:8 }}>{o.icon}</div>
-                <div style={{ fontFamily:FB, fontWeight:700, fontSize:13, color:t.tx, marginBottom:4 }}>{o.label}</div>
-                <p style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.6, marginBottom:10 }}>{o.desc}</p>
-                <Badge c={o.bc} sm t={t}>{o.badge}</Badge>
-              </div>
-            ))}
-          </div>
-          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:14 }}>* Opinión orientativa. No constituye recomendación formal de inversión.</p>
-        </div>
-      </Card>
+      {/* Disclaimer */}
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:28, textAlign:"center", lineHeight:1.6 }}>
+        Contenido informativo. No constituye asesoramiento de inversión. · The Big Long · Máximo Ricciardi
+      </p>
+
     </div>
   );
 }
@@ -3311,7 +3685,7 @@ export default function App() {
     { id:"resumen",         label:"Resumen Diario",   icon:"📋" },
     { id:"noticias",        label:"Noticias",          icon:"📰" },
     { id:"mercados",        label:"Mercados",          icon:"💱" },
-    { id:"balances",        label:"Balances",          icon:"📊" },
+    { id:"informes",         label:"Informes",          icon:"📊" },
     { id:"instrumentos",    label:"Instrumentos",      icon:"🔬" },
     { id:"recomendaciones", label:"Recomendaciones",  icon:"💼" },
   ];
@@ -3481,12 +3855,7 @@ export default function App() {
         )}
         {tab==="noticias" && <NoticiasView t={t} />}
         {tab==="mercados" && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} />}
-        {tab==="balances" && (
-          <div>
-            <SectionLabel t={t}>EARNINGS REPORTS · ANÁLISIS DE BALANCES</SectionLabel>
-            <EarningsCard t={t} />
-          </div>
-        )}
+        {tab==="informes" && <InformesView t={t} />}
         {tab==="instrumentos" && <InstrumentosView t={t} />}
         {tab==="recomendaciones" && <RecomendacionesView t={t} />}
       </main>

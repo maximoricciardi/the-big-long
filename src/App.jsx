@@ -2562,8 +2562,8 @@ function NoticiasView({ t }) {
    INICIO VIEW — Minimal, clean, great UX
 ════════════════════════════════════════════════════════════════ */
 function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
-  const mep    = dolar?.find(d => d.casa === "bolsa");
-  const rp     = riesgoPais?.valor;
+  const mep = dolar?.bolsa;
+  const rp  = riesgoPais?.valor;
 
   // ── Live market chips ─────────────────────────────────────────
   const [spy,       setSpy]       = useState(null); // { price, changePct }

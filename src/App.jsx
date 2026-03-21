@@ -32,7 +32,7 @@ const TH = {
   }
 };
 
-const FH = "'Playfair Display',serif";
+const FH = "'Inter',sans-serif";
 const FB = "'Inter',sans-serif";
 
 const CONTACT = {
@@ -50,7 +50,7 @@ function useFonts(dark) {
     if (!document.getElementById("mr-fonts")) {
       const l = document.createElement("link");
       l.id = "mr-fonts"; l.rel = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap";
+      l.href = "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap";
       document.head.appendChild(l);
     }
     let s = document.getElementById("mr-css");
@@ -3503,16 +3503,16 @@ export default function App() {
         <div style={{ maxWidth:1200, margin:"0 auto", padding:`0 ${isMobile?12:20}px`, display:"flex", alignItems:"center", justifyContent:"space-between", height:isMobile?50:56, gap:isMobile?8:16 }}>
 
           {/* Logo */}
-          <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:12, flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
-            <div>
-              <div style={{ fontFamily:FH, fontSize:isMobile?16:20, fontWeight:700, color:t.tx, letterSpacing:"-.01em", lineHeight:1 }}>
-                The Big Long
-              </div>
-              {!isMobile && (
-                <div style={{ fontFamily:FB, fontSize:9, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginTop:3 }}>
-                  Propietario · Máximo Ricciardi
-                </div>
-              )}
+          <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
+            <div style={{
+              fontFamily:"'Inter',sans-serif",
+              fontSize: isMobile ? 17 : 22,
+              fontWeight: 800,
+              color: t.tx,
+              letterSpacing: "-.03em",
+              lineHeight: 1,
+            }}>
+              The Big Long
             </div>
           </div>
 
@@ -3657,10 +3657,7 @@ export default function App() {
             {/* Brand */}
             <div style={{ paddingRight:48 }}>
               <div style={{ marginBottom:20 }}>
-                <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.ftT, lineHeight:1, letterSpacing:"-.01em" }}>The Big Long</div>
-                <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.3)", marginTop:6, letterSpacing:".12em", textTransform:"uppercase" }}>
-                  Propietario & Fundador · Máximo Ricciardi
-                </div>
+                <div style={{ fontFamily:"'Inter',sans-serif", fontSize:26, fontWeight:800, color:t.ftT, lineHeight:1, letterSpacing:"-.03em" }}>The Big Long</div>
               </div>
               <p style={{ fontFamily:FB, fontSize:13, color:"rgba(255,255,255,.4)", lineHeight:1.8, maxWidth:340 }}>
                 Análisis y seguimiento del mercado argentino e internacional. Actualización diaria con datos de renta fija, renta variable, mercado de cambios y contexto macro.
@@ -3671,10 +3668,10 @@ export default function App() {
             <div style={{ background:"rgba(255,255,255,.08)", width:1, margin:"0 48px", minHeight:140 }} />
 
             {/* Contact */}
-            <div style={{ paddingLeft:0 }}>
-              <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.3)", letterSpacing:".12em", textTransform:"uppercase", marginBottom:20 }}>CONTACTO DIRECTO</div>
-              <div style={{ fontFamily:FH, fontSize:26, fontWeight:600, color:t.ftT, marginBottom:6 }}>{CONTACT.name}</div>
-              <div style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.45)", marginBottom:28, letterSpacing:".02em" }}>{CONTACT.title} · Balanz Capital</div>
+            <div>
+              <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.3)", letterSpacing:".12em", textTransform:"uppercase", marginBottom:20 }}>CONTACTO</div>
+              <div style={{ fontFamily:FB, fontSize:22, fontWeight:700, color:t.ftT, marginBottom:4 }}>{CONTACT.name}</div>
+              <div style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.45)", marginBottom:28, letterSpacing:".02em" }}>{CONTACT.title}</div>
               <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
                 <a href={`tel:${CONTACT.phone}`} style={{
                   display:"flex", alignItems:"center", gap:12,
@@ -3700,7 +3697,7 @@ export default function App() {
               La información publicada tiene carácter exclusivamente informativo. No constituye asesoramiento de inversión, recomendación de compra o venta de valores, ni oferta pública. Invertir implica riesgos.
             </p>
             <span style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.2)", whiteSpace:"nowrap" }}>
-              The Big Long · Fundado MAR 2026
+              Fundada en marzo 2026
             </span>
           </div>
         </div>

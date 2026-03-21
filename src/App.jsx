@@ -1533,41 +1533,36 @@ function EquityScreener({ t }) {
 ════════════════════════════════════════════════════════════════ */
 /* ── Calcula YTM via bisección numérica (Newton aproximado) ── */
 function calcBondMetrics(s, livePrice) {
-  const baseP = parseFloat(s.p.replace("$","").replace(",","."));
+  const baseP = parseFloat(s.p.replace("$","").replace(".","").replace(",","."));
   const price  = livePrice || baseP;
   const isLive = !!livePrice;
 
   // ── TIR por aproximación de duración modificada ───────────────
-  // TIR_live ≈ TIR_base + (P_base - P_live) / (P_base × ModDur)
-  // Estándar de mercado para variaciones de precio < 5-10%
   let newTIR = null;
   if (s.tir !== "—") {
     const baseTIR = parseFloat(s.tir.replace("%","").replace(",","."))/100;
-    const modDur  = s.dur / (1 + baseTIR / 2); // duración modificada semestral
-    const dTIR    = (baseP - price) / (baseP * modDur) * 100; // en %
+    const modDur  = s.dur / (1 + baseTIR / 2);
+    const dTIR    = (baseP - price) / (baseP * modDur) * 100;
     newTIR = baseTIR * 100 + dTIR;
   }
 
-  // ── Current Yield = cupón anual / precio ─────────────────────
-  // CY_live = CY_base × P_base / P_live  (cupón $ es fijo)
+  // ── Current Yield = cupón anual $ / precio live ───────────────
   let newCY = null;
   if (s.cy !== "—") {
     const baseCY = parseFloat(s.cy.replace("%","").replace(",","."))/100;
-    const annualCouponDollar = baseCY * baseP; // cupón anual en $, fijo
-    newCY = (annualCouponDollar / price) * 100;
+    const annualCouponUSD = baseCY * baseP;
+    newCY = (annualCouponUSD / price) * 100;
   }
 
-  // ── Paridad = precio / valor técnico (VT) ────────────────────
-  // VT es fijo (no depende del precio), P/VT cambia con el precio
+  // ── Paridad = precio / VT fijo ────────────────────────────────
   let newPar = null;
   if (s.par !== "—") {
-    const basePar  = parseFloat(s.par.replace("%","").replace(",","."))/100;
-    const vtFixed  = baseP / basePar; // valor técnico fijo
+    const basePar = parseFloat(s.par.replace("%","").replace(",","."))/100;
+    const vtFixed = baseP / basePar;
     newPar = (price / vtFixed) * 100;
   }
 
   const varVsBase = ((price - baseP) / baseP * 100);
-
   return { price, isLive, newTIR, newCY, newPar, varVsBase };
 }
 
@@ -1640,18 +1635,19 @@ function InstrumentosView({ t }) {
     return () => clearInterval(id);
   }, []);
 
-  // LECAP/BONCAP: cálculo correcto usando VN al vencimiento derivado del rendimiento base
-  // VN_vto = pBase × (1 + r_base) — fijo e independiente del precio de mercado
-  // TEM_live = (VN_vto / pLive)^(30/dias_restantes) - 1
+  // LECAP/BONCAP: cálculo correcto
+  // VN_vto = pBase × (1 + r_base) — valor técnico al vencimiento, fijo
+  // TEM_live = (VN_vto / pLive)^(30/diasRest) - 1
+  // TNA = rendimiento_total × (365 / diasRest)  ← convención mercado ARG
   const calcLECAPMetrics = (row, g) => {
     const pBase   = parseFloat(row.pre.replace("$","").replace(/\./g,"").replace(",","."));
     const rBase   = parseFloat(row.r.replace("%","").replace(",",".")) / 100;
     const temBase = parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
     if (!pBase || !rBase || !temBase) return null;
 
-    const vnVto    = pBase * (1 + rBase);          // valor técnico al vencimiento — fijo
-    const diasBase = g.dias;                        // días al vto al 19-MAR (base)
-    const diasRest = Math.max(1, diasBase - daysSinceBase); // días restantes hoy
+    const vnVto    = pBase * (1 + rBase);                          // VN al vto — fijo
+    const diasBase = g.dias;                                        // días al vto al 19-MAR
+    const diasRest = Math.max(1, diasBase - daysSinceBase);        // días restantes hoy
 
     // precio teórico hoy = capitalización desde precio base
     const pLive = pBase * Math.pow(1 + temBase, daysSinceBase / 30);
@@ -1660,10 +1656,12 @@ function InstrumentosView({ t }) {
 
     // rendimiento total desde precio live hasta vto
     const rendimiento = (vnVto / pLive - 1) * 100;
+
     // TEM implícita del mercado hoy
     const temLive = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
-    // TNA = TEM × 12 (convención mercado ARG para tasa fija)
-    const tnaLive = temLive * 12;
+
+    // TNA = rendimiento total × (365 / días restantes) — convención BYMA/MAE
+    const tnaLive = rendimiento * (365 / diasRest);
 
     return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest };
   };

@@ -997,6 +997,8 @@ const upColor   = {"MUY ALTO":"green",ALTO:"blue",MEDIO:"gold",BAJO:"gray"};
 /* ════════════════════════════════════════════════════════════════
    EQUITY SCREENER COMPONENT
 ════════════════════════════════════════════════════════════════ */
+const FINNHUB_KEY = "d6uv5a9r01qig5460670d6uv5a9r01qig546067g";
+
 function EquityScreener({ t }) {
   const [sortCol, setSortCol] = useState("mkt");
   const [sortDir, setSortDir] = useState(1);
@@ -1007,6 +1009,41 @@ function EquityScreener({ t }) {
   const [fMom,  setFMom]  = useState("Todos");
   const [fUp,   setFUp]   = useState("Todos");
   const [search, setSearch] = useState("");
+  const [livePrices, setLivePrices] = useState({});
+  const [liveStatus, setLiveStatus] = useState("loading"); // loading | ok | error
+
+  // Fetch live prices from Finnhub — throttled to respect free tier (60 req/min)
+  useEffect(() => {
+    let cancelled = false;
+    const US_TICKERS = EQUITIES.filter(e => e.mkt === "US" || e.mkt === "ETF").map(e => e.t);
+
+    const fetchAll = async () => {
+      const prices = {};
+      let ok = 0;
+      for (let i = 0; i < US_TICKERS.length; i++) {
+        if (cancelled) return;
+        const ticker = US_TICKERS[i];
+        try {
+          const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
+          const data = await res.json();
+          if (data.c && data.c > 0) {
+            prices[ticker] = { price: data.c, change: data.d, changePct: data.dp };
+            ok++;
+          }
+        } catch { /* skip */ }
+        // Throttle: ~40 req/min to stay safe on free tier
+        if (i < US_TICKERS.length - 1) await new Promise(r => setTimeout(r, 1500));
+      }
+      if (!cancelled) {
+        setLivePrices(prices);
+        setLiveStatus(ok > 0 ? "ok" : "error");
+      }
+    };
+
+    fetchAll();
+    return () => { cancelled = true; };
+  }, []);
+
 
   const sort = (col) => {
     if (sortCol === col) setSortDir(d => -d);
@@ -1030,7 +1067,15 @@ function EquityScreener({ t }) {
     return (av > bv ? 1 : -1) * sortDir;
   });
 
-  const updown = (e) => e.tg && e.p ? (((e.tg / e.p) - 1) * 100).toFixed(1) : null;
+  const getLivePrice = (e) => {
+    const live = livePrices[e.t];
+    if (live && (e.mkt === "US" || e.mkt === "ETF")) return live.price;
+    return e.p;
+  };
+  const updown = (e) => {
+    const price = getLivePrice(e);
+    return e.tg && price ? (((e.tg / price) - 1) * 100).toFixed(1) : null;
+  };
 
   const mktBadge = {
     ARG:{ bg:"#FEF3C7", tx:"#92400E", label:"🇦🇷 ARG" },
@@ -1065,9 +1110,22 @@ function EquityScreener({ t }) {
 
   return (
     <div>
-      {/* Disclaimer */}
-      <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:8, padding:"10px 16px", fontFamily:FB, fontSize:11, color:t.rd, marginBottom:16, lineHeight:1.6 }}>
-        ⚠️ Uso interno · Solo referencia. No constituye recomendación de inversión. Precios: cierre 18/19 MAR 2026 · Marketlog / Google Finance. Campos de research se actualizan con el análisis de Máximo Ricciardi.
+      {/* Live status + Disclaimer */}
+      <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap", alignItems:"stretch" }}>
+        <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:8, padding:"10px 16px", fontFamily:FB, fontSize:11, color:t.rd, lineHeight:1.6, flex:1 }}>
+          ⚠️ Uso interno · Solo referencia. No constituye recomendación de inversión. Targets y campos de research: Máximo Ricciardi.
+        </div>
+        <div style={{
+          borderRadius:8, padding:"10px 16px", fontFamily:FB, fontSize:11, lineHeight:1.6,
+          border:`1px solid ${liveStatus==="ok"?t.grAcc+"66":liveStatus==="error"?t.rdAcc+"44":t.brd}`,
+          background:liveStatus==="ok"?t.grBg:liveStatus==="error"?t.rdBg:t.alt,
+          color:liveStatus==="ok"?t.gr:liveStatus==="error"?t.rd:t.mu,
+          display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap",
+        }}>
+          {liveStatus==="loading" && <><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#94a3b8",animation:"blink 1s infinite"}} />Cargando precios...</>}
+          {liveStatus==="ok"     && <><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}} />Precios en vivo · Finnhub<br/><span style={{opacity:.7,fontSize:9}}>US + ETFs en tiempo real · ARG: cierre 20 MAR</span></>}
+          {liveStatus==="error"  && <><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#ef4444"}} />Sin conexión a precios en vivo</>}
+        </div>
       </div>
 
       {/* Contadores por mercado */}
@@ -1180,11 +1238,27 @@ function EquityScreener({ t }) {
                       </div>
                     </td>
 
-                    {/* Precio */}
+                    {/* Precio — live si disponible */}
                     <td style={{ padding:"9px 8px", textAlign:"right", whiteSpace:"nowrap" }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:t.tx }}>
-                        {e.cur==="ARS" ? `$${e.p.toLocaleString("es-AR")} ARS` : `$${e.p.toFixed(2)}`}
-                      </div>
+                      {(() => {
+                        const live = livePrices[e.t];
+                        const isLive = live && (e.mkt === "US" || e.mkt === "ETF");
+                        const displayPrice = isLive ? live.price : e.p;
+                        const pct = isLive ? live.changePct : null;
+                        return (
+                          <div>
+                            <div style={{ fontSize:13, fontWeight:700, color:t.tx, display:"flex", alignItems:"center", gap:4, justifyContent:"flex-end" }}>
+                              {e.cur==="ARS" ? `$${displayPrice.toLocaleString("es-AR")} ARS` : `$${displayPrice.toFixed(2)}`}
+                              {isLive && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", display:"inline-block", flexShrink:0 }} title="Precio en vivo" />}
+                            </div>
+                            {pct !== null && (
+                              <div style={{ fontSize:10, color:pct>=0?t.gr:t.rd, fontWeight:600, textAlign:"right" }}>
+                                {pct>=0?"+":""}{pct.toFixed(2)}% hoy
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Target */}

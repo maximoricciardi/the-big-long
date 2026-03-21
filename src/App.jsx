@@ -32,8 +32,8 @@ const TH = {
   }
 };
 
-const FH = "'Cormorant Garamond',serif";
-const FB = "'DM Sans',sans-serif";
+const FH = "'Playfair Display',serif";
+const FB = "'Inter',sans-serif";
 
 const CONTACT = {
   name: "Máximo Ricciardi",
@@ -50,7 +50,7 @@ function useFonts(dark) {
     if (!document.getElementById("mr-fonts")) {
       const l = document.createElement("link");
       l.id = "mr-fonts"; l.rel = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap";
+      l.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap";
       document.head.appendChild(l);
     }
     let s = document.getElementById("mr-css");
@@ -2580,12 +2580,15 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
         const d1 = await r1.json();
         if (!cancelled && d1.c > 0) setSpy({ price: d1.c, changePct: d1.dp });
 
-        // Merval ARS — Finnhub (ticker MERV en Buenos Aires)
-        // Dividimos por MEP para obtener USD
+        // Merval en USD = Merval ARS (Finnhub: MERV) / MEP en vivo
         const r2 = await fetch(`https://finnhub.io/api/v1/quote?symbol=MERV&token=${FINNHUB_KEY}`);
         const d2 = await r2.json();
-        if (!cancelled && d2.c > 0 && mep?.venta) {
-          setMervalUSD({ value: Math.round(d2.c / mep.venta), changePct: d2.dp, raw: d2.c });
+        const mepVenta = mep?.venta;
+        if (!cancelled && d2.c > 0 && mepVenta > 0) {
+          setMervalUSD({ value: Math.round(d2.c / mepVenta), changePct: d2.dp });
+        } else if (!cancelled && d2.c > 0) {
+          // MEP aún no disponible — guardar ARS y calcular después
+          setMervalUSD({ ars: d2.c, changePct: d2.dp, value: null });
         }
 
         if (!cancelled) setChipsStatus("ok");
@@ -2597,6 +2600,13 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
     fetchChips();
     const id = setInterval(fetchChips, 60_000); // cada 60 segundos
     return () => { cancelled = true; clearInterval(id); };
+  }, [mep?.venta]);
+
+  // Si MEP llega después que el MERV, recalculamos USD
+  useEffect(() => {
+    if (mervalUSD?.ars && mep?.venta > 0) {
+      setMervalUSD(prev => ({ ...prev, value: Math.round(prev.ars / mep.venta) }));
+    }
   }, [mep?.venta]);
 
   const LiveChip = ({ label, value, sub, color, change, loading }) => (
@@ -2711,7 +2721,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
         <LiveChip
           label="Merval USD"
           value={mervalUSD ? `USD ${mervalUSD.value.toLocaleString("es-AR")}` : "—"}
-          sub="BYMA · CCL"
+          sub="MERV ARS / MEP"
           change={mervalUSD?.changePct ?? null}
           loading={loading && !mervalUSD}
         />
@@ -3108,7 +3118,7 @@ function AIChatWidget({ t, isMobile }) {
         }}
         onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)";e.currentTarget.style.boxShadow="0 6px 32px rgba(176,120,42,.5)";}}
         onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,.35)";}}>
-          <span style={{fontSize:22}}>💹</span>
+          <span style={{fontSize:22}}>💬</span>
         </button>
       )}
 
@@ -3136,7 +3146,7 @@ function AIChatWidget({ t, isMobile }) {
               background:"linear-gradient(135deg,#B0782A,#D4A853)",
               display:"flex", alignItems:"center", justifyContent:"center",
               fontSize:20, flexShrink:0,
-            }}>💹</div>
+            }}>💬</div>
             <div style={{flex:1}}>
               <div style={{
                 fontFamily:"'Cormorant Garamond',serif",
@@ -3222,7 +3232,7 @@ function AIChatWidget({ t, isMobile }) {
                         width:28, height:28, borderRadius:8, flexShrink:0,
                         background:"linear-gradient(135deg,#B0782A,#D4A853)",
                         display:"flex", alignItems:"center", justifyContent:"center", fontSize:14,
-                      }}>💹</div>
+                      }}>💬</div>
                     )}
                     <div style={{
                       maxWidth:"82%",
@@ -3250,7 +3260,7 @@ function AIChatWidget({ t, isMobile }) {
                       width:28, height:28, borderRadius:8, flexShrink:0,
                       background:"linear-gradient(135deg,#B0782A,#D4A853)",
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:14,
-                    }}>💹</div>
+                    }}>💬</div>
                     <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:"18px 18px 18px 4px", padding:"12px 16px" }}>
                       <div style={{ display:"flex", gap:5, alignItems:"center" }}>
                         {[0,1,2].map(i => (
@@ -3494,11 +3504,16 @@ export default function App() {
 
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:12, flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
-            <div style={{ fontFamily:FH, fontSize:isMobile?16:20, fontWeight:700, color:t.tx, letterSpacing:"-.02em", lineHeight:1 }}>
-              The Big Long
+            <div>
+              <div style={{ fontFamily:FH, fontSize:isMobile?16:20, fontWeight:700, color:t.tx, letterSpacing:"-.01em", lineHeight:1 }}>
+                The Big Long
+              </div>
+              {!isMobile && (
+                <div style={{ fontFamily:FB, fontSize:9, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginTop:3 }}>
+                  Propietario · Máximo Ricciardi
+                </div>
+              )}
             </div>
-            {!isMobile && <><div style={{ width:1, height:20, background:t.brd }} />
-            <div style={{ fontFamily:FB, fontSize:11, color:t.mu, letterSpacing:".04em" }}>Máximo Ricciardi</div></>}
           </div>
 
           {/* Nav — desktop only */}
@@ -3634,47 +3649,59 @@ export default function App() {
       </main>
 
       {/* ── FOOTER — ALWAYS VISIBLE — */}
-      <footer style={{ background:t.ft, borderTop:`1px solid ${t.brd}33`, padding:"36px 20px 28px" }}>
+      <footer style={{ background:t.ft, borderTop:`1px solid ${t.brd}33`, padding:"56px 20px 36px" }}>
         <div style={{ maxWidth:1200, margin:"0 auto" }}>
           {/* Top row */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:20, alignItems:"start", marginBottom:28, flexWrap:"wrap" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1px 1fr", gap:0, alignItems:"start", marginBottom:48 }}>
 
-            {/* Brand + contact */}
-            <div>
-              <div style={{ marginBottom:16 }}>
-                <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.ftT, lineHeight:1, letterSpacing:"-.02em" }}>The Big Long</div>
-                <div style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.35)", marginTop:4 }}>Máximo Ricciardi</div>
+            {/* Brand */}
+            <div style={{ paddingRight:48 }}>
+              <div style={{ marginBottom:20 }}>
+                <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.ftT, lineHeight:1, letterSpacing:"-.01em" }}>The Big Long</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.3)", marginTop:6, letterSpacing:".12em", textTransform:"uppercase" }}>
+                  Propietario & Fundador · Máximo Ricciardi
+                </div>
               </div>
-              <p style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.45)", lineHeight:1.7, maxWidth:320 }}>
-                Análisis y seguimiento del mercado argentino. Actualización diaria con datos de renta fija, renta variable, mercado de cambios y contexto macro.
+              <p style={{ fontFamily:FB, fontSize:13, color:"rgba(255,255,255,.4)", lineHeight:1.8, maxWidth:340 }}>
+                Análisis y seguimiento del mercado argentino e internacional. Actualización diaria con datos de renta fija, renta variable, mercado de cambios y contexto macro.
               </p>
             </div>
 
             {/* Divider */}
-            <div style={{ width:1, background:"rgba(255,255,255,.08)", minHeight:120, margin:"0 20px" }} />
+            <div style={{ background:"rgba(255,255,255,.08)", width:1, margin:"0 48px", minHeight:140 }} />
 
             {/* Contact */}
-            <div>
-              <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.35)", letterSpacing:".1em", textTransform:"uppercase", marginBottom:14 }}>CONTACTO</div>
-              <div style={{ fontFamily:FH, fontSize:22, fontWeight:600, color:t.ftT, marginBottom:4 }}>{CONTACT.name}</div>
-              <div style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.5)", marginBottom:16 }}>{CONTACT.title}</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                <a href={`tel:${CONTACT.phone}`} style={{ display:"flex", alignItems:"center", gap:10, fontFamily:FB, fontSize:13, color:t.go, textDecoration:"none", fontWeight:600 }}>
-                  <span style={{ fontSize:14 }}>📞</span> {CONTACT.phone}
+            <div style={{ paddingLeft:0 }}>
+              <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.3)", letterSpacing:".12em", textTransform:"uppercase", marginBottom:20 }}>CONTACTO DIRECTO</div>
+              <div style={{ fontFamily:FH, fontSize:26, fontWeight:600, color:t.ftT, marginBottom:6 }}>{CONTACT.name}</div>
+              <div style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.45)", marginBottom:28, letterSpacing:".02em" }}>{CONTACT.title} · Balanz Capital</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                <a href={`tel:${CONTACT.phone}`} style={{
+                  display:"flex", alignItems:"center", gap:12,
+                  fontFamily:FB, fontSize:14, color:t.go,
+                  textDecoration:"none", fontWeight:500,
+                }}>
+                  <span style={{ fontSize:16 }}>📞</span> {CONTACT.phone}
                 </a>
-                <a href={`mailto:${CONTACT.email}`} style={{ display:"flex", alignItems:"center", gap:10, fontFamily:FB, fontSize:13, color:t.go, textDecoration:"none", fontWeight:600 }}>
-                  <span style={{ fontSize:14 }}>✉️</span> {CONTACT.email}
+                <a href={`mailto:${CONTACT.email}`} style={{
+                  display:"flex", alignItems:"center", gap:12,
+                  fontFamily:FB, fontSize:14, color:t.go,
+                  textDecoration:"none", fontWeight:500,
+                }}>
+                  <span style={{ fontSize:16 }}>✉️</span> {CONTACT.email}
                 </a>
               </div>
             </div>
           </div>
 
           {/* Bottom legal */}
-          <div style={{ borderTop:"1px solid rgba(255,255,255,.08)", paddingTop:18, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
-            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.3)", lineHeight:1.6, maxWidth:640 }}>
+          <div style={{ borderTop:"1px solid rgba(255,255,255,.08)", paddingTop:24, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
+            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.25)", lineHeight:1.7, maxWidth:580 }}>
               La información publicada tiene carácter exclusivamente informativo. No constituye asesoramiento de inversión, recomendación de compra o venta de valores, ni oferta pública. Invertir implica riesgos.
             </p>
-            <span style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.25)", whiteSpace:"nowrap" }}>© 2026 · v2.0 · 20 MAR 2026</span>
+            <span style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.2)", whiteSpace:"nowrap" }}>
+              The Big Long · Fundado MAR 2026
+            </span>
           </div>
         </div>
       </footer>

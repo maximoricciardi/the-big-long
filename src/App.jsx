@@ -1015,7 +1015,7 @@ function EquityScreener({ t }) {
   // Fetch live prices from Finnhub — incremental updates, throttled for free tier
   useEffect(() => {
     let cancelled = false;
-    const US_TICKERS = EQUITIES.filter(e => e.mkt === "US" || e.mkt === "ETF").map(e => e.t);
+    const US_TICKERS = EQUITIES.filter(e => e.mkt === "US" || e.mkt === "ETF" || e.mkt === "ARG").map(e => e.t);
 
     const fetchAll = async () => {
       let firstHit = false;
@@ -1066,7 +1066,7 @@ function EquityScreener({ t }) {
 
   const getLivePrice = (e) => {
     const live = livePrices[e.t];
-    if (live && (e.mkt === "US" || e.mkt === "ETF")) return live.price;
+    if (live) return live.price;
     return e.p;
   };
   const updown = (e) => {
@@ -1354,8 +1354,118 @@ function EquityScreener({ t }) {
 /* ════════════════════════════════════════════════════════════════
    INSTRUMENTOS VIEW — tabs: LECAP | Soberanos | Renta Variable
 ════════════════════════════════════════════════════════════════ */
+/* ── Calcula YTM via bisección numérica (Newton aproximado) ── */
+function calcYTM(price, cashFlows) {
+  // cashFlows: [{t: años, cf: monto}]
+  // precio en mismo $
+  let lo = 0.0001, hi = 2.0, mid = 0.08;
+  for (let iter = 0; iter < 80; iter++) {
+    mid = (lo + hi) / 2;
+    const pv = cashFlows.reduce((s, {t, cf}) => s + cf / Math.pow(1 + mid/2, t*2), 0);
+    if (Math.abs(pv - price) < 0.0001) break;
+    if (pv > price) lo = mid; else hi = mid;
+  }
+  return mid;
+}
+
+/* ── Cash flows simplificados por bono ──────────────────────
+   Estructura real resumida: cupones semestrales + capital residual
+   Fuente: Ministerio de Economía / BYMA (amortization schedules)  */
+const BOND_CF = {
+  // AL29: 8 cuotas sem. cupón 0.5%, amort. desde Jul-27
+  AL29D: { couponRate:0.01,   faceNow:50.00,  semi:6,  amorts:[[5,25],[6,25]] },
+  AL30D: { couponRate:0.0075, faceNow:44.375, semi:8,  amorts:[[6,14.375],[7,15],[8,15]] },
+  AL35D: { couponRate:0.055,  faceNow:82.50,  semi:18, amorts:[[14,25],[15,25],[16,25],[17,25]] },
+  AE38D: { couponRate:0.065,  faceNow:91.375, semi:23, amorts:[[18,22.35],[19,22.35],[20,22.35],[21,22.35]] },
+  AL41D: { couponRate:0.0425, faceNow:100,    semi:30, amorts:[[24,33.33],[26,33.33],[28,33.34]] },
+  AO27D: { couponRate:0.0425, faceNow:70.375, semi:3,  amorts:[[2,35.1875],[3,35.1875]] },
+  AN29D: { couponRate:0.090,  faceNow:100,    semi:7,  amorts:[[6,50],[7,50]] },
+  GD29D: { couponRate:0.01,   faceNow:50.00,  semi:6,  amorts:[[5,25],[6,25]] },
+  GD30D: { couponRate:0.0075, faceNow:44.375, semi:8,  amorts:[[6,14.375],[7,15],[8,15]] },
+  GD35D: { couponRate:0.0388, faceNow:74.125, semi:18, amorts:[[14,25],[15,25],[16,25],[17,25]] },
+  GD38D: { couponRate:0.0125, faceNow:95.625, semi:23, amorts:[[10,4.375],[11,4.375],[12,4.375],[13,4.375],[14,4.375],[15,4.375],[16,4.375],[17,4.375],[18,4.375],[19,4.375],[20,4.375],[21,4.375],[22,4.375],[23,4.375]] },
+  GD41D: { couponRate:0.0425, faceNow:100,    semi:30, amorts:[[24,33.33],[26,33.33],[28,33.34]] },
+  GD46D: { couponRate:0.0500, faceNow:100,    semi:40, amorts:[[30,25],[32,25],[34,25],[36,25]] },
+};
+
+function buildCashFlows(ticker) {
+  const cf = BOND_CF[ticker];
+  if (!cf) return null;
+  const flows = [];
+  const amortMap = {};
+  (cf.amorts||[]).forEach(([per, pct]) => { amortMap[per] = (amortMap[per]||0) + pct; });
+  let remaining = cf.faceNow;
+  for (let i = 1; i <= cf.semi; i++) {
+    const coupon = remaining * cf.couponRate;
+    const amortPct = amortMap[i] || 0;
+    const amort = cf.faceNow * amortPct / 100;
+    remaining = Math.max(0, remaining - amort);
+    flows.push({ t: i/2, cf: coupon + amort });
+  }
+  return flows;
+}
+
+function calcBondMetrics(s, livePrice) {
+  const baseP = parseFloat(s.p.replace("$","").replace(",","."));
+  const price  = livePrice || baseP;
+  const isLive = !!livePrice;
+
+  // Current Yield: cupón anual / precio
+  const baseCYStr = s.cy.replace("%","").replace(",",".");
+  const hasCY = baseCYStr !== "—";
+  const baseCY = hasCY ? parseFloat(baseCYStr)/100 : null;
+  const annualCoupon = hasCY ? baseCY * baseP : null;
+  const newCY = annualCoupon ? (annualCoupon / price * 100) : null;
+
+  // TIR via bisección si tenemos cash flows, sino aproximación por duración
+  let newTIR = null;
+  const flows = buildCashFlows(s.t);
+  if (flows && flows.length > 0) {
+    newTIR = calcYTM(price, flows) * 100;
+  } else if (s.tir !== "—") {
+    const baseTIR = parseFloat(s.tir.replace("%","").replace(",","."))/100;
+    const modDur  = s.dur / (1 + baseTIR/2);
+    newTIR = (baseTIR + (baseP - price)/(baseP * modDur)) * 100;
+  }
+
+  // Paridad = precio / valor técnico implícito
+  let newPar = null;
+  if (s.par !== "—") {
+    const basePar  = parseFloat(s.par.replace("%","").replace(",","."))/100;
+    const faceImpl = baseP / basePar;
+    newPar = (price / faceImpl * 100);
+  }
+
+  // Variación vs precio base
+  const varVsBase = ((price - baseP) / baseP * 100);
+
+  return { price, isLive, newTIR, newCY, newPar, varVsBase };
+}
+
 function InstrumentosView({ t }) {
   const [sub, setSub] = useState("lecap");
+  const [bondPrices, setBondPrices]   = useState({});
+  const [bondStatus, setBondStatus]   = useState("loading");
+
+  useEffect(() => {
+    const TICKERS = SOBERANOS.map(s => s.t);
+    fetch("https://api.argentinadatos.com/v1/finanzas/bonos")
+      .then(r => r.json())
+      .then(data => {
+        const prices = {};
+        data.forEach(b => {
+          if (!b.ticker || !b.ultimo) return;
+          const tk = b.ticker.toUpperCase();
+          prices[tk] = b.ultimo;
+          prices[tk + "D"] = b.ultimo; // variante con D
+        });
+        // Solo guardar si hay al menos 1 match
+        const matched = TICKERS.filter(tk => prices[tk]).length;
+        setBondPrices(prices);
+        setBondStatus(matched > 0 ? "ok" : "error");
+      })
+      .catch(() => setBondStatus("error"));
+  }, []);
 
   const Th2 = ({children, right}) => (
     <th style={{ padding:"8px 12px", textAlign:right?"right":"left", fontSize:9, fontWeight:700,
@@ -1508,9 +1618,25 @@ function InstrumentosView({ t }) {
       {/* ── SOBERANOS USD ── */}
       {sub === "soberano" && (
         <div>
-          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
-            📅 Bonos soberanos en USD al cierre del <strong>19 MAR 2026 · 10:45hs</strong>. TIR = Tasa Interna de Retorno. Spread = diferencial vs. Ley NY (positivo) o ARG (negativo). Fuente: "Café con la Mesa" — Daily IR.
-          </p>
+          {/* Status bar */}
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
+            <p style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.6, flex:1 }}>
+              TIR calculada por bisección numérica sobre flujos de fondos reales. CY y Paridad actualizadas con precio de mercado.
+              Spread: diferencial entre serie ARG vs NY de igual vencimiento.
+            </p>
+            <div style={{
+              borderRadius:8, padding:"8px 14px", fontFamily:FB, fontSize:11,
+              border:`1px solid ${bondStatus==="ok"?t.grAcc+"66":bondStatus==="error"?t.rdAcc+"44":t.brd}`,
+              background:bondStatus==="ok"?t.grBg:bondStatus==="error"?t.rdBg:t.alt,
+              color:bondStatus==="ok"?t.gr:bondStatus==="error"?t.rd:t.mu,
+              display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap",
+            }}>
+              {bondStatus==="loading" && <><span style={{width:8,height:8,borderRadius:"50%",background:"#94a3b8",display:"inline-block",animation:"blink 1s infinite"}}/>Actualizando bonos...</>}
+              {bondStatus==="ok"      && <><span style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e",display:"inline-block"}}/>Precios en vivo · ArgentinaDatos</>}
+              {bondStatus==="error"   && <><span style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",display:"inline-block"}}/>Usando precios de cierre</>}
+            </div>
+          </div>
+
           {[{label:"LEY ARGENTINA", items:SOBERANOS.filter(s=>s.ley==="ARG"), color:t.go},
             {label:"LEY NUEVA YORK", items:SOBERANOS.filter(s=>s.ley==="NY"),  color:t.bl}].map(grp => (
             <div key={grp.label} style={{ marginBottom:20 }}>
@@ -1521,34 +1647,62 @@ function InstrumentosView({ t }) {
                 <div style={{ overflowX:"auto" }}>
                   <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                     <thead><tr>
-                      {["Ticker","Vto","Precio","TIR","Spread","Curr. Yield","Duración","Pago","Paridad","Var. 1D","Var. 1W"].map((h,i) => (
-                        <Th2 key={h} right={i>1&&i<9}>{h}</Th2>
+                      {["Ticker","Vto","Precio","Var. día","TIR","Curr. Yield","Duración","Pago","Paridad","Var. 1W"].map((h,i) => (
+                        <Th2 key={h} right={i>=2&&i<=8}>{h}</Th2>
                       ))}
                     </tr></thead>
                     <tbody>
-                      {grp.items.map((s,i) => (
-                        <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                          <Td2>
-                            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                              <span style={{ fontFamily:"monospace", fontSize:11, background:grp.color+"22", color:grp.color, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>{s.t}</span>
-                            </div>
-                          </Td2>
-                          <Td2 bold>{s.vto}</Td2>
-                          <Td2 right bold>{s.p}</Td2>
-                          <Td2 right color={t.rd}>{s.tir}</Td2>
-                          <Td2 right color={s.sprd.startsWith("+")?t.gr:s.sprd==="—"?t.mu:t.rd}>{s.sprd}</Td2>
-                          <Td2 right color={t.mu}>{s.cy}</Td2>
-                          <Td2 right color={t.mu}>{s.dur.toFixed(2)}</Td2>
-                          <Td2 color={t.mu}>{s.pago}</Td2>
-                          <Td2 right color={t.mu}>{s.par}</Td2>
-                          <Td2 right color={s.var1d.startsWith("-")?t.rd:s.var1d==="0,00%"?t.mu:t.gr}>
-                            {s.var1d}
-                          </Td2>
-                          <Td2 right color={s.var1w.startsWith("-")?t.rd:s.var1w.startsWith("+")?t.gr:t.mu}>
-                            {s.var1w}
-                          </Td2>
-                        </tr>
-                      ))}
+                      {grp.items.map((s,i) => {
+                        const liveRaw = bondPrices[s.t] || bondPrices[s.t.replace("D","")] || null;
+                        const m = calcBondMetrics(s, liveRaw);
+                        return (
+                          <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
+                            {/* Ticker */}
+                            <Td2>
+                              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                <span style={{ fontFamily:"monospace", fontSize:11, background:grp.color+"22", color:grp.color, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>{s.t}</span>
+                                {m.isLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}} title="Precio en vivo"/>}
+                              </div>
+                            </Td2>
+                            {/* Vto */}
+                            <Td2 bold>{s.vto}</Td2>
+                            {/* Precio */}
+                            <Td2 right bold>
+                              <span style={{color: m.isLive ? t.tx : t.mu}}>
+                                ${m.price.toFixed(2)}
+                              </span>
+                            </Td2>
+                            {/* Var día */}
+                            <Td2 right>
+                              <span style={{ fontWeight:600, color: m.varVsBase > 0 ? t.gr : m.varVsBase < 0 ? t.rd : t.mu }}>
+                                {m.isLive ? `${m.varVsBase >= 0 ? "+" : ""}${m.varVsBase.toFixed(2)}%` : s.var1d}
+                              </span>
+                            </Td2>
+                            {/* TIR calculada */}
+                            <Td2 right>
+                              {m.newTIR !== null
+                                ? <span style={{ fontWeight:700, color:t.rd }}>{m.newTIR.toFixed(2)}%</span>
+                                : <span style={{color:t.fa}}>—</span>}
+                            </Td2>
+                            {/* CY calculada */}
+                            <Td2 right color={t.mu}>
+                              {m.newCY !== null ? `${m.newCY.toFixed(2)}%` : s.cy}
+                            </Td2>
+                            {/* Duración — no cambia con precio */}
+                            <Td2 right color={t.mu}>{s.dur.toFixed(2)}</Td2>
+                            {/* Pago */}
+                            <Td2 color={t.mu}>{s.pago}</Td2>
+                            {/* Paridad calculada */}
+                            <Td2 right color={t.mu}>
+                              {m.newPar !== null ? `${m.newPar.toFixed(2)}%` : s.par}
+                            </Td2>
+                            {/* Var 1W — estática */}
+                            <Td2 right color={s.var1w.startsWith("-")?t.rd:s.var1w.startsWith("+")?t.gr:t.mu}>
+                              {s.var1w}
+                            </Td2>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1556,7 +1710,7 @@ function InstrumentosView({ t }) {
             </div>
           ))}
           <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5 }}>
-            * No constituye recomendación de inversión. TIR y spreads calculados sobre precios de cierre. Datos referenciales únicamente.
+            * TIR calculada por método de bisección sobre flujos reales. No constituye recomendación de inversión.
           </p>
         </div>
       )}

@@ -81,6 +81,21 @@ function useFonts(dark) {
   }, [dark]);
 }
 
+function useClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const days = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return {
+    time: now.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit", second:"2-digit" }),
+    date: `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`,
+    dateShort: `${now.getDate()} ${months[now.getMonth()]}`,
+  };
+}
+
 function useWindowSize() {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   useEffect(() => {
@@ -3102,6 +3117,7 @@ export default function App() {
   const [fxError, setFxError] = useState(false);
   const winW = useWindowSize();
   const isMobile = winW < 640;
+  const clock = useClock();
   const t = dark ? TH.d : TH.l;
   useFonts(dark);
 
@@ -3243,7 +3259,16 @@ export default function App() {
 
           {/* Right controls */}
           <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-            {!isMobile && <span style={{ fontFamily:FB, fontSize:10, color:t.fa, whiteSpace:"nowrap" }}>20 MAR 2026</span>}
+            {!isMobile && (
+              <div style={{ textAlign:"right", lineHeight:1.3 }}>
+                <div style={{ fontFamily:FB, fontSize:13, fontWeight:700, color:t.tx, letterSpacing:".01em", fontVariantNumeric:"tabular-nums" }}>
+                  {clock.time}
+                </div>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.mu, letterSpacing:".04em", textTransform:"uppercase" }}>
+                  {clock.date}
+                </div>
+              </div>
+            )}
             <button onClick={()=>setDark(d=>!d)} style={{
               background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8,
               padding:isMobile?"6px 10px":"6px 12px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer",

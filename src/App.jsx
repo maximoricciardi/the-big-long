@@ -1665,6 +1665,8 @@ function InstrumentosView({ t }) {
 
     return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest };
   };
+
+  const diasHasta = (vtoStr) => {
     const parts = vtoStr.split("/");
     if (parts.length !== 3) return 0;
     const [d, m, y] = parts.map(Number);

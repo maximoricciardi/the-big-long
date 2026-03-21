@@ -1012,14 +1012,13 @@ function EquityScreener({ t }) {
   const [livePrices, setLivePrices] = useState({});
   const [liveStatus, setLiveStatus] = useState("loading"); // loading | ok | error
 
-  // Fetch live prices from Finnhub — throttled to respect free tier (60 req/min)
+  // Fetch live prices from Finnhub — incremental updates, throttled for free tier
   useEffect(() => {
     let cancelled = false;
     const US_TICKERS = EQUITIES.filter(e => e.mkt === "US" || e.mkt === "ETF").map(e => e.t);
 
     const fetchAll = async () => {
-      const prices = {};
-      let ok = 0;
+      let firstHit = false;
       for (let i = 0; i < US_TICKERS.length; i++) {
         if (cancelled) return;
         const ticker = US_TICKERS[i];
@@ -1027,17 +1026,15 @@ function EquityScreener({ t }) {
           const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
           const data = await res.json();
           if (data.c && data.c > 0) {
-            prices[ticker] = { price: data.c, change: data.d, changePct: data.dp };
-            ok++;
+            // Update prices incrementally — each ticker shows as soon as it arrives
+            setLivePrices(prev => ({ ...prev, [ticker]: { price: data.c, change: data.d, changePct: data.dp } }));
+            if (!firstHit) { firstHit = true; setLiveStatus("ok"); }
           }
-        } catch { /* skip */ }
-        // Throttle: ~40 req/min to stay safe on free tier
-        if (i < US_TICKERS.length - 1) await new Promise(r => setTimeout(r, 1500));
+        } catch { /* skip failed tickers */ }
+        // 800ms entre requests — ~75 req/min, dentro del límite gratuito
+        if (i < US_TICKERS.length - 1) await new Promise(r => setTimeout(r, 800));
       }
-      if (!cancelled) {
-        setLivePrices(prices);
-        setLiveStatus(ok > 0 ? "ok" : "error");
-      }
+      if (!cancelled && !firstHit) setLiveStatus("error");
     };
 
     fetchAll();

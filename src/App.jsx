@@ -1621,33 +1621,100 @@ function calcBondMetrics(s, livePrice) {
 
 function InstrumentosView({ t }) {
   const [sub, setSub] = useState("lecap");
-  const [bondPrices, setBondPrices]   = useState({});
-  const [bondStatus, setBondStatus]   = useState("loading");
+  const [bondPrices,  setBondPrices]  = useState({});
+  const [bondStatus,  setBondStatus]  = useState("loading");
+  const [uvaIndex,    setUvaIndex]    = useState(null);
+  const [tamarRate,   setTamarRate]   = useState(null);
+  const [arsStatus,   setArsStatus]   = useState("loading");
+  const [lastUpdate,  setLastUpdate]  = useState(null);
+  const REFRESH_MS = 5 * 60 * 1000; // 5 minutos
 
+  const BASE_DATE     = new Date("2026-03-19");
+  const BASE_TC_A3500 = 1399.60;
+  const daysSinceBase = Math.floor((Date.now() - BASE_DATE.getTime()) / 86400000);
+  const today = new Date().toLocaleDateString("es-AR");
+
+  // Fetch 1: ArgentinaDatos bonos soberanos USD — refresh cada 5 min
   useEffect(() => {
-    const TICKERS = SOBERANOS.map(s => s.t);
-    fetch("https://api.argentinadatos.com/v1/finanzas/bonos")
-      .then(r => r.json())
-      .then(data => {
-        const prices = {};
-        data.forEach(b => {
-          if (!b.ticker || !b.ultimo) return;
-          const tk = b.ticker.toUpperCase();
-          prices[tk] = b.ultimo;
-          prices[tk + "D"] = b.ultimo; // variante con D
-        });
-        // Solo guardar si hay al menos 1 match
-        const matched = TICKERS.filter(tk => prices[tk]).length;
-        setBondPrices(prices);
-        setBondStatus(matched > 0 ? "ok" : "error");
-      })
-      .catch(() => setBondStatus("error"));
+    const load = () => {
+      fetch("https://api.argentinadatos.com/v1/finanzas/bonos")
+        .then(r => r.json())
+        .then(data => {
+          const prices = {};
+          data.forEach(b => {
+            if (!b.ticker || !b.ultimo) return;
+            const tk = b.ticker.toUpperCase();
+            prices[tk] = b.ultimo;
+            prices[tk + "D"] = b.ultimo;
+          });
+          const matched = SOBERANOS.filter(s => prices[s.t]).length;
+          setBondPrices(prices);
+          setBondStatus(matched > 0 ? "ok" : "error");
+          setLastUpdate(new Date());
+        })
+        .catch(() => setBondStatus("error"));
+    };
+    load();
+    const id = setInterval(load, REFRESH_MS);
+    return () => clearInterval(id);
   }, []);
+
+  // Fetch 2: UVA + TAMAR — refresh cada 5 min
+  useEffect(() => {
+    const run = async () => {
+      let hits = 0;
+      try {
+        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/uva");
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setUvaIndex(parseFloat(data[data.length - 1].valor));
+          hits++;
+        }
+      } catch {}
+      try {
+        const r = await fetch("https://api.bcra.gob.ar/estadisticas/v3.0/monetarias/principales-variables");
+        const data = await r.json();
+        const results = data.results || data;
+        const tamar = Array.isArray(results) && results.find(v =>
+          (v.descripcion || v.nombre || "").toLowerCase().includes("tamar") || v.idVariable === 17
+        );
+        if (tamar && tamar.valor) { setTamarRate(parseFloat(tamar.valor)); hits++; }
+      } catch {}
+      setArsStatus(hits > 0 ? "ok" : "partial");
+      setLastUpdate(new Date());
+    };
+    run();
+    const id = setInterval(run, REFRESH_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  // LECAP/BONCAP: precio teórico capitalizado diariamente
+  const calcLECAPLive = (row) => {
+    if (daysSinceBase <= 0) return null;
+    const tem   = parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
+    const pBase = parseFloat(row.pre.replace("$","").replace(/\./g,"").replace(",","."));
+    if (!tem || !pBase) return null;
+    return pBase * Math.pow(1 + tem, daysSinceBase / 30);
+  };
+
+  const calcTEMActual = (pLive, diasRestantes) => {
+    if (!pLive || diasRestantes <= 0) return null;
+    return (Math.pow(100 / pLive, 30 / diasRestantes) - 1) * 100;
+  };
+
+  const diasHasta = (vtoStr) => {
+    const parts = vtoStr.split("/");
+    if (parts.length !== 3) return 0;
+    const [d, m, y] = parts.map(Number);
+    const vto = new Date(y, m - 1, d);
+    return Math.max(0, Math.floor((vto - Date.now()) / 86400000));
+  };
 
   const Th2 = ({children, right}) => (
     <th style={{ padding:"8px 12px", textAlign:right?"right":"left", fontSize:9, fontWeight:700,
       color:t.mu, letterSpacing:".08em", textTransform:"uppercase",
-      borderBottom:`2px solid ${t.brd}`, background:t.alt, whiteSpace:"nowrap" }}>
+      borderBottom:`2px solid ${t.brd}`, background:t.alt, whiteSpace:"nowrap",
+      position:"sticky", top:0, zIndex:5 }}>
       {children}
     </th>
   );
@@ -1660,6 +1727,46 @@ function InstrumentosView({ t }) {
   const trStyle = { borderBottom:`1px solid ${t.brd}`, transition:"background .12s" };
   const trHover = e => { e.currentTarget.style.background=t.alt; };
   const trLeave = e => { e.currentTarget.style.background="transparent"; };
+
+  const ArsStatusChip = () => {
+    const [secsAgo, setSecsAgo] = useState(0);
+    useEffect(() => {
+      if (!lastUpdate) return;
+      const id = setInterval(() => {
+        setSecsAgo(Math.floor((Date.now() - lastUpdate.getTime()) / 1000));
+      }, 1000);
+      return () => clearInterval(id);
+    }, [lastUpdate]);
+    const nextIn = Math.max(0, Math.round((REFRESH_MS / 1000) - secsAgo));
+    const lastStr = lastUpdate
+      ? lastUpdate.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
+      : null;
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"6px 14px",
+          borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap",
+          border:`1px solid ${arsStatus==="ok"?t.grAcc+"55":t.brd}`,
+          background:arsStatus==="ok"?t.grBg:t.alt, color:arsStatus==="ok"?t.gr:t.mu }}>
+          <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", flexShrink:0,
+            background:arsStatus==="ok"?"#22c55e":"#94a3b8",
+            boxShadow:arsStatus==="ok"?"0 0 6px #22c55e":"none",
+            animation:arsStatus==="loading"?"blink 1s infinite":"none" }}/>
+          {arsStatus==="loading" && "Cargando datos ARS..."}
+          {arsStatus!=="loading" && (lastStr ? `Últ. actualización: ${lastStr}` : "Precios teóricos activos")}
+          {uvaIndex  && <span style={{marginLeft:4,opacity:.7}}>· UVA {uvaIndex.toFixed(2)}</span>}
+          {tamarRate && <span style={{marginLeft:2,opacity:.7}}>· TAMAR {tamarRate.toFixed(2)}%</span>}
+        </div>
+        {lastUpdate && arsStatus!=="loading" && (
+          <div style={{ fontFamily:FB, fontSize:10, color:t.fa, display:"flex", alignItems:"center", gap:4 }}>
+            <span style={{ display:"inline-block", width:8, height:8, borderRadius:"50%",
+              background:t.go, opacity: nextIn < 30 ? 1 : 0.4,
+              animation: nextIn < 30 ? "blink 0.8s infinite" : "none" }}/>
+            Próximo refresh en {nextIn}s · cada 5 min
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const SUBTABS = [
     {id:"lecap",   label:"📋 Renta Fija ARS"},
@@ -1682,82 +1789,144 @@ function InstrumentosView({ t }) {
       {/* ── RENTA FIJA ARS ── */}
       {sub === "lecap" && (
         <div>
-          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
-            📅 Datos intraday al <strong>19 MAR 2026 · 10:45hs</strong>. Fuente: "Café con la Mesa" — Daily IR. Tipo de cambio referencia A3500: $1.399,60
-          </p>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, flexWrap:"wrap" }}>
+            <ArsStatusChip />
+            <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+              Precio teórico = precio base 19-MAR capitalizado a TEM diaria. No incluye spread bid/ask.
+            </span>
+          </div>
 
-          {/* LECAP Tasa Fija */}
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>LECAP — Letras Capitalizables (Tasa Fija)</div>
+          {/* LECAP / BONCAP */}
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
+            LECAP & BONCAP — Tasa Fija Capitalizable
+          </div>
           <Card t={t} style={{ marginBottom:16 }}>
-            <div style={{ overflowX:"auto" }}>
+            <div style={{ overflowX:"auto", maxHeight:"52vh", overflowY:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                 <thead><tr>
-                  {["Vto","Ticker","Precio","Días","Rendim.","TNA","TEM","Fx BE"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
+                  {["Vto","Ticker","Precio vivo","Días rest.","Rendim. act.","TNA act.","TEM","Var. base","Fx BE"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
                 </tr></thead>
                 <tbody>
-                  {LECAP.map((g,i) => g.rows.map((r,j) => (
-                    <tr key={`${i}-${j}`} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                      <Td2 bold>{g.vto}</Td2>
-                      <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{r.t}</span></Td2>
-                      <Td2 right color={t.mu}>{r.pre}</Td2>
-                      <Td2 right color={t.mu}>{g.dias}</Td2>
-                      <Td2 right color={t.go} bold>{r.r}</Td2>
-                      <Td2 right><span style={{background:t.goBg,color:t.go,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>{r.tna}</span></Td2>
-                      <Td2 right color={t.bl}>{r.tem}</Td2>
-                      <Td2 right color={t.mu}>{r.fxbe}</Td2>
-                    </tr>
-                  )))}
+                  {LECAP.map((g, i) => g.rows.map((r, j) => {
+                    const pLive   = calcLECAPLive(r);
+                    const diasAct = diasHasta(g.vto);
+                    const temAct  = pLive ? calcTEMActual(pLive, diasAct) : null;
+                    const pBase   = parseFloat(r.pre.replace("$","").replace(/\./g,"").replace(",","."));
+                    const varBase = pLive ? ((pLive - pBase) / pBase * 100) : null;
+                    const isLive  = pLive !== null && daysSinceBase > 0;
+                    return (
+                      <tr key={`${i}-${j}`} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
+                        <Td2 bold>{g.vto}</Td2>
+                        <Td2>
+                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                            <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{r.t}</span>
+                            {isLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}} title="Precio vivo"/>}
+                          </div>
+                        </Td2>
+                        <Td2 right bold>
+                          {pLive
+                            ? `$${pLive.toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})}`
+                            : r.pre}
+                        </Td2>
+                        <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
+                        <Td2 right color={t.go} bold>
+                          {temAct ? `${(temAct * diasAct / 30).toFixed(2)}%` : r.r}
+                        </Td2>
+                        <Td2 right>
+                          <span style={{background:t.goBg,color:t.go,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>
+                            {temAct ? `${(temAct * 12).toFixed(2)}%` : r.tna}
+                          </span>
+                        </Td2>
+                        <Td2 right color={t.bl}>
+                          {temAct ? `${temAct.toFixed(2)}%` : r.tem}
+                        </Td2>
+                        <Td2 right>
+                          {varBase !== null
+                            ? <span style={{fontWeight:600,color:varBase>=0?t.gr:t.rd}}>{varBase>=0?"+":""}{varBase.toFixed(3)}%</span>
+                            : <span style={{color:t.fa}}>—</span>}
+                        </Td2>
+                        <Td2 right color={t.mu}>{r.fxbe}</Td2>
+                      </tr>
+                    );
+                  }))}
                 </tbody>
               </table>
             </div>
           </Card>
 
           {/* Bonos Duales */}
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", margin:"16px 0 10px" }}>BONOS DUALES (Fija / Variable)</div>
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", margin:"16px 0 10px" }}>BONOS DUALES — Mayor de Fija o TAMAR</div>
           <Card t={t} style={{ marginBottom:16 }}>
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                 <thead><tr>
-                  {["Ticker","Vto","Días","TEM Fija","TNA Fija","TEM Var.","TNA Var.","Fx BE"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
+                  {["Ticker","Vto","Días rest.","TEM Fija","TNA Fija","TEM Var.","TNA Var.","TAMAR live","Fx BE"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
                 </tr></thead>
                 <tbody>
-                  {DUALES.map((d,i) => (
-                    <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                      <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
-                      <Td2 bold>{d.vto}</Td2>
-                      <Td2 right color={t.mu}>{d.dias}</Td2>
-                      <Td2 right color={parseFloat(d.temFija)<0?t.rd:t.go} bold>{d.temFija}</Td2>
-                      <Td2 right color={parseFloat(d.tnaFija)<0?t.rd:t.go}>{d.tnaFija}</Td2>
-                      <Td2 right color={t.bl} bold>{d.temVar}</Td2>
-                      <Td2 right><span style={{background:t.blBg,color:t.bl,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>{d.tnaVar}</span></Td2>
-                      <Td2 right color={t.mu}>{d.fxbe}</Td2>
-                    </tr>
-                  ))}
+                  {DUALES.map((d,i) => {
+                    const diasAct = diasHasta(d.vto);
+                    const tamarTEM = tamarRate ? ((Math.pow(1 + tamarRate/100/365, 30) - 1)*100) : null;
+                    return (
+                      <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
+                        <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
+                        <Td2 bold>{d.vto}</Td2>
+                        <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
+                        <Td2 right color={parseFloat(d.temFija.replace(",","."))<0?t.rd:t.go} bold>{d.temFija}</Td2>
+                        <Td2 right color={parseFloat(d.tnaFija.replace(",","."))<0?t.rd:t.go}>{d.tnaFija}</Td2>
+                        <Td2 right color={t.bl} bold>{d.temVar}</Td2>
+                        <Td2 right><span style={{background:t.blBg,color:t.bl,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>{d.tnaVar}</span></Td2>
+                        <Td2 right>
+                          {tamarTEM
+                            ? <span style={{background:t.puBg,color:t.pu,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>{tamarTEM.toFixed(2)}% TEM</span>
+                            : <span style={{color:t.fa}}>—</span>}
+                        </Td2>
+                        <Td2 right color={t.mu}>{d.fxbe}</Td2>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            {tamarRate && (
+              <div style={{padding:"8px 12px",fontFamily:FB,fontSize:10,color:t.mu,borderTop:`1px solid ${t.brd}`}}>
+                💡 TAMAR actual: <strong>{tamarRate.toFixed(2)}% TNA</strong> · TEM: {((Math.pow(1+tamarRate/100/365,30)-1)*100).toFixed(2)}% · Fuente: BCRA API
+              </div>
+            )}
           </Card>
 
           {/* TAMAR */}
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", margin:"16px 0 10px" }}>LETRAS TAMAR (Tasa Variable BCRA)</div>
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", margin:"16px 0 10px" }}>LETRAS TAMAR — Tasa Variable BCRA</div>
           <Card t={t} style={{ marginBottom:16 }}>
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                 <thead><tr>
-                  {["Ticker","Vto","Días","Rendim.","TNA","TEM","Fx BE"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
+                  {["Ticker","Vto","Días rest.","Rendim.","TNA live","TEM live","Fx BE"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
                 </tr></thead>
                 <tbody>
-                  {TAMAR.map((d,i) => (
-                    <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                      <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
-                      <Td2 bold>{d.vto}</Td2>
-                      <Td2 right color={t.mu}>{d.dias}</Td2>
-                      <Td2 right color={t.go} bold>{d.rend}</Td2>
-                      <Td2 right><span style={{background:t.puBg,color:t.pu,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>{d.tna}</span></Td2>
-                      <Td2 right color={t.bl}>{d.tem}</Td2>
-                      <Td2 right color={t.mu}>{d.fxbe}</Td2>
-                    </tr>
-                  ))}
+                  {TAMAR.map((d,i) => {
+                    const diasAct  = diasHasta(d.vto);
+                    const tamarTEM = tamarRate ? ((Math.pow(1 + tamarRate/100/365, 30) - 1)*100) : null;
+                    return (
+                      <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
+                        <Td2>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span>
+                            {tamarRate && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>}
+                          </div>
+                        </Td2>
+                        <Td2 bold>{d.vto}</Td2>
+                        <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
+                        <Td2 right color={t.go} bold>{d.rend}</Td2>
+                        <Td2 right>
+                          <span style={{background:t.puBg,color:t.pu,padding:"2px 8px",borderRadius:10,fontWeight:700,fontSize:11}}>
+                            {tamarRate ? `${tamarRate.toFixed(2)}%` : d.tna}
+                          </span>
+                        </Td2>
+                        <Td2 right color={t.bl}>{tamarTEM ? `${tamarTEM.toFixed(2)}%` : d.tem}</Td2>
+                        <Td2 right color={t.mu}>{d.fxbe}</Td2>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1769,24 +1938,27 @@ function InstrumentosView({ t }) {
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                 <thead><tr>
-                  {["Ticker","Vto","Días","Precio","Rendim.","TNA"].map((h,i) => <Th2 key={h} right={i>2}>{h}</Th2>)}
+                  {["Ticker","Vto","Días rest.","Precio base","Rendim.","TNA"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
                 </tr></thead>
                 <tbody>
-                  {DOLARLINKED.map((d,i) => (
-                    <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                      <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
-                      <Td2 bold>{d.vto}</Td2>
-                      <Td2 right color={t.mu}>{d.dias}</Td2>
-                      <Td2 right>{d.pre}</Td2>
-                      <Td2 right color={parseFloat(d.rend)<0?t.rd:t.gr} bold>{d.rend}</Td2>
-                      <Td2 right color={parseFloat(d.tna)<0?t.rd:t.gr}>{d.tna}</Td2>
-                    </tr>
-                  ))}
+                  {DOLARLINKED.map((d,i) => {
+                    const diasAct = diasHasta(d.vto);
+                    return (
+                      <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
+                        <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
+                        <Td2 bold>{d.vto}</Td2>
+                        <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
+                        <Td2 right color={t.mu}>{d.pre}</Td2>
+                        <Td2 right color={parseFloat(d.rend.replace(",","."))<0?t.rd:t.gr} bold>{d.rend}</Td2>
+                        <Td2 right color={parseFloat(d.tna.replace(",","."))<0?t.rd:t.gr}>{d.tna}</Td2>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <div style={{ padding:"10px 16px", fontFamily:FB, fontSize:10, color:t.fa, borderTop:`1px solid ${t.brd}` }}>
-              * No constituye asesoramiento de inversión · Fuente: "Café con la Mesa" — Daily IR · 19 MAR 2026
+            <div style={{ padding:"8px 12px", fontFamily:FB, fontSize:10, color:t.fa, borderTop:`1px solid ${t.brd}` }}>
+              * No constituye asesoramiento. TC base referencia: $1.399,60 al 19-MAR-2026.
             </div>
           </Card>
         </div>
@@ -1795,25 +1967,26 @@ function InstrumentosView({ t }) {
       {/* ── SOBERANOS USD ── */}
       {sub === "soberano" && (
         <div>
-          {/* Status bar */}
           <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
             <p style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.6, flex:1 }}>
-              TIR calculada por bisección numérica sobre flujos de fondos reales. CY y Paridad actualizadas con precio de mercado.
-              Spread: diferencial entre serie ARG vs NY de igual vencimiento.
+              TIR calculada por bisección numérica sobre flujos reales. CY y Paridad actualizadas con precio de mercado.
             </p>
             <div style={{
               borderRadius:8, padding:"8px 14px", fontFamily:FB, fontSize:11,
-              border:`1px solid ${bondStatus==="ok"?t.grAcc+"66":bondStatus==="error"?t.rdAcc+"44":t.brd}`,
-              background:bondStatus==="ok"?t.grBg:bondStatus==="error"?t.rdBg:t.alt,
-              color:bondStatus==="ok"?t.gr:bondStatus==="error"?t.rd:t.mu,
+              border:`1px solid ${bondStatus==="ok"?t.grAcc+"66":t.brd}`,
+              background:bondStatus==="ok"?t.grBg:t.alt,
+              color:bondStatus==="ok"?t.gr:t.mu,
               display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap",
             }}>
-              {bondStatus==="loading" && <><span style={{width:8,height:8,borderRadius:"50%",background:"#94a3b8",display:"inline-block",animation:"blink 1s infinite"}}/>Actualizando bonos...</>}
-              {bondStatus==="ok"      && <><span style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e",display:"inline-block"}}/>Precios en vivo · ArgentinaDatos</>}
-              {bondStatus==="error"   && <><span style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",display:"inline-block"}}/>Usando precios de cierre</>}
+              <span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",
+                background:bondStatus==="ok"?"#22c55e":"#94a3b8",
+                boxShadow:bondStatus==="ok"?"0 0 6px #22c55e":"none",
+                animation:bondStatus==="loading"?"blink 1s infinite":"none"}}/>
+              {bondStatus==="loading" && "Actualizando bonos..."}
+              {bondStatus==="ok"      && "Precios en vivo · ArgentinaDatos"}
+              {bondStatus==="error"   && "Usando precios de cierre"}
             </div>
           </div>
-
           {[{label:"LEY ARGENTINA", items:SOBERANOS.filter(s=>s.ley==="ARG"), color:t.go},
             {label:"LEY NUEVA YORK", items:SOBERANOS.filter(s=>s.ley==="NY"),  color:t.bl}].map(grp => (
             <div key={grp.label} style={{ marginBottom:20 }}>
@@ -1834,49 +2007,29 @@ function InstrumentosView({ t }) {
                         const m = calcBondMetrics(s, liveRaw);
                         return (
                           <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                            {/* Ticker */}
                             <Td2>
                               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                                 <span style={{ fontFamily:"monospace", fontSize:11, background:grp.color+"22", color:grp.color, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>{s.t}</span>
                                 {m.isLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}} title="Precio en vivo"/>}
                               </div>
                             </Td2>
-                            {/* Vto */}
                             <Td2 bold>{s.vto}</Td2>
-                            {/* Precio */}
-                            <Td2 right bold>
-                              <span style={{color: m.isLive ? t.tx : t.mu}}>
-                                ${m.price.toFixed(2)}
-                              </span>
-                            </Td2>
-                            {/* Var día */}
+                            <Td2 right bold><span style={{color:m.isLive?t.tx:t.mu}}>${m.price.toFixed(2)}</span></Td2>
                             <Td2 right>
-                              <span style={{ fontWeight:600, color: m.varVsBase > 0 ? t.gr : m.varVsBase < 0 ? t.rd : t.mu }}>
-                                {m.isLive ? `${m.varVsBase >= 0 ? "+" : ""}${m.varVsBase.toFixed(2)}%` : s.var1d}
+                              <span style={{ fontWeight:600, color:m.varVsBase>0?t.gr:m.varVsBase<0?t.rd:t.mu }}>
+                                {m.isLive ? `${m.varVsBase>=0?"+":""}${m.varVsBase.toFixed(2)}%` : s.var1d}
                               </span>
                             </Td2>
-                            {/* TIR calculada */}
                             <Td2 right>
                               {m.newTIR !== null
                                 ? <span style={{ fontWeight:700, color:t.rd }}>{m.newTIR.toFixed(2)}%</span>
                                 : <span style={{color:t.fa}}>—</span>}
                             </Td2>
-                            {/* CY calculada */}
-                            <Td2 right color={t.mu}>
-                              {m.newCY !== null ? `${m.newCY.toFixed(2)}%` : s.cy}
-                            </Td2>
-                            {/* Duración — no cambia con precio */}
+                            <Td2 right color={t.mu}>{m.newCY !== null ? `${m.newCY.toFixed(2)}%` : s.cy}</Td2>
                             <Td2 right color={t.mu}>{s.dur.toFixed(2)}</Td2>
-                            {/* Pago */}
                             <Td2 color={t.mu}>{s.pago}</Td2>
-                            {/* Paridad calculada */}
-                            <Td2 right color={t.mu}>
-                              {m.newPar !== null ? `${m.newPar.toFixed(2)}%` : s.par}
-                            </Td2>
-                            {/* Var 1W — estática */}
-                            <Td2 right color={s.var1w.startsWith("-")?t.rd:s.var1w.startsWith("+")?t.gr:t.mu}>
-                              {s.var1w}
-                            </Td2>
+                            <Td2 right color={t.mu}>{m.newPar !== null ? `${m.newPar.toFixed(2)}%` : s.par}</Td2>
+                            <Td2 right color={s.var1w.startsWith("-")?t.rd:s.var1w.startsWith("+")?t.gr:t.mu}>{s.var1w}</Td2>
                           </tr>
                         );
                       })}
@@ -1887,12 +2040,14 @@ function InstrumentosView({ t }) {
             </div>
           ))}
           <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5 }}>
-            * TIR calculada por método de bisección sobre flujos reales. No constituye recomendación de inversión.
+            * TIR calculada por bisección sobre flujos reales. No constituye recomendación de inversión.
           </p>
         </div>
       )}
 
+      {/* ── RESEARCH DESK — RENTA VARIABLE ── */}
       {sub === "rv" && <EquityScreener t={t} />}
+
     </div>
   );
 }
@@ -2355,7 +2510,7 @@ function RecomendacionesView({ t }) {
 /* ════════════════════════════════════════════════════════════════
    INICIO VIEW — LANDING OVERVIEW
 ════════════════════════════════════════════════════════════════ */
-function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false }) {
+function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock }) {
   const latest = SUMMARIES[0];
   // Override the riesgo país KPI with live data if available
   const kpis = latest.kpis.map(k =>
@@ -2374,7 +2529,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false }) {
         <div style={{ position:"absolute", right:60, bottom:-60, width:160, height:160, borderRadius:"50%", background:"rgba(255,255,255,.02)" }} />
         <div style={{ maxWidth:680, position:"relative" }}>
           <div style={{ fontFamily:FB, fontSize:10, color:"rgba(255,255,255,.45)", letterSpacing:".14em", textTransform:"uppercase", marginBottom:10 }}>
-            📅 19 DE MARZO DE 2026 · BUENOS AIRES
+            📅 {clock?.date?.toUpperCase() || "THE BIG LONG"} · BUENOS AIRES
           </div>
           <h1 style={{ fontFamily:FH, fontSize:isMobile?32:52, fontWeight:700, color:"#FFFFFF", lineHeight:1.05, marginBottom:8, letterSpacing:"-.02em" }}>
             The Big Long
@@ -2422,7 +2577,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false }) {
             <span style={{ fontFamily:FB, fontSize:10, color:"#fed7aa", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase" }}>
               Alerta Energética Global · AIE
             </span>
-            <span style={{ fontFamily:FB, fontSize:10, color:"#9a3412", marginLeft:"auto" }}>20 MAR 2026</span>
+            <span style={{ fontFamily:FB, fontSize:10, color:"#9a3412", marginLeft:"auto" }}>{clock?.dateShort || "20 MAR"} 2026</span>
           </div>
           <p style={{ fontFamily:FB, fontSize:13, color:"#ffedd5", lineHeight:1.72, marginBottom:10 }}>
             El director de la <strong style={{color:"#fed7aa"}}>Agencia Internacional de Energía</strong> calificó la guerra en Irán como <strong style={{color:"#fb923c"}}>"la mayor amenaza a la seguridad energética global en la historia"</strong>, advirtiendo que podría tomar <strong style={{color:"#fed7aa"}}>seis meses o más</strong> restaurar el flujo de petróleo y gas del Golfo Pérsico. El impacto supera los shocks de los años 70 y duplica el corte de gas ruso de 2022 — afectando crudo, fertilizantes, petroquímicos, plásticos y helio.
@@ -3347,7 +3502,7 @@ export default function App() {
         )}
 
         {/* Tab content */}
-        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} isMobile={isMobile} />}
+        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} isMobile={isMobile} clock={clock} />}
         {tab==="resumen" && (
           <div>
             <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>

@@ -6,7 +6,8 @@ import {
   Moon, Sun, MessageCircle, Lock, Send, Phone, Mail, X, ChevronDown,
   ExternalLink, Clock, RefreshCw, Eye, Target, Flame, CircleDot,
   Landmark, FileText, Mic, Gavel, Droplets, Info, Activity, Wallet,
-  PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp
+  PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp,
+  Menu, Quote
 } from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════
@@ -3539,7 +3540,7 @@ function AIChatWidget({ t, isMobile }) {
       {/* Floating button */}
       {!open && (
         <button onClick={()=>setOpen(true)} title={`Hablar con ${IA_NAME}`} style={{
-          position:"fixed", bottom:isMobile?72:28, right:22, zIndex:200,
+          position:"fixed", bottom:isMobile?24:28, right:22, zIndex:200,
           width:56, height:56, borderRadius:"50%",
           background:"linear-gradient(145deg,#1a1a2e,#16213e)",
           border:"2px solid rgba(176,120,42,.5)",
@@ -3897,8 +3898,38 @@ export default function App() {
   }, []);
 
   const handleLogoClick = () => {
+    // Show random quote
+    const QUOTES = [
+      { text:"El precio es lo que pagás. El valor es lo que recibís.", author:"Warren Buffett" },
+      { text:"El mercado está diseñado para transferir dinero del impaciente al paciente.", author:"Warren Buffett" },
+      { text:"Sé temeroso cuando otros son codiciosos, y codicioso cuando otros son temerosos.", author:"Warren Buffett" },
+      { text:"El inversor inteligente es un realista que vende a optimistas y compra de pesimistas.", author:"Benjamin Graham" },
+      { text:"En el corto plazo el mercado es una máquina de votar. En el largo plazo, una balanza.", author:"Benjamin Graham" },
+      { text:"Invertí en lo que conocés.", author:"Peter Lynch" },
+      { text:"Si no estás dispuesto a tener una acción diez años, no la tengas ni diez minutos.", author:"Warren Buffett" },
+      { text:"Los mercados pueden permanecer irracionales más de lo que vos podés permanecer solvente.", author:"John M. Keynes" },
+      { text:"El riesgo viene de no saber lo que estás haciendo.", author:"Warren Buffett" },
+      { text:"Las cuatro palabras más peligrosas son: 'esta vez es diferente'.", author:"Sir John Templeton" },
+      { text:"El tiempo en el mercado vence al timing del mercado.", author:"Ken Fisher" },
+      { text:"La historia no se repite, pero rima.", author:"Mark Twain" },
+      { text:"Comprá cuando haya sangre en las calles, incluso si es tuya.", author:"Baron Rothschild" },
+      { text:"La paciencia es la virtud más importante del inversor.", author:"Charlie Munger" },
+      { text:"Si la gente no estuviera equivocada tan seguido, no seríamos tan ricos.", author:"Charlie Munger" },
+      { text:"Lo más importante es lo que pagás por lo que obtenés.", author:"Howard Marks" },
+      { text:"En la inversión, lo cómodo rara vez es rentable.", author:"Robert Arnott" },
+      { text:"La bolsa es el único negocio donde cuando hay rebajas, los clientes salen corriendo.", author:"Warren Buffett" },
+    ];
+    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    setQuoteToast(q);
+    setTimeout(() => setQuoteToast(null), 4500);
     setLogoClicks(n => { const next = n+1; if(next>=5){ setAdmin(true); return 0; } return next; });
   };
+
+  // Mobile drawer
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [quoteToast, setQuoteToast] = useState(null);
+
+  const handleMobileNav = (id) => { setTab(id); setMobileMenu(false); };
 
   const publishExtra = useCallback(async (item) => {
     const updated = [item, ...extra];
@@ -3913,12 +3944,12 @@ export default function App() {
   }, [extra]);
 
   const TABS = [
-    { id:"inicio",          label:"Inicio",            Icon:Home },
-    { id:"noticias",        label:"Noticias",           Icon:Newspaper },
-    { id:"mercados",        label:"Cotizaciones",       Icon:DollarSign },
-    { id:"informes",         label:"Research",           Icon:BarChart3 },
-    { id:"instrumentos",    label:"Instrumentos",       Icon:Search },
-    { id:"recomendaciones", label:"Inversiones",        Icon:Briefcase },
+    { id:"inicio",          label:"Inicio",            Icon:Home,          desc:"Resumen general y accesos directos" },
+    { id:"noticias",        label:"Noticias",           Icon:Newspaper,     desc:"Información procesada del mercado" },
+    { id:"mercados",        label:"Cotizaciones",       Icon:DollarSign,    desc:"Dólar, riesgo país, BCRA en vivo" },
+    { id:"informes",         label:"Research",           Icon:BarChart3,     desc:"Resúmenes diarios, balances e informes" },
+    { id:"instrumentos",    label:"Instrumentos",       Icon:Search,        desc:"Renta fija, soberanos y screener" },
+    { id:"recomendaciones", label:"Inversiones",        Icon:Briefcase,     desc:"Perfiles, fondos y recomendaciones" },
   ];
 
   const goResearch = (sub) => { setResearchSub(sub); setTab("informes"); };
@@ -3952,7 +3983,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily:FB, background:t.bg, minHeight:"100vh", color:t.tx, transition:"background .3s, color .3s",
-      paddingBottom: isMobile ? 64 : 0 }}>
+      paddingBottom: isMobile ? 20 : 0 }}>
 
       {/* ── HEADER ── */}
       <header style={{ background:t.hdr, borderBottom:`1px solid ${t.brd}`, position:"sticky", top:0, zIndex:100, boxShadow:t.sh }}>
@@ -4008,29 +4039,96 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── BOTTOM NAV — mobile only ── */}
+      {/* ── MOBILE DRAWER MENU ── */}
       {isMobile && (
-        <nav style={{
-          position:"fixed", bottom:0, left:0, right:0, zIndex:100,
-          background:t.hdr, borderTop:`1px solid ${t.brd}`,
-          display:"flex", justifyContent:"space-around", alignItems:"center",
-          height:56, boxShadow:"0 -2px 12px rgba(0,0,0,.08)",
-        }}>
-          {TABS.map(tb => (
-            <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
-              display:"flex", flexDirection:"column", alignItems:"center", gap:2,
-              padding:"4px 6px", border:"none", background:"transparent",
-              cursor:"pointer", flex:1,
-            }}>
-              <span style={{ fontSize:18, lineHeight:1 }}><tb.Icon size={18} strokeWidth={tab===tb.id?2.5:1.5} /></span>
-              <span style={{
-                fontFamily:FB, fontSize:8, fontWeight:tab===tb.id?700:400,
-                color:tab===tb.id?t.go:t.fa, letterSpacing:".04em",
-                textTransform:"uppercase", whiteSpace:"nowrap",
-              }}>{tb.label.split(" ")[0]}</span>
+        <>
+          {/* FAB Menu Button */}
+          {!mobileMenu && (
+            <button onClick={()=>setMobileMenu(true)} style={{
+              position:"fixed", bottom:20, left:"50%", transform:"translateX(-50%)", zIndex:100,
+              width:56, height:56, borderRadius:"50%",
+              background:`linear-gradient(135deg, ${t.go}, #D4A853)`,
+              border:"none", cursor:"pointer",
+              boxShadow:"0 4px 24px rgba(176,120,42,.45)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              transition:"transform .2s",
+            }}
+            onMouseEnter={e=>e.currentTarget.style.transform="translateX(-50%) scale(1.08)"}
+            onMouseLeave={e=>e.currentTarget.style.transform="translateX(-50%) scale(1)"}>
+              <Menu size={24} color="#fff" />
             </button>
-          ))}
-        </nav>
+          )}
+
+          {/* Backdrop */}
+          {mobileMenu && (
+            <div onClick={()=>setMobileMenu(false)} style={{
+              position:"fixed", inset:0, zIndex:150,
+              background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)",
+              animation:"fadeUp .2s ease",
+            }} />
+          )}
+
+          {/* Drawer from bottom */}
+          {mobileMenu && (
+            <div style={{
+              position:"fixed", bottom:0, left:0, right:0, zIndex:160,
+              background:t.srf, borderRadius:"24px 24px 0 0",
+              boxShadow:"0 -8px 40px rgba(0,0,0,.2)",
+              padding:"12px 20px 28px",
+              animation:"fadeUp .25s ease",
+            }}>
+              {/* Handle */}
+              <div style={{ width:40, height:4, borderRadius:2, background:t.brd, margin:"0 auto 16px" }} />
+
+              {/* Current section indicator */}
+              <div style={{ fontFamily:FB, fontSize:10, color:t.fa, letterSpacing:".08em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>
+                NAVEGACIÓN
+              </div>
+
+              {/* Menu items */}
+              <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                {TABS.map(tb => {
+                  const isActive = tab === tb.id;
+                  return (
+                    <button key={tb.id} onClick={()=>handleMobileNav(tb.id)} style={{
+                      display:"flex", alignItems:"center", gap:14,
+                      padding:"14px 16px", borderRadius:14, border:"none",
+                      background: isActive ? t.go+"14" : "transparent",
+                      cursor:"pointer", transition:"all .15s", textAlign:"left",
+                      borderLeft: isActive ? `3px solid ${t.go}` : "3px solid transparent",
+                    }}>
+                      <div style={{
+                        width:40, height:40, borderRadius:12, flexShrink:0,
+                        background: isActive ? t.go+"22" : t.alt,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                      }}>
+                        <tb.Icon size={20} color={isActive ? t.go : t.mu} strokeWidth={isActive ? 2.2 : 1.5} />
+                      </div>
+                      <div>
+                        <div style={{ fontFamily:FH, fontSize:15, fontWeight:isActive?700:500, color:isActive?t.go:t.tx }}>
+                          {tb.label}
+                        </div>
+                        <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:1 }}>
+                          {tb.desc}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Close */}
+              <button onClick={()=>setMobileMenu(false)} style={{
+                width:"100%", marginTop:12, padding:"12px", borderRadius:12,
+                border:`1px solid ${t.brd}`, background:"transparent",
+                fontFamily:FB, fontSize:13, fontWeight:600, color:t.mu,
+                cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+              }}>
+                <X size={16} /> Cerrar
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── TICKER ── */}
@@ -4130,6 +4228,37 @@ export default function App() {
 
         </div>
       </footer>
+
+      {/* ── QUOTE TOAST ── */}
+      {quoteToast && (
+        <div style={{
+          position:"fixed", top:isMobile?60:70, left:"50%", transform:"translateX(-50%)",
+          zIndex:200, width:isMobile?"90%":"auto", maxWidth:480,
+          background:`linear-gradient(135deg, #0d1117 0%, #1a2744 100%)`,
+          borderRadius:16, padding:"18px 24px",
+          boxShadow:"0 12px 40px rgba(0,0,0,.35)",
+          border:"1px solid rgba(176,120,42,.3)",
+          animation:"fadeUp .3s ease",
+        }}>
+          <div style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+            <div style={{
+              width:36, height:36, borderRadius:10, flexShrink:0,
+              background:"linear-gradient(135deg,#B0782A,#D4A853)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+            }}>
+              <Quote size={18} color="#fff" />
+            </div>
+            <div>
+              <p style={{ fontFamily:FD, fontSize:16, fontWeight:700, color:"#fff", lineHeight:1.45, margin:0, fontStyle:"italic" }}>
+                "{quoteToast.text}"
+              </p>
+              <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", marginTop:8, margin:"8px 0 0" }}>
+                — {quoteToast.author}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── AI CHAT WIDGET ── */}
       <AIChatWidget t={t} isMobile={isMobile} />

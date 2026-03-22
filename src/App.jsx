@@ -2053,6 +2053,7 @@ function InstrumentosView({ t }) {
     {id:"lecap",   label:"Renta Fija ARS",    Icon:ClipboardList},
     {id:"soberano",label:"Soberanos USD",      Icon:Globe},
     {id:"corp",    label:"Corporativos (ONs)", Icon:Building2},
+    {id:"pf",      label:"Plazos Fijos",       Icon:Landmark},
     {id:"rv",      label:"Research Desk",      Icon:LineChart},
   ];
 
@@ -2321,6 +2322,9 @@ function InstrumentosView({ t }) {
         </div>
       )}
 
+      {/* ── PLAZOS FIJOS — ArgentinaDatos API ── */}
+      {sub === "pf" && <PlazosFijosPanel t={t} />}
+
       {/* ── BONOS CORPORATIVOS (ONs) — PRÓXIMAMENTE ── */}
       {sub === "corp" && (
         <div className="fade-up">
@@ -2351,6 +2355,248 @@ function InstrumentosView({ t }) {
       {/* ── RESEARCH DESK — RENTA VARIABLE ── */}
       {sub === "rv" && <EquityScreener t={t} />}
 
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PLAZOS FIJOS PANEL — ArgentinaDatos API (live)
+   Endpoint: /v1/finanzas/tasas/plazoFijo
+   TNA para colocaciones online de $100.000 a 30 días
+════════════════════════════════════════════════════════════════ */
+function PlazosFijosPanel({ t }) {
+  const [data, setData] = useState([]);
+  const [status, setStatus] = useState("loading");
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [sortCol, setSortCol] = useState("tnaClientes");
+  const [sortDir, setSortDir] = useState(-1);
+  const [viewType, setViewType] = useState("clientes"); // "clientes" | "noClientes"
+  const [search, setSearch] = useState("");
+  const REFRESH_MS = 10 * 60 * 1000; // 10 min
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo");
+        const json = await r.json();
+        if (Array.isArray(json) && json.length > 0) {
+          const parsed = json.map(d => ({
+            entidad: d.entidad || "—",
+            logo: d.logo || null,
+            tnaClientes: d.tnaClientes ? +(d.tnaClientes * 100).toFixed(2) : null,
+            tnaNoClientes: d.tnaNoClientes ? +(d.tnaNoClientes * 100).toFixed(2) : null,
+          })).filter(d => d.tnaClientes !== null || d.tnaNoClientes !== null);
+          setData(parsed);
+          setStatus("ok");
+          setLastUpdate(new Date());
+        } else { setStatus("error"); }
+      } catch { setStatus("error"); }
+    };
+    load();
+    const id = setInterval(load, REFRESH_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const sort = (col) => {
+    if (sortCol === col) setSortDir(d => -d);
+    else { setSortCol(col); setSortDir(-1); }
+  };
+
+  const tnaKey = viewType === "clientes" ? "tnaClientes" : "tnaNoClientes";
+
+  const filtered = data
+    .filter(d => {
+      if (search.trim()) return d.entidad.toLowerCase().includes(search.toLowerCase());
+      return true;
+    })
+    .sort((a, b) => {
+      const av = a[sortCol], bv = b[sortCol];
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return (av > bv ? 1 : -1) * sortDir;
+    });
+
+  // Stats
+  const tnas = data.map(d => d[tnaKey]).filter(v => v !== null);
+  const maxTNA = tnas.length ? Math.max(...tnas) : 0;
+  const minTNA = tnas.length ? Math.min(...tnas) : 0;
+  const avgTNA = tnas.length ? (tnas.reduce((a, b) => a + b, 0) / tnas.length) : 0;
+  const bestBank = data.find(d => d[tnaKey] === maxTNA);
+
+  // Simular ganancia para $1M a 30 días
+  const sim = (tna) => tna ? Math.round(1000000 * (tna / 100) * (30 / 365)) : 0;
+
+  return (
+    <div className="fade-up">
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:16 }}>
+        <div>
+          <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6 }}>
+            TNA para colocaciones online de $100.000 a 30 días. Fuente: BCRA vía ArgentinaDatos.
+          </p>
+        </div>
+        <div style={{
+          borderRadius:8, padding:"7px 14px", fontFamily:FB, fontSize:11,
+          border:`1px solid ${status==="ok"?t.grAcc+"66":t.brd}`,
+          background:status==="ok"?t.grBg:t.alt, color:status==="ok"?t.gr:t.mu,
+          display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap",
+        }}>
+          <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
+            background:status==="ok"?"#22c55e":status==="error"?"#ef4444":"#94a3b8",
+            boxShadow:status==="ok"?"0 0 6px #22c55e":"none",
+            animation:status==="loading"?"blink 1s infinite":"none"}}/>
+          {status==="loading" && "Cargando tasas..."}
+          {status==="ok" && `${data.length} bancos · ${lastUpdate?.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}`}
+          {status==="error" && "Sin datos · Reintentar"}
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      {status === "ok" && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:10, marginBottom:20 }}>
+          <div style={{ background:t.grBg, border:`1px solid ${t.gr}22`, borderRadius:12, padding:"14px 16px", borderLeft:`4px solid ${t.gr}` }}>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.gr, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>MEJOR TNA</div>
+            <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.gr, lineHeight:1 }}>{maxTNA.toFixed(2)}%</div>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>{bestBank?.entidad}</div>
+          </div>
+          <div style={{ background:t.blBg, border:`1px solid ${t.bl}22`, borderRadius:12, padding:"14px 16px", borderLeft:`4px solid ${t.bl}` }}>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.bl, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>PROMEDIO</div>
+            <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.bl, lineHeight:1 }}>{avgTNA.toFixed(2)}%</div>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>TNA {data.length} entidades</div>
+          </div>
+          <div style={{ background:t.goBg, border:`1px solid ${t.go}22`, borderRadius:12, padding:"14px 16px", borderLeft:`4px solid ${t.go}` }}>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.go, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>GANANCIA $1M / 30D</div>
+            <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.go, lineHeight:1 }}>${sim(maxTNA).toLocaleString("es-AR")}</div>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>Al mejor TNA · bruto</div>
+          </div>
+          <div style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:12, padding:"14px 16px", borderLeft:`4px solid ${t.mu}` }}>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>MENOR TNA</div>
+            <div style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.rd, lineHeight:1 }}>{minTNA.toFixed(2)}%</div>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>Spread: {(maxTNA-minTNA).toFixed(2)} p.p.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        <div style={{ position:"relative", flexShrink:0 }}>
+          <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar banco..."
+            style={{
+              fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10,
+              border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, width:180, outline:"none",
+            }}
+            onFocus={e=>e.target.style.borderColor=t.go}
+            onBlur={e=>e.target.style.borderColor=t.brd}
+          />
+        </div>
+        <div style={{ display:"flex", gap:4 }}>
+          {[{id:"clientes",label:"Clientes"},{id:"noClientes",label:"No Clientes"}].map(v=>(
+            <button key={v.id} onClick={()=>{setViewType(v.id);setSortCol(v.id==="clientes"?"tnaClientes":"tnaNoClientes");}} style={{
+              padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, cursor:"pointer",
+              border:`1.5px solid ${viewType===v.id?t.go:t.brd}`,
+              background:viewType===v.id?t.go+"18":"transparent",
+              color:viewType===v.id?t.go:t.mu, fontWeight:viewType===v.id?700:400,
+            }}>{v.label}</button>
+          ))}
+        </div>
+        <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, color:t.fa }}>
+          {filtered.length} de {data.length} entidades
+        </span>
+      </div>
+
+      {/* Table */}
+      <Card t={t}>
+        <div style={{ overflowX:"auto", maxHeight:"65vh", overflowY:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:12 }}>
+            <thead>
+              <tr>
+                <th style={{ padding:"9px 12px", textAlign:"center", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, width:40 }}>#</th>
+                <th style={{ padding:"9px 12px", textAlign:"left", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5 }}>ENTIDAD</th>
+                <th onClick={()=>sort("tnaClientes")} style={{ padding:"9px 12px", textAlign:"right", fontSize:9, fontWeight:700, color:sortCol==="tnaClientes"?t.go:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, cursor:"pointer", whiteSpace:"nowrap" }}>
+                  TNA CLIENTES{sortCol==="tnaClientes"?(sortDir===1?" ↑":" ↓"):""}
+                </th>
+                <th onClick={()=>sort("tnaNoClientes")} style={{ padding:"9px 12px", textAlign:"right", fontSize:9, fontWeight:700, color:sortCol==="tnaNoClientes"?t.go:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, cursor:"pointer", whiteSpace:"nowrap" }}>
+                  TNA NO CLIENTES{sortCol==="tnaNoClientes"?(sortDir===1?" ↑":" ↓"):""}
+                </th>
+                <th style={{ padding:"9px 12px", textAlign:"right", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, whiteSpace:"nowrap" }}>
+                  GANANCIA $1M/30D
+                </th>
+                <th style={{ padding:"9px 12px", textAlign:"right", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5 }}>
+                  VS MEJOR
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {status === "loading" && (
+                <tr><td colSpan={6} style={{ padding:40, textAlign:"center", color:t.mu }}>
+                  <RefreshCw size={20} style={{ animation:"blink 1s infinite", marginBottom:8 }} /><br/>Cargando tasas de plazo fijo...
+                </td></tr>
+              )}
+              {status === "error" && (
+                <tr><td colSpan={6} style={{ padding:40, textAlign:"center", color:t.rd }}>
+                  <AlertTriangle size={20} style={{ marginBottom:8 }} /><br/>No se pudieron cargar los datos. Intentá de nuevo más tarde.
+                </td></tr>
+              )}
+              {filtered.map((d, i) => {
+                const tna = d[tnaKey];
+                const isBest = tna === maxTNA;
+                const diffVsBest = tna !== null ? (tna - maxTNA).toFixed(2) : null;
+                const barWidth = tna !== null && maxTNA > 0 ? (tna / maxTNA * 100) : 0;
+                return (
+                  <tr key={i} style={{ borderBottom:`1px solid ${t.brd}44`, transition:"background .1s" }}
+                    onMouseEnter={e=>e.currentTarget.style.background=t.alt}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <td style={{ padding:"8px 12px", textAlign:"center", fontSize:10, color:t.fa }}>{i+1}</td>
+                    <td style={{ padding:"8px 12px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        {d.logo && <img src={d.logo} alt="" style={{ width:20, height:20, borderRadius:4, objectFit:"contain" }} onError={e=>e.target.style.display="none"} />}
+                        <span style={{ fontSize:12, fontWeight:isBest?700:500, color:isBest?t.gr:t.tx }}>{d.entidad}</span>
+                        {isBest && <span style={{ fontSize:8, fontWeight:700, color:"#fff", background:t.gr, padding:"1px 6px", borderRadius:8 }}>TOP</span>}
+                      </div>
+                    </td>
+                    <td style={{ padding:"8px 12px", textAlign:"right" }}>
+                      {d.tnaClientes !== null ? (
+                        <div style={{ display:"flex", alignItems:"center", gap:6, justifyContent:"flex-end" }}>
+                          <div style={{ width:50, height:4, borderRadius:3, background:t.brd, overflow:"hidden" }}>
+                            <div style={{ width:`${d.tnaClientes/maxTNA*100}%`, height:"100%", borderRadius:3,
+                              background:d.tnaClientes>=avgTNA?t.grAcc:t.rdAcc }} />
+                          </div>
+                          <span style={{ fontSize:12, fontWeight:700, color:d.tnaClientes>=avgTNA?t.gr:t.mu }}>{d.tnaClientes.toFixed(2)}%</span>
+                        </div>
+                      ) : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+                    <td style={{ padding:"8px 12px", textAlign:"right" }}>
+                      {d.tnaNoClientes !== null
+                        ? <span style={{ fontSize:12, fontWeight:600, color:t.mu }}>{d.tnaNoClientes.toFixed(2)}%</span>
+                        : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+                    <td style={{ padding:"8px 12px", textAlign:"right", fontFamily:FB }}>
+                      {tna !== null
+                        ? <span style={{ fontSize:12, fontWeight:600, color:t.go }}>${sim(tna).toLocaleString("es-AR")}</span>
+                        : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+                    <td style={{ padding:"8px 12px", textAlign:"right" }}>
+                      {diffVsBest !== null && diffVsBest !== "0.00"
+                        ? <span style={{ fontSize:11, fontWeight:600, color:t.rd }}>{diffVsBest} p.p.</span>
+                        : diffVsBest === "0.00" ? <span style={{ fontSize:11, fontWeight:700, color:t.gr }}>MEJOR</span>
+                        : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ padding:"8px 14px", borderTop:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            Fuente: BCRA · ArgentinaDatos API · Colocaciones online $100K a 30 días
+          </span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            Refresh cada 10 min · No constituye asesoramiento
+          </span>
+        </div>
+      </Card>
     </div>
   );
 }

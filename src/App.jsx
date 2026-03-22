@@ -586,7 +586,7 @@ const ETPS_BALANZ = [];
 
 const NOTICIAS = [
   {
-    id:"n7", fecha:"20 MAR 2026", cat:"EMPRESAS · $BIOX", catColor:"red",
+    id:"n7", fecha:"20 MAR 2026", cat:"EMPRESAS · $BIOX", catColor:"red", seccion:"Empresas",
     titulo:"Bioceres (BIOX) en riesgo de desliste en Nasdaq: cotizó debajo de US$1 durante 30 ruedas",
     cuerpo:`<strong>Bioceres Crop Solutions ($BIOX)</strong> recibió una advertencia formal del Nasdaq por cotizar debajo del <strong>mínimo de US$1</strong> durante 30 ruedas hábiles consecutivas. La compañía tiene plazo hasta <strong>septiembre de 2026</strong> para recuperar el umbral mínimo exigido por el mercado.
 
@@ -596,7 +596,7 @@ Para evitar el desliste, la acción deberá mantenerse <strong>por encima de US$
     relevancia:"alta",
   },
   {
-    id:"n8", fecha:"20 MAR 2026", cat:"AGENDA · MERCADOS", catColor:"blue",
+    id:"n8", fecha:"20 MAR 2026", cat:"AGENDA · MERCADOS", catColor:"blue", seccion:"Internacional",
     titulo:"Semana que viene: petróleo volátil, Fed habla, PMIs globales y cumbre del G7",
     cuerpo:`La semana que comienza el <strong>23 de marzo</strong> concentra una agenda densa para los mercados internacionales:
 
@@ -612,7 +612,7 @@ Para evitar el desliste, la acción deberá mantenerse <strong>por encima de US$
     relevancia:"alta",
   },
   {
-    id:"n1", fecha:"18 MAR 2026", cat:"POLÍTICA MONETARIA · EEUU", catColor:"blue",
+    id:"n1", fecha:"18 MAR 2026", cat:"POLÍTICA MONETARIA · EEUU", catColor:"blue", seccion:"Internacional",
     titulo:"Fed mantiene tasas en 3,75% con primer voto disidente a favor de un recorte",
     cuerpo:`La Reserva Federal dejó sin cambios su tasa de referencia en <strong>3,75%</strong>, en línea con lo esperado por el mercado. Sin embargo, la reunión dejó señales que vale la pena leer con atención.
 
@@ -624,7 +624,7 @@ En materia de proyecciones, la Fed <strong>elevó su estimación de PBI 2026 al 
     relevancia:"alta",
   },
   {
-    id:"n2", fecha:"18 MAR 2026", cat:"ENERGÍA · ARGENTINA", catColor:"green",
+    id:"n2", fecha:"18 MAR 2026", cat:"ENERGÍA · ARGENTINA", catColor:"green", seccion:"Energía",
     titulo:"Bank of America: Vaca Muerta podría duplicar su producción en cinco a siete años",
     cuerpo:`Un informe de <strong>Bank of America</strong> posiciona a Vaca Muerta como uno de los desarrollos de shale más relevantes a escala global, con potencial para que Argentina ingrese al grupo de los <strong>20 principales productores de petróleo y gas del mundo</strong>.
 
@@ -636,7 +636,7 @@ Los factores clave identificados para sostener el crecimiento son dos: <strong>e
     relevancia:"alta",
   },
   {
-    id:"n3", fecha:"18 MAR 2026", cat:"JUDICIAL · YPF", catColor:"red",
+    id:"n3", fecha:"18 MAR 2026", cat:"JUDICIAL · YPF", catColor:"red", seccion:"Judicial",
     titulo:"Justicia de EEUU suspende demandas contra Argentina hasta resolver la cuestión de fondo",
     cuerpo:`La Justicia de Estados Unidos <strong>suspendió las demandas en curso contra la Argentina</strong> en el marco del juicio por la expropiación de YPF S.A., hasta tanto se resuelva la cuestión de fondo del caso.
 
@@ -646,7 +646,7 @@ La medida implica un compás de espera procesal que, en principio, reduce la pre
     relevancia:"alta",
   },
   {
-    id:"n4", fecha:"18 MAR 2026", cat:"TECNOLOGÍA · ENERGÍA", catColor:"purple",
+    id:"n4", fecha:"18 MAR 2026", cat:"TECNOLOGÍA · ENERGÍA", catColor:"purple", seccion:"Empresas",
     titulo:"IMPSA exportará componentes nucleares a EEUU: primera vasija de reactor modular del continente",
     cuerpo:`En un hecho que pasó prácticamente desapercibido durante el <strong>Argentina Week 2026</strong>, IMPSA — recientemente privatizada — anunció que exportará componentes nucleares al mercado estadounidense, apuntando directamente al segmento de <strong>reactores modulares pequeños (SMR)</strong>.
 
@@ -658,7 +658,7 @@ Salcedo también anticipó una próxima asociación con una empresa americana en
     relevancia:"media",
   },
   {
-    id:"n5", fecha:"18 MAR 2026", cat:"MACRO · ARGENTINA", catColor:"red",
+    id:"n5", fecha:"18 MAR 2026", cat:"MACRO · ARGENTINA", catColor:"red", seccion:"Macro",
     titulo:"INDEC: el desempleo trepó al 7,5% en el cuarto trimestre de 2025",
     cuerpo:`El <strong>INDEC</strong> publicó los datos oficiales del mercado laboral correspondientes al <strong>cuarto trimestre de 2025</strong>: la tasa de desempleo ascendió al <strong>7,5%</strong>, marcando un deterioro respecto a trimestres anteriores.
 
@@ -668,7 +668,7 @@ El dato se da en un contexto de recuperación económica gradual, pero refleja q
     relevancia:"alta",
   },
   {
-    id:"n6", fecha:"18 MAR 2026", cat:"EMPRESAS · $CEPU", catColor:"green",
+    id:"n6", fecha:"18 MAR 2026", cat:"EMPRESAS · $CEPU", catColor:"green", seccion:"Empresas",
     titulo:"Central Puerto invertirá USD 40M en un mega aserradero en Corrientes bajo beneficios del RIGI provincial",
     cuerpo:`<strong>Central Puerto ($CEPU)</strong> anunció una inversión de <strong>USD 40 millones</strong> en un mega aserradero en la provincia de Corrientes, proyecto que comenzará a ejecutarse durante 2026 bajo los beneficios de la ley provincial 5470, que otorga <strong>seguridad jurídica y exenciones impositivas por 15 años</strong>.
 
@@ -2651,59 +2651,135 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   NOTICIAS VIEW
+   NOTICIAS VIEW — Buscador + Categorías por tipo
 ════════════════════════════════════════════════════════════════ */
+const SECCIONES = [
+  { id:"todas",          label:"Todas",           Icon:Newspaper,    color:null },
+  { id:"Macro",          label:"Macro",           Icon:Activity,     color:"red" },
+  { id:"Internacional",  label:"Internacional",   Icon:Globe,        color:"blue" },
+  { id:"Empresas",       label:"Empresas",        Icon:Building2,    color:"green" },
+  { id:"Energía",        label:"Energía",         Icon:Flame,        color:"gold" },
+  { id:"Judicial",       label:"Judicial",        Icon:Gavel,        color:"purple" },
+];
+
 function NoticiasView({ t }) {
-  const [filtro, setFiltro] = useState("todas");
+  const [seccion, setSeccion] = useState("todas");
+  const [search, setSearch] = useState("");
   const [expandida, setExpandida] = useState(null);
-
-  const cats = ["todas", ...Array.from(new Set(NOTICIAS.map(n => n.cat)))];
-
-  const filtradas = filtro === "todas"
-    ? NOTICIAS
-    : NOTICIAS.filter(n => n.cat === filtro);
 
   const catColors = { blue:t.bl, green:t.gr, red:t.rd, purple:t.pu, gold:t.go, gray:t.mu };
   const catBgs    = { blue:t.blBg, green:t.grBg, red:t.rdBg, purple:t.puBg, gold:t.goBg, gray:t.alt };
+
+  // Filter by section + search
+  const filtradas = NOTICIAS.filter(n => {
+    if (seccion !== "todas" && n.seccion !== seccion) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const hayMatch = n.titulo.toLowerCase().includes(q)
+        || n.cat.toLowerCase().includes(q)
+        || n.cuerpo.replace(/<[^>]+>/g,"").toLowerCase().includes(q);
+      if (!hayMatch) return false;
+    }
+    return true;
+  });
+
+  // Count per section
+  const countPorSeccion = (id) => id === "todas" ? NOTICIAS.length : NOTICIAS.filter(n => n.seccion === id).length;
 
   return (
     <div className="fade-up">
 
       {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:22 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:16 }}>
         <div>
-          <SectionLabel t={t}>NOTICIAS · 18-20 MAR 2026</SectionLabel>
+          <SectionLabel t={t}>NOTICIAS</SectionLabel>
           <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:-10 }}>
             {NOTICIAS.length} noticias · Información procesada y diferenciada de interpretación.
           </p>
         </div>
-        {/* Relevancia badge count */}
         <div style={{ display:"flex", gap:8 }}>
-          <div style={{ background:t.rdBg, borderRadius:8, padding:"6px 14px", fontFamily:FB, fontSize:11, color:t.rd, fontWeight:600 }}>
-            🔴 {NOTICIAS.filter(n=>n.relevancia==="alta").length} alta relevancia
-          </div>
-          <div style={{ background:t.alt, borderRadius:8, padding:"6px 14px", fontFamily:FB, fontSize:11, color:t.mu, fontWeight:600 }}>
-            ⚪ {NOTICIAS.filter(n=>n.relevancia==="media").length} media
+          <div style={{ background:t.rdBg, borderRadius:8, padding:"6px 14px", fontFamily:FB, fontSize:11, color:t.rd, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+            <CircleDot size={10} /> {NOTICIAS.filter(n=>n.relevancia==="alta").length} alta relevancia
           </div>
         </div>
       </div>
 
-      {/* Filtro por categoría */}
-      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:20 }}>
-        {cats.map(c => (
-          <button key={c} onClick={()=>setFiltro(c)} style={{
-            padding:"5px 14px", borderRadius:20, fontFamily:FB, fontSize:11, fontWeight:600,
-            cursor:"pointer", transition:"all .18s", border:"none",
-            background: filtro===c ? t.tx : t.alt,
-            color: filtro===c ? (t===TH.d?"#0D1117":"#FFFFFF") : t.mu,
-          }}>
-            {c === "todas" ? "Todas" : c}
-          </button>
-        ))}
+      {/* Search bar */}
+      <div style={{ position:"relative", marginBottom:16 }}>
+        <Search size={16} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+        <input
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          placeholder="Buscar por palabra clave: YPF, inflación, Fed, petróleo…"
+          style={{
+            width:"100%", padding:"12px 14px 12px 40px", borderRadius:12,
+            fontFamily:FB, fontSize:13, border:`1.5px solid ${t.brd}`,
+            background:t.srf, color:t.tx, outline:"none", transition:"border-color .2s",
+          }}
+          onFocus={e=>e.target.style.borderColor=t.go}
+          onBlur={e=>e.target.style.borderColor=t.brd}
+        />
+        {search && (
+          <button onClick={()=>setSearch("")} style={{
+            position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+            background:"none", border:"none", cursor:"pointer", color:t.mu, padding:4,
+          }}><X size={16} /></button>
+        )}
       </div>
+
+      {/* Section pills */}
+      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
+        {SECCIONES.map(s => {
+          const isActive = seccion === s.id;
+          const count = countPorSeccion(s.id);
+          const pillColor = s.color ? catColors[s.color] || t.mu : t.mu;
+          return (
+            <button key={s.id} onClick={()=>setSeccion(s.id)} style={{
+              padding:"7px 16px", borderRadius:20, fontFamily:FB, fontSize:11, fontWeight:600,
+              cursor:"pointer", transition:"all .18s",
+              border:`1.5px solid ${isActive ? pillColor : t.brd}`,
+              background: isActive ? (s.color ? catBgs[s.color] || t.alt : t.tx) : "transparent",
+              color: isActive ? (s.color ? pillColor : (t===TH.d?"#0D1117":"#FFFFFF")) : t.mu,
+              display:"flex", alignItems:"center", gap:5,
+            }}>
+              <s.Icon size={12} />
+              {s.label}
+              <span style={{
+                fontFamily:FB, fontSize:9, fontWeight:700, opacity:.7,
+                background: isActive ? "rgba(255,255,255,.15)" : t.alt,
+                padding:"1px 6px", borderRadius:10, marginLeft:2,
+              }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Results count */}
+      {(search || seccion !== "todas") && (
+        <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
+          <Info size={12} />
+          {filtradas.length} resultado{filtradas.length!==1?"s":""}{search && ` para "${search}"`}{seccion!=="todas" && ` en ${seccion}`}
+          {(search || seccion!=="todas") && (
+            <button onClick={()=>{setSearch("");setSeccion("todas");}} style={{
+              background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"2px 10px",
+              fontFamily:FB, fontSize:10, color:t.mu, cursor:"pointer", display:"flex", alignItems:"center", gap:3,
+            }}><X size={10} /> Limpiar</button>
+          )}
+        </div>
+      )}
 
       {/* Noticias list */}
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {filtradas.length === 0 && (
+          <Card t={t}>
+            <div style={{ padding:"40px 20px", textAlign:"center" }}>
+              <Search size={32} color={t.fa} style={{ marginBottom:12 }} />
+              <p style={{ fontFamily:FB, fontSize:14, color:t.mu }}>No se encontraron noticias con esos criterios.</p>
+              <p style={{ fontFamily:FB, fontSize:12, color:t.fa, marginTop:4 }}>Probá con otra palabra clave o cambiá la sección.</p>
+            </div>
+          </Card>
+        )}
+
         {filtradas.map(n => {
           const ac  = catColors[n.catColor] || t.mu;
           const bg  = catBgs[n.catColor]   || t.alt;
@@ -2730,9 +2806,14 @@ function NoticiasView({ t }) {
                       textTransform:"uppercase", color:ac,
                       background:bg, padding:"2px 9px", borderRadius:20,
                     }}>{n.cat}</span>
+                    {n.seccion && (
+                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:t.mu, background:t.alt, padding:"2px 8px", borderRadius:20 }}>
+                        {n.seccion}
+                      </span>
+                    )}
                     {n.relevancia === "alta" && (
-                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.rd, background:t.rdBg, padding:"2px 8px", borderRadius:20 }}>
-                        ● ALTA RELEVANCIA
+                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.rd, background:t.rdBg, padding:"2px 8px", borderRadius:20, display:"flex", alignItems:"center", gap:3 }}>
+                        <AlertTriangle size={9} /> ALTA
                       </span>
                     )}
                     <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{n.fecha}</span>
@@ -2745,16 +2826,16 @@ function NoticiasView({ t }) {
                   {/* Preview line when collapsed */}
                   {!open && (
                     <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:6 }}
-                      dangerouslySetInnerHTML={{ __html: n.cuerpo.replace(/<[^>]+>/g,"").slice(0, 120) + "…" }}
+                      dangerouslySetInnerHTML={{ __html: n.cuerpo.replace(/<[^>]+>/g,"").slice(0, 140) + "…" }}
                     />
                   )}
                 </div>
                 {/* Toggle icon */}
-                <span style={{
-                  color:t.mu, fontSize:18, flexShrink:0, marginTop:2,
+                <div style={{
+                  color:t.mu, flexShrink:0, marginTop:2,
                   transform: open ? "rotate(180deg)" : "rotate(0deg)",
                   transition:"transform .2s",
-                }}>⌄</span>
+                }}><ChevronDown size={18} /></div>
               </button>
 
               {/* Expanded body */}

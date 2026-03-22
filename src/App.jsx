@@ -32,8 +32,9 @@ const TH = {
   }
 };
 
-const FH = "'IBM Plex Sans',sans-serif";
+const FH = "'Sora','IBM Plex Sans',sans-serif";
 const FB = "'IBM Plex Sans',sans-serif";
+const FD = "'Playfair Display','Georgia',serif"; // Display font for hero titles
 
 const CONTACT = {
   name: "Máximo Ricciardi",
@@ -50,7 +51,7 @@ function useFonts(dark) {
     if (!document.getElementById("mr-fonts")) {
       const l = document.createElement("link");
       l.id = "mr-fonts"; l.rel = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap";
+      l.href = "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap";
       document.head.appendChild(l);
     }
     let s = document.getElementById("mr-css");
@@ -428,46 +429,148 @@ const SOBERANOS = [
 const PERFILES = [
   {
     id:"conservador", label:"Conservador", icon:"🛡️", color:"blue",
-    desc:"Preservación de capital con rendimiento real positivo. Horizonte corto-mediano plazo.",
+    desc:"Preservación de capital con rendimiento real positivo. Horizonte corto-mediano plazo. Fondos de bajo riesgo y alta liquidez.",
     ideas:[
-      {inst:"LECAP Corta (S29Y6)",por:"35%",note:"TEM 2,33% | Vto. Mayo 2026"},
-      {inst:"LECAP Julio (S31L6)",por:"25%",note:"TNA 29,43% | Liquidez moderada"},
-      {inst:"Caución 3D",por:"20%",note:"20,5% TNA | Liquidez inmediata"},
-      {inst:"Dólar MEP",por:"20%",note:"Cobertura cambiaria"},
+      {inst:"Balanz Ahorro Corto Plazo",por:"35%",note:"RF corto plazo · T+1 · Destacado ARS",ticker:"BCAH"},
+      {inst:"Balanz Lecaps (Performance II)",por:"25%",note:"LECAPs · T+0 · Liquidez inmediata",ticker:"PERF2"},
+      {inst:"Balanz Money Market",por:"20%",note:"Money Market · T+0 · Parking",ticker:"BMMKT"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"20%",note:"RF USD corto · T+1 · Destacado USD",ticker:"ESTRA1"},
     ],
-    retorno:"TEM ~2,3% — TNA ~27-30%",
+    retorno:"Renta fija ARS + cobertura USD",
     riesgo:"Bajo",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
     id:"moderado", label:"Moderado", icon:"⚖️", color:"gold",
-    desc:"Equilibrio entre cobertura inflacionaria y rendimiento en dólares. Horizonte 6-12 meses.",
+    desc:"Equilibrio entre cobertura inflacionaria, tasa y rendimiento en dólares. Horizonte 6-12 meses.",
     ideas:[
-      {inst:"Bono CER (TX26)",por:"30%",note:"Cobertura inflación + spread real"},
-      {inst:"LECAP Mayo-Junio",por:"25%",note:"Tasa fija ~ 2,3-2,5% TEM"},
-      {inst:"Cedear XOM / KO",por:"20%",note:"Defensivos con dividendo en USD"},
-      {inst:"Oro (GLD / GOLD)",por:"15%",note:"Refugio geopolítico"},
-      {inst:"Dólar MEP",por:"10%",note:"Liquidez en divisa"},
+      {inst:"Balanz Ahorro Corto Plazo",por:"25%",note:"RF corto plazo · T+1 · Core ARS",ticker:"BCAH"},
+      {inst:"Balanz Inflation Linked (Inst.)",por:"20%",note:"CER · T+1 · Cobertura inflación",ticker:"BINFL"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"20%",note:"RF USD corto · T+1 · Core USD",ticker:"ESTRA1"},
+      {inst:"Balanz Corporativo (Ahorro USD)",por:"20%",note:"ONs USD · T+1 · Crédito corporativo",ticker:"BAUSD"},
+      {inst:"Balanz Renta Mixta (Retorno Total)",por:"15%",note:"Mixto · T+1 · Diversificación",ticker:"BRTOT"},
     ],
-    retorno:"Mixto ARS/USD | Apunta a CER + 3-5%",
+    retorno:"Mixto ARS/USD · CER + RF USD",
     riesgo:"Moderado",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
     id:"dinamico", label:"Dinámico", icon:"🚀", color:"purple",
-    desc:"Exposición a activos de mayor beta con potencial de compresión de riesgo país. Horizonte 12-18m.",
+    desc:"Exposición a activos de mayor beta con potencial de compresión de riesgo país. Horizonte 12-18 meses.",
     ideas:[
-      {inst:"Globales XD (GD38)",por:"30%",note:"Rendimiento ~10% | Ley NY"},
-      {inst:"Merval — GGAL / YPF",por:"25%",note:"Blue chips locales con momentum"},
-      {inst:"Cedear NVDA / AMD",por:"25%",note:"Exposición al ciclo de IA"},
-      {inst:"Oro (cobertura)",por:"10%",note:"Refugio ante volatilidad"},
-      {inst:"Cash USD",por:"10%",note:"Táctica y rebalanceo"},
+      {inst:"Balanz Soberano (Renta Fija USD)",por:"25%",note:"Soberanos USD · T+1 · TIR ~10%",ticker:"BSOBU"},
+      {inst:"Balanz Acciones",por:"25%",note:"Acciones ARG · T+1 · Blue chips locales",ticker:"BACCA"},
+      {inst:"Balanz Renta Variable Global",por:"20%",note:"RV Global · T+2 · Exposición internacional",ticker:"BRVGL"},
+      {inst:"Balanz Latam (Estrategia III)",por:"15%",note:"RF Latam · T+1 · Diversificación regional",ticker:"ESTRA3"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"15%",note:"RF USD corto · Liquidez táctica",ticker:"ESTRA1"},
     ],
-    retorno:"Potencial alfa USD | Alta variabilidad",
+    retorno:"Potencial alfa USD · Alta variabilidad",
     riesgo:"Moderado-Alto",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
 ];
+
+/* ════════════════════════════════════════════════════════════════
+   FONDOS COMUNES DE INVERSIÓN · BALANZ
+   Fuente: balanz.com/inversiones/fondos/ — 22 MAR 2026
+   Cada fondo linkea a su ficha en balanz.com
+════════════════════════════════════════════════════════════════ */
+const BZ = "https://balanz.com/inversiones/fondos"; // base URL
+
+const FONDOS_BALANZ = [
+  {
+    cat: "Transaccionales — Pesos",
+    icon: "💵",
+    color: "blue",
+    moneda: "ARS",
+    desc: "Liquidez inmediata (T+0). Ideal para parking de pesos a tasa diaria.",
+    fondos: [
+      { nombre:"Balanz Money Market",               ticker:"BMMKT",  rescate:"T+0", tipo:"Money Market", url:`${BZ}/money-market/` },
+      { nombre:"Balanz Lecaps (Performance II)",     ticker:"PERF2",  rescate:"T+0", tipo:"Tasa Fija",    url:`${BZ}/performance-ii/`, note:"Exposición a LECAPs" },
+    ],
+  },
+  {
+    cat: "Renta Fija — Pesos",
+    icon: "📋",
+    color: "gold",
+    moneda: "ARS",
+    desc: "Bonos soberanos, ONs y LECAPs. Horizonte corto-mediano plazo.",
+    destacado: "BCAH",
+    fondos: [
+      { nombre:"Balanz Ahorro Corto Plazo",          ticker:"BCAH",   rescate:"T+1", tipo:"RF Corto Plazo", url:`${BZ}/ahorro/`, destacado:true },
+      { nombre:"Balanz Crédito Privado Corto Plazo", ticker:"BCPCP",  rescate:"T+1", tipo:"ONs Corp.",      url:`${BZ}/credito-privado-corto-plazo/` },
+      { nombre:"Balanz ONs (Performance III)",        ticker:"PERF3",  rescate:"T+1", tipo:"ONs Corp.",      url:`${BZ}/performance-iii/` },
+      { nombre:"Balanz Opportunity",                  ticker:"BOPPO",  rescate:"T+1", tipo:"RF Flexible",    url:`${BZ}/renta-fija-opportunity/` },
+      { nombre:"Balanz Long Pesos",                   ticker:"BLPSO",  rescate:"T+1", tipo:"RF Largo Plazo", url:`${BZ}/long-pesos/` },
+      { nombre:"Balanz Abierto PyMES",                ticker:"BPYME",  rescate:"T+1", tipo:"SGR / PyME",     url:`${BZ}/abierto-pymes/` },
+      { nombre:"Balanz Abierto Infraestructura",      ticker:"BINFA",  rescate:"T+1", tipo:"Infraestructura",url:`${BZ}/abierto-infraestructura/` },
+    ],
+  },
+  {
+    cat: "Cobertura — Pesos",
+    icon: "🛡️",
+    color: "green",
+    moneda: "ARS",
+    desc: "Cobertura inflación (CER) y tipo de cambio (Dólar Linked).",
+    fondos: [
+      { nombre:"Balanz Inflation Linked (Inst.)",    ticker:"BINFL",  rescate:"T+1", tipo:"CER",           url:`${BZ}/institucional-inflation-linked/` },
+      { nombre:"Balanz Dólar Linked",                ticker:"BDLNK",  rescate:"T+1", tipo:"Dólar Linked",  url:`${BZ}/renta-fija-dolar-linked/` },
+    ],
+  },
+  {
+    cat: "Renta Variable — Pesos",
+    icon: "📈",
+    color: "red",
+    moneda: "ARS",
+    desc: "Acciones argentinas, CEDEARs y commodities. Mayor volatilidad, mayor potencial.",
+    fondos: [
+      { nombre:"Balanz Acciones",                    ticker:"BACCA",  rescate:"T+1", tipo:"Acciones ARG",  url:`${BZ}/acciones/` },
+      { nombre:"Balanz Equity Selection",            ticker:"BEQSL",  rescate:"T+1", tipo:"Acciones ARG",  url:`${BZ}/equity-selection/` },
+      { nombre:"Balanz Renta Mixta (Retorno Total)", ticker:"BRTOT",  rescate:"T+1", tipo:"Mixto",         url:`${BZ}/retorno-total/` },
+      { nombre:"Balanz Soja",                        ticker:"BSOJA",  rescate:"T+1", tipo:"Commodities",   url:`${BZ}/soja/` },
+      { nombre:"Balanz Crecimiento",                 ticker:"BCREC",  rescate:"T+1", tipo:"RV Growth",     url:`${BZ}/crecimiento/` },
+      { nombre:"Balanz Desarrollo",                  ticker:"BDESA",  rescate:"T+1", tipo:"RV Growth",     url:`${BZ}/desarrollo/` },
+    ],
+  },
+  {
+    cat: "Transaccionales — Dólares",
+    icon: "💲",
+    color: "purple",
+    moneda: "USD",
+    desc: "Liquidez inmediata en dólares (T+0).",
+    fondos: [
+      { nombre:"Balanz Money Market USD",            ticker:"BMMUSD", rescate:"T+0", tipo:"Money Market",  url:`${BZ}/money-market-dolares/` },
+    ],
+  },
+  {
+    cat: "Renta Fija — Dólares",
+    icon: "🌎",
+    color: "purple",
+    moneda: "USD",
+    desc: "Soberanos, corporativos y LATAM en USD. Horizonte 3-18 meses.",
+    destacado: "ESTRA1",
+    fondos: [
+      { nombre:"Balanz Dólar Corto Plazo (Estrategia I)", ticker:"ESTRA1", rescate:"T+1", tipo:"RF USD Corto",  url:`${BZ}/estrategia-i/`, destacado:true },
+      { nombre:"Balanz Corporativo (Ahorro USD)",          ticker:"BAUSD",  rescate:"T+1", tipo:"ONs USD",       url:`${BZ}/ahorro-en-dolares/` },
+      { nombre:"Balanz Latam (Estrategia III)",            ticker:"ESTRA3", rescate:"T+1", tipo:"RF Latam",      url:`${BZ}/estrategia-iii/` },
+      { nombre:"Balanz Soberano (Renta Fija USD)",         ticker:"BSOBU",  rescate:"T+1", tipo:"Soberanos USD", url:`${BZ}/renta-fija-en-dolares/` },
+      { nombre:"Balanz Latam sin Arg. Sudamericano",       ticker:"BSUDA",  rescate:"T+2", tipo:"RF Latam ex-AR",url:`${BZ}/sudamericano/` },
+    ],
+  },
+  {
+    cat: "Renta Variable — Dólares",
+    icon: "🌐",
+    color: "red",
+    moneda: "USD",
+    desc: "Acciones globales. Máximo potencial, máxima volatilidad.",
+    fondos: [
+      { nombre:"Balanz Renta Variable Global",       ticker:"BRVGL",  rescate:"T+2", tipo:"RV Global",     url:`${BZ}/renta-variable-global/` },
+    ],
+  },
+];
+
+/* ETPs Balanz — pendiente de confirmación */
+const ETPS_BALANZ = [];
 
 const NOTICIAS = [
   {
@@ -670,7 +773,7 @@ function SummaryCard({ s, t }) {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
           <div>
             <div style={{ fontSize:9, color:"rgba(255,255,255,.5)", letterSpacing:".12em", textTransform:"uppercase", fontFamily:FB, marginBottom:6 }}>{s.label}</div>
-            <div style={{ fontFamily:FH, fontSize:44, fontWeight:700, color:"#FFFFFF", lineHeight:1, letterSpacing:"-.01em" }}>
+            <div style={{ fontFamily:FD, fontSize:44, fontWeight:700, color:"#FFFFFF", lineHeight:1, letterSpacing:"-.01em" }}>
               {s.date.split(" ")[0]} <span style={{ color:t.go }}>{s.date.split(" ").slice(1).join(" ")}</span>
             </div>
           </div>
@@ -2339,11 +2442,11 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
           dot={!!riesgoPais}
         />
 
-        {/* Merval — pesos, ArgentinaDatos */}
+        {/* Merval — pesos, ArgentinaDatos + USD calc */}
         <LivePanel
           label="Merval"
-          value={mervalARS ? mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0}) : null}
-          sub="BYMA · pesos"
+          value={mervalARS ? mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0}) + " ARS" : null}
+          sub={mervalARS && dolar?.bolsa?.venta ? `≈ USD ${Math.round(mervalARS.value / dolar.bolsa.venta).toLocaleString("es-AR")} (via MEP)` : "BYMA · pesos"}
           changePct={mervalARS?.changePct ?? null}
           color="green"
           dot={!!mervalARS}
@@ -2353,7 +2456,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
         <LivePanel
           label="Oro (GLD)"
           value={gold ? `USD ${gold.price.toFixed(2)}` : null}
-          sub="GLD ETF · Finnhub"
+          sub="SPDR Gold Shares · Finnhub"
           changePct={gold?.changePct ?? null}
           color="gold"
           dot={!!gold}
@@ -2361,12 +2464,13 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
 
         {/* Brent — BNO ETF, Finnhub */}
         <LivePanel
-          label="Brent (BNO)"
+          label="Petróleo (BNO)"
           value={brent ? `USD ${brent.price.toFixed(2)}` : null}
-          sub="BNO ETF · Finnhub"
+          sub="United States Brent Oil Fund · ETF"
           changePct={brent?.changePct ?? null}
           color="gold"
           dot={!!brent}
+          badge="ETF PROXY"
         />
 
         {/* LECAP mayor TNA ≤ 6 meses — dinámico */}
@@ -2695,8 +2799,8 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
         </div>
 
         <h1 style={{
-          fontFamily:FH, fontSize: isMobile ? 38 : 64,
-          fontWeight:700, color:"#fff", lineHeight:1,
+          fontFamily:FD, fontSize: isMobile ? 42 : 68,
+          fontWeight:800, color:"#fff", lineHeight:1,
           letterSpacing:"-.02em", marginBottom:14,
         }}>The Big Long</h1>
 
@@ -2847,74 +2951,221 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
    RECOMENDACIONES VIEW
 ════════════════════════════════════════════════════════════════ */
 function RecomendacionesView({ t }) {
+  const [sub, setSub] = useState("perfiles");
   const [active, setActive] = useState("conservador");
+  const [expandedFondo, setExpandedFondo] = useState(null);
   const pf = PERFILES.find(p=>p.id===active);
-  const cMap = {blue:{ac:t.bl,bg:t.blBg},gold:{ac:t.go,bg:t.goBg},purple:{ac:t.pu,bg:t.puBg}};
+  const cMap = {blue:{ac:t.bl,bg:t.blBg},gold:{ac:t.go,bg:t.goBg},purple:{ac:t.pu,bg:t.puBg},green:{ac:t.gr,bg:t.grBg},red:{ac:t.rd,bg:t.rdBg}};
   const col = cMap[pf.color]||cMap.blue;
+
+  const SUBTABS = [
+    { id:"perfiles", label:"🎯 Perfiles de Inversión" },
+    { id:"fondos",   label:"💰 Fondos Balanz" },
+    { id:"etps",     label:"📦 ETPs Balanz" },
+  ];
 
   return (
     <div className="fade-up">
       <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:10, padding:"12px 18px", fontFamily:FB, fontSize:12, color:t.rd, marginBottom:20, lineHeight:1.6 }}>
-        ⚠️ <strong>Aviso importante:</strong> El contenido de esta sección es exclusivamente a modo orientativo e informativo. No constituye asesoramiento financiero, recomendación de inversión ni oferta de compra o venta de valores. Consultá siempre con un asesor antes de invertir.
+        ⚠️ <strong>Aviso importante:</strong> El contenido de esta sección es exclusivamente orientativo e informativo. No constituye asesoramiento financiero, recomendación de inversión ni oferta de compra o venta de valores. Consultá siempre con un asesor antes de invertir.
       </div>
 
-      {/* Profile selector */}
-      <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
-        {PERFILES.map(p => {
-          const pc = cMap[p.color]||cMap.blue;
-          const isA = active===p.id;
-          return (
-            <button key={p.id} onClick={()=>setActive(p.id)} style={{
-              padding:"10px 22px", borderRadius:10, fontFamily:FB, fontSize:13, fontWeight:600,
-              cursor:"pointer", transition:"all .2s",
-              border:`2px solid ${isA?pc.ac:t.brd}`,
-              background:isA?pc.ac:"transparent",
-              color:isA?"#fff":t.mu,
-            }}>
-              {p.icon} {p.label}
-            </button>
-          );
-        })}
+      {/* Sub-tabs */}
+      <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+        {SUBTABS.map(s => (
+          <button key={s.id} onClick={()=>setSub(s.id)} style={{
+            padding:"9px 22px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:600,
+            cursor:"pointer", transition:"all .18s",
+            border:`2px solid ${sub===s.id?t.go:t.brd}`,
+            background:sub===s.id?t.go+"18":"transparent",
+            color:sub===s.id?t.go:t.mu,
+          }}>{s.label}</button>
+        ))}
       </div>
 
-      {/* Profile detail */}
-      <Card t={t}>
-        <div style={{ padding:"24px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:20 }}>
-            <div>
-              <h2 style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:t.tx, marginBottom:6 }}>
-                {pf.icon} Perfil {pf.label}
-              </h2>
-              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.6, maxWidth:520 }}>{pf.desc}</p>
-            </div>
-            <div style={{ textAlign:"right" }}>
-              <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:4 }}>Retorno orientativo</div>
-              <Badge c={pf.color==="blue"?"blue":pf.color==="gold"?"gold":"purple"} t={t}>{pf.retorno}</Badge>
-              <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:8 }}>Nivel de riesgo: <strong>{pf.riesgo}</strong></div>
-            </div>
+      {/* ── PERFILES ── */}
+      {sub === "perfiles" && (
+        <div>
+          {/* Profile selector */}
+          <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
+            {PERFILES.map(p => {
+              const pc = cMap[p.color]||cMap.blue;
+              const isA = active===p.id;
+              return (
+                <button key={p.id} onClick={()=>setActive(p.id)} style={{
+                  padding:"10px 22px", borderRadius:10, fontFamily:FB, fontSize:13, fontWeight:600,
+                  cursor:"pointer", transition:"all .2s",
+                  border:`2px solid ${isA?pc.ac:t.brd}`,
+                  background:isA?pc.ac:"transparent",
+                  color:isA?"#fff":t.mu,
+                }}>
+                  {p.icon} {p.label}
+                </button>
+              );
+            })}
           </div>
 
-          <SectionLabel t={t}>IDEAS ORIENTATIVAS DE CARTERA</SectionLabel>
-          <div style={{ display:"grid", gap:8 }}>
-            {pf.ideas.map((idea,i) => (
-              <div key={i} style={{
-                display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap",
-                background:t.alt, borderRadius:10, padding:"14px 18px", gap:10,
-              }}>
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{ width:36, height:36, borderRadius:8, background:col.bg, border:`2px solid ${col.ac}44`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <span style={{ fontFamily:FH, fontWeight:800, fontSize:16, color:col.ac }}>{idea.por}</span>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily:FB, fontSize:13, fontWeight:600, color:t.tx }}>{idea.inst}</div>
-                    <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:2 }}>{idea.note}</div>
-                  </div>
+          {/* Profile detail */}
+          <Card t={t}>
+            <div style={{ padding:"24px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:20 }}>
+                <div>
+                  <h2 style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:t.tx, marginBottom:6 }}>
+                    {pf.icon} Perfil {pf.label}
+                  </h2>
+                  <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.6, maxWidth:520 }}>{pf.desc}</p>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:4 }}>Retorno orientativo</div>
+                  <Badge c={pf.color==="blue"?"blue":pf.color==="gold"?"gold":"purple"} t={t}>{pf.retorno}</Badge>
+                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:8 }}>Nivel de riesgo: <strong>{pf.riesgo}</strong></div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <SectionLabel t={t}>COMPOSICIÓN ORIENTATIVA DE CARTERA</SectionLabel>
+
+              {/* Visual bar */}
+              <div style={{ display:"flex", height:8, borderRadius:6, overflow:"hidden", marginBottom:16 }}>
+                {pf.ideas.map((idea,i) => {
+                  const pctNum = parseInt(idea.por);
+                  const colors = [t.bl, t.gr, t.go, t.pu, t.rd];
+                  return <div key={i} style={{ width:`${pctNum}%`, background:colors[i%colors.length], transition:"width .4s" }} />;
+                })}
+              </div>
+
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:10 }}>
+                {pf.ideas.map((idea,i) => {
+                  const colors = [t.bl, t.gr, t.go, t.pu, t.rd];
+                  const bgColors = [t.blBg, t.grBg, t.goBg, t.puBg, t.rdBg];
+                  const c = colors[i%colors.length];
+                  const bg = bgColors[i%bgColors.length];
+                  return (
+                    <div key={i} style={{
+                      background:bg, border:`1px solid ${c}22`,
+                      borderRadius:12, padding:"16px 18px",
+                      borderLeft:`4px solid ${c}`,
+                    }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                        <span style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:c }}>{idea.por}</span>
+                        <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"2px 8px", borderRadius:6 }}>
+                          {idea.note?.split("|")[0]?.trim()}
+                        </span>
+                      </div>
+                      <div style={{ fontFamily:FB, fontSize:13, fontWeight:600, color:t.tx, marginBottom:4 }}>{idea.inst}</div>
+                      <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.5 }}>{idea.note}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:16, fontStyle:"italic" }}>
+                {pf.disclaimer}
+              </p>
+            </div>
+          </Card>
         </div>
-      </Card>
+      )}
+
+      {/* ── FONDOS BALANZ ── */}
+      {sub === "fondos" && (
+        <div>
+          <p style={{ fontFamily:FB, fontSize:12, color:t.mu, marginBottom:20, lineHeight:1.6 }}>
+            Los 24 Fondos Comunes de Inversión de Balanz Capital. Hacé click en cualquier fondo para ver su ficha completa en balanz.com.
+          </p>
+
+          {FONDOS_BALANZ.map((cat, ci) => {
+            const catCol = cMap[cat.color] || cMap.blue;
+            return (
+              <div key={ci} style={{ marginBottom:24 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                  <span style={{ fontSize:20 }}>{cat.icon}</span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>{cat.cat}</span>
+                      <Badge c={cat.color==="purple"?"purple":"gray"} sm t={t}>{cat.moneda}</Badge>
+                    </div>
+                    <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>{cat.desc}</div>
+                  </div>
+                </div>
+
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:8 }}>
+                  {cat.fondos.map((f, fi) => (
+                    <a key={fi} href={f.url} target="_blank" rel="noreferrer" style={{ textDecoration:"none", color:"inherit" }}>
+                      <div style={{
+                        background:f.destacado ? catCol.bg : t.srf,
+                        border:`1px solid ${f.destacado ? catCol.ac+"44" : t.brd}`,
+                        borderLeft:`3px solid ${f.destacado ? catCol.ac : catCol.ac+"66"}`,
+                        borderRadius:12, padding:"14px 16px",
+                        transition:"all .18s", cursor:"pointer",
+                        position:"relative",
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=t.sh;e.currentTarget.style.borderColor=catCol.ac;}}
+                      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor=f.destacado?catCol.ac+"44":t.brd;}}>
+
+                        {f.destacado && (
+                          <div style={{ position:"absolute", top:8, right:10, fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em",
+                            color:"#fff", background:catCol.ac, padding:"2px 8px", borderRadius:10, textTransform:"uppercase" }}>
+                            ⭐ DESTACADO
+                          </div>
+                        )}
+
+                        <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:6, paddingRight:f.destacado?80:0 }}>
+                          {f.nombre}
+                        </div>
+
+                        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                          <span style={{ fontFamily:"monospace", fontSize:10, background:catCol.bg, color:catCol.ac, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>
+                            {f.ticker}
+                          </span>
+                          <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{f.tipo}</span>
+                          <span style={{ fontFamily:FB, fontSize:10, color:t.fa, marginLeft:"auto" }}>
+                            Rescate: <strong style={{color:t.tx}}>{f.rescate}</strong>
+                          </span>
+                        </div>
+
+                        {f.note && <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:6 }}>{f.note}</div>}
+
+                        <div style={{ fontFamily:FB, fontSize:10, color:catCol.ac, fontWeight:600, marginTop:8 }}>
+                          Ver ficha en Balanz →
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.5 }}>
+            * Rendimientos pasados no garantizan rendimientos futuros. Consultá valores actualizados con tu asesor. · Balanz Capital S.A.U. · ACDIFCI N°62 ante CNV
+          </p>
+        </div>
+      )}
+
+      {/* ── ETPs BALANZ ── */}
+      {sub === "etps" && (
+        <div>
+          <Card t={t}>
+            <div style={{ padding:"40px 30px", textAlign:"center" }}>
+              <div style={{ fontSize:48, marginBottom:16 }}>📦</div>
+              <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>ETPs Balanz — Próximamente</h3>
+              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>
+                Estamos evaluando la incorporación de los Exchange Traded Products de Balanz al dashboard.
+                Los ETPs permiten replicar índices y activos internacionales con acceso simplificado desde Argentina.
+              </p>
+              <a href="https://balanz.com/inversiones/" target="_blank" rel="noreferrer" style={{
+                display:"inline-block", marginTop:20, padding:"10px 24px", borderRadius:10,
+                background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:13,
+                textDecoration:"none", transition:"opacity .15s",
+              }}
+              onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
+              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                Ver inversiones en Balanz →
+              </a>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
@@ -3369,25 +3620,6 @@ function AIChatWidget({ t, isMobile }) {
 
 /* ════════════════════════════════════════════════════════════════
    APP
-
-const IA_SYSTEM = `Sos ${IA_NAME}, una asistente financiera de The Big Long — el dashboard de finanzas de Máximo Ricciardi, asesor financiero argentino.
-
-Tu personalidad: profesional, directa, amigable y con buen humor financiero. Hablás en español rioplatense. Siempre sabés de qué hablás.
-
-TUS REGLAS (no negociables):
-1. Podés explicar instrumentos financieros, conceptos de mercado, cómo funcionan los bonos, acciones, ETFs, tipos de cambio, etc.
-2. NUNCA recomendás comprar o vender un activo específico. Si te lo piden, decís algo como: "Eso es territorio de Máximo — te conecto con él." y mostrás el link de WhatsApp.
-3. Si alguien dice que es cliente de Máximo, respondés con entusiasmo y les decís que podés avisarle directamente, mostrando el botón de WhatsApp.
-4. Tenés acceso a búsqueda web en tiempo real — úsala para cotizaciones, noticias y datos frescos.
-5. Diferenciá siempre datos concretos de interpretación.
-6. Sé concisa. Máximo 4 párrafos por respuesta.
-7. Al final de cada respuesta que involucre inversiones, agregá: "⚠️ Esto es orientativo, no asesoramiento formal."
-
-El asesoramiento de Máximo es sin costo. Su WhatsApp: +54 11 4050-0087.`;
-
-
-/* ════════════════════════════════════════════════════════════════
-   APP
 ════════════════════════════════════════════════════════════════ */
 export default function App() {
   const [dark, setDark] = useState(false);
@@ -3516,13 +3748,13 @@ export default function App() {
   }, [extra]);
 
   const TABS = [
-    { id:"inicio",          label:"Inicio",           icon:"🏠" },
-    { id:"resumen",         label:"Resumen Diario",   icon:"📋" },
-    { id:"noticias",        label:"Noticias",          icon:"📰" },
-    { id:"mercados",        label:"Mercados",          icon:"💱" },
-    { id:"informes",         label:"Informes",          icon:"📊" },
-    { id:"instrumentos",    label:"Instrumentos",      icon:"🔬" },
-    { id:"recomendaciones", label:"Recomendaciones",  icon:"💼" },
+    { id:"inicio",          label:"Inicio",            icon:"🏠" },
+    { id:"resumen",         label:"Resumen Diario",    icon:"📋" },
+    { id:"noticias",        label:"Noticias",           icon:"📰" },
+    { id:"mercados",        label:"Cotizaciones",       icon:"💱" },
+    { id:"informes",         label:"Research",           icon:"📊" },
+    { id:"instrumentos",    label:"Instrumentos",       icon:"🔬" },
+    { id:"recomendaciones", label:"Inversiones",        icon:"💼" },
   ];
 
   const of  = dolar?.oficial?.venta;
@@ -3563,14 +3795,14 @@ export default function App() {
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
             <div style={{
-              fontFamily:"'IBM Plex Sans',sans-serif",
-              fontSize: isMobile ? 17 : 22,
+              fontFamily:FD,
+              fontSize: isMobile ? 18 : 23,
               fontWeight: 700,
               color: t.tx,
               letterSpacing: "-.02em",
               lineHeight: 1,
             }}>
-              The Big Long
+              The Big <span style={{ color:t.go }}>Long</span>
             </div>
           </div>
 
@@ -3707,68 +3939,43 @@ export default function App() {
       </main>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background:t.ft, padding:"80px 20px 48px" }}>
+      <footer style={{ background:t.ft, padding:"36px 20px 28px" }}>
         <div style={{ maxWidth:1200, margin:"0 auto" }}>
 
-          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 48 : 80, marginBottom:64 }}>
+          <div style={{ display:"flex", alignItems:isMobile?"flex-start":"center", justifyContent:"space-between", flexDirection:isMobile?"column":"row", gap:isMobile?24:40, marginBottom:24 }}>
 
-            {/* Left — Brand */}
-            <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
-              <div>
-                <div style={{ fontFamily:FB, fontSize:isMobile?36:52, fontWeight:700, color:t.ftT, letterSpacing:"-.03em", lineHeight:.95, marginBottom:0 }}>
-                  The
-                </div>
-                <div style={{ fontFamily:FB, fontSize:isMobile?36:52, fontWeight:700, color:t.go, letterSpacing:"-.03em", lineHeight:.95 }}>
-                  Big Long
-                </div>
-              </div>
+            {/* Brand */}
+            <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+              <span style={{ fontFamily:FD, fontSize:isMobile?28:36, fontWeight:700, color:t.ftT, letterSpacing:"-.02em", lineHeight:1 }}>The</span>
+              <span style={{ fontFamily:FD, fontSize:isMobile?28:36, fontWeight:700, color:t.go, letterSpacing:"-.02em", lineHeight:1 }}>Big Long</span>
             </div>
 
-            {/* Right — Contact */}
-            <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between", gap:32 }}>
+            {/* Contact */}
+            <div style={{ display:"flex", gap:24, alignItems:"center", flexWrap:"wrap" }}>
               <div>
-                <div style={{ fontFamily:FB, fontSize:10, fontWeight:500, color:"rgba(255,255,255,.22)", letterSpacing:".2em", textTransform:"uppercase", marginBottom:20 }}>
-                  CONTACTO
-                </div>
-                <div style={{ fontFamily:FB, fontSize:24, fontWeight:600, color:t.ftT, marginBottom:4 }}>
-                  {CONTACT.name}
-                </div>
-                <div style={{ fontFamily:FB, fontSize:13, fontWeight:300, color:"rgba(255,255,255,.35)" }}>
-                  {CONTACT.title}
-                </div>
+                <div style={{ fontFamily:FB, fontSize:15, fontWeight:600, color:t.ftT }}>{CONTACT.name}</div>
+                <div style={{ fontFamily:FB, fontSize:11, fontWeight:300, color:"rgba(255,255,255,.35)" }}>{CONTACT.title}</div>
               </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-                <a href={`tel:${CONTACT.phone}`} style={{
-                  display:"flex", alignItems:"center", gap:14,
-                  fontFamily:FB, fontSize:15, fontWeight:500,
-                  color:t.go, textDecoration:"none", transition:"opacity .15s",
-                }}
-                onMouseEnter={e=>e.currentTarget.style.opacity=".7"}
-                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                  <span style={{ fontSize:16, opacity:.55 }}>📞</span> {CONTACT.phone}
+              <div style={{ display:"flex", gap:16 }}>
+                <a href={`tel:${CONTACT.phone}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none" }}>
+                  📞 {CONTACT.phone}
                 </a>
-                <a href={`mailto:${CONTACT.email}`} style={{
-                  display:"flex", alignItems:"center", gap:14,
-                  fontFamily:FB, fontSize:15, fontWeight:500,
-                  color:t.go, textDecoration:"none", transition:"opacity .15s",
-                }}
-                onMouseEnter={e=>e.currentTarget.style.opacity=".7"}
-                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                  <span style={{ fontSize:16, opacity:.55 }}>✉️</span> {CONTACT.email}
+                <a href={`mailto:${CONTACT.email}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none" }}>
+                  ✉️ {CONTACT.email}
                 </a>
               </div>
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{ height:1, background:"rgba(255,255,255,.06)", marginBottom:28 }} />
+          <div style={{ height:1, background:"rgba(255,255,255,.06)", marginBottom:16 }} />
 
           {/* Bottom row */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
-            <p style={{ fontFamily:FB, fontSize:11, fontWeight:300, color:"rgba(255,255,255,.18)", lineHeight:1.8, maxWidth:560 }}>
-              La información publicada tiene carácter exclusivamente informativo. No constituye asesoramiento de inversión, recomendación de compra o venta de valores, ni oferta pública. Invertir implica riesgos.
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
+            <p style={{ fontFamily:FB, fontSize:10, fontWeight:300, color:"rgba(255,255,255,.18)", lineHeight:1.7, maxWidth:560 }}>
+              Información exclusivamente informativa. No constituye asesoramiento de inversión ni oferta pública. Invertir implica riesgos.
             </p>
-            <span style={{ fontFamily:FB, fontSize:11, fontWeight:400, color:"rgba(255,255,255,.15)", whiteSpace:"nowrap" }}>
+            <span style={{ fontFamily:FB, fontSize:10, fontWeight:400, color:"rgba(255,255,255,.15)", whiteSpace:"nowrap" }}>
               Fundada en marzo 2026
             </span>
           </div>

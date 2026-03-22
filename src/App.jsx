@@ -1394,7 +1394,9 @@ const upColor   = {"MUY ALTO":"green",ALTO:"blue",MEDIO:"gold",BAJO:"gray"};
 /* ════════════════════════════════════════════════════════════════
    EQUITY SCREENER COMPONENT
 ════════════════════════════════════════════════════════════════ */
-const FINNHUB_KEY = "d6uv5a9r01qig5460670d6uv5a9r01qig546067g";
+// Finnhub API key moved to Vercel env var (FINNHUB_KEY) — proxied via /api/quote and /api/candle
+const FINNHUB_PROXY = "/api/quote";
+const FINNHUB_CANDLE_PROXY = "/api/candle";
 
 function EquityScreener({ t }) {
   // ── Filtros & sort ────────────────────────────────────────────
@@ -1425,7 +1427,7 @@ function EquityScreener({ t }) {
       for (let i = 0; i < tickers.length; i++) {
         if (cancelled) return;
         try {
-          const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${tickers[i]}&token=${FINNHUB_KEY}`);
+          const r = await fetch(`${FINNHUB_PROXY}?symbol=${tickers[i]}`);
           const d = await r.json();
           if (d.c && d.c > 0) {
             const entry = { price: d.c, change: d.d, changePct: d.dp };
@@ -1468,7 +1470,7 @@ function EquityScreener({ t }) {
       for (let i = 0; i < tickers.length; i++) {
         if (cancelled) return;
         try {
-          const url = `https://finnhub.io/api/v1/stock/candle?symbol=${tickers[i]}&resolution=W&from=${W52_AGO}&to=${NOW}&token=${FINNHUB_KEY}`;
+          const url = `${FINNHUB_CANDLE_PROXY}?symbol=${tickers[i]}&resolution=W&from=${W52_AGO}&to=${NOW}`;
           const r = await fetch(url);
           const d = await r.json();
           if (d.s === "ok" && d.c?.length > 1) {
@@ -3941,6 +3943,29 @@ function AIChatWidget({ t, isMobile }) {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
+  // ── Daily message limit: 10 messages/day via localStorage ──
+  const DAILY_LIMIT = 10;
+  const getChatUsage = () => {
+    try {
+      const raw = localStorage.getItem("tbl-chat-usage");
+      if (!raw) return { date: "", count: 0 };
+      const parsed = JSON.parse(raw);
+      const today = new Date().toISOString().slice(0, 10);
+      if (parsed.date !== today) return { date: today, count: 0 };
+      return parsed;
+    } catch { return { date: "", count: 0 }; }
+  };
+  const [chatUsage, setChatUsage] = useState(getChatUsage);
+  const msgsLeft = DAILY_LIMIT - chatUsage.count;
+  const isLimited = msgsLeft <= 0;
+
+  const incrementUsage = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const next = { date: today, count: chatUsage.count + 1 };
+    setChatUsage(next);
+    try { localStorage.setItem("tbl-chat-usage", JSON.stringify(next)); } catch {}
+  };
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [msgs, loading]);
 
   const checkPwd = () => {
@@ -3954,6 +3979,14 @@ function AIChatWidget({ t, isMobile }) {
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
+
+    // Check daily limit
+    if (isLimited) {
+      setMsgs(prev => [...prev, { role:"assistant", id:Date.now(),
+        content:"Alcanzaste el límite de **10 consultas diarias**. El límite se renueva mañana. Si necesitás asesoramiento ahora, contactá a Máximo directamente.\n\n[WA_CONSULT]" }]);
+      return;
+    }
+
     setInput("");
     const userMsg = { role:"user", content:text, id:Date.now() };
     const history = [...msgs, userMsg];
@@ -3970,6 +4003,9 @@ function AIChatWidget({ t, isMobile }) {
         content:`Las recomendaciones de compra y venta son terreno de Máximo. Su asesoramiento es **sin costo** — te lo conecto directamente.\n\n[WA_CONSULT]` }]);
       setLoading(false); return;
     }
+
+    // Increment usage counter (only for actual API calls)
+    incrementUsage();
 
     try {
       const apiMsgs = history.map(m => ({ role:m.role, content:m.content }));
@@ -4239,8 +4275,8 @@ function AIChatWidget({ t, isMobile }) {
                   value={input}
                   onChange={e=>setInput(e.target.value)}
                   onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()}
-                  placeholder={`Preguntale a ${IA_NAME}...`}
-                  disabled={loading}
+                  placeholder={isLimited ? "Límite diario alcanzado" : `Preguntale a ${IA_NAME}...`}
+                  disabled={loading || isLimited}
                   style={{
                     flex:1, padding:"11px 15px", borderRadius:12,
                     fontFamily:"'DM Sans',sans-serif", fontSize:13,
@@ -4267,7 +4303,7 @@ function AIChatWidget({ t, isMobile }) {
               {/* Footer */}
               <div style={{ padding:"6px 16px 10px", background:t.srf, textAlign:"center" }}>
                 <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:t.fa, lineHeight:1.5 }}>
-                  Puede cometer errores · No es asesoramiento de inversión ·{" "}
+                  {msgsLeft > 0 ? `${msgsLeft} consultas restantes hoy` : "Límite diario alcanzado"} · No es asesoramiento ·{" "}
                   <a href={WA_LINK("Hola Máximo, te escribo desde The Big Long.")} target="_blank" rel="noreferrer"
                     style={{ color:"#B0782A", textDecoration:"none", fontWeight:600 }}>
                     Hablar con Máximo →
@@ -4368,17 +4404,17 @@ export default function App() {
     const fetchMarket = async () => {
       const updates = {};
       try {
-        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB_KEY}`);
+        const r = await fetch(`${FINNHUB_PROXY}?symbol=SPY`);
         const d = await r.json();
         if (d.c > 0) updates.spy = { price: d.c, changePct: d.dp };
       } catch {}
       try {
-        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=GLD&token=${FINNHUB_KEY}`);
+        const r = await fetch(`${FINNHUB_PROXY}?symbol=GLD`);
         const d = await r.json();
         if (d.c > 0) updates.gold = { price: d.c, changePct: d.dp };
       } catch {}
       try {
-        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=BNO&token=${FINNHUB_KEY}`);
+        const r = await fetch(`${FINNHUB_PROXY}?symbol=BNO`);
         const d = await r.json();
         if (d.c > 0) updates.brent = { price: d.c, changePct: d.dp };
       } catch {}

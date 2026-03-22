@@ -7,7 +7,7 @@ import {
   ExternalLink, Clock, RefreshCw, Eye, Target, Flame, CircleDot,
   Landmark, FileText, Mic, Gavel, Droplets, Info, Activity, Wallet,
   PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp,
-  Menu, Quote
+  Menu
 } from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════
@@ -72,6 +72,7 @@ function useFonts(dark) {
       ::-webkit-scrollbar{width:5px;height:5px}
       ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
       @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes logoSpin{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.15)}100%{transform:rotate(360deg) scale(1)}}
       @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
       @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
       .fade-up{animation:fadeUp .45s ease both}
@@ -3792,6 +3793,8 @@ export default function App() {
   const [tab, setTab] = useState("inicio");
   const [researchSub, setResearchSub] = useState("resumen");
   const [admin, setAdmin] = useState(false);
+  const [adminPrompt, setAdminPrompt] = useState(false);
+  const [adminPin, setAdminPin] = useState("");
   const [logoClicks, setLogoClicks] = useState(0);
   const [extra, setExtra] = useState([]);
   const [dolar, setDolar] = useState(null);
@@ -3898,36 +3901,30 @@ export default function App() {
   }, []);
 
   const handleLogoClick = () => {
-    // Show random quote
-    const QUOTES = [
-      { text:"El precio es lo que pagás. El valor es lo que recibís.", author:"Warren Buffett" },
-      { text:"El mercado está diseñado para transferir dinero del impaciente al paciente.", author:"Warren Buffett" },
-      { text:"Sé temeroso cuando otros son codiciosos, y codicioso cuando otros son temerosos.", author:"Warren Buffett" },
-      { text:"El inversor inteligente es un realista que vende a optimistas y compra de pesimistas.", author:"Benjamin Graham" },
-      { text:"En el corto plazo el mercado es una máquina de votar. En el largo plazo, una balanza.", author:"Benjamin Graham" },
-      { text:"Invertí en lo que conocés.", author:"Peter Lynch" },
-      { text:"Si no estás dispuesto a tener una acción diez años, no la tengas ni diez minutos.", author:"Warren Buffett" },
-      { text:"Los mercados pueden permanecer irracionales más de lo que vos podés permanecer solvente.", author:"John M. Keynes" },
-      { text:"El riesgo viene de no saber lo que estás haciendo.", author:"Warren Buffett" },
-      { text:"Las cuatro palabras más peligrosas son: 'esta vez es diferente'.", author:"Sir John Templeton" },
-      { text:"El tiempo en el mercado vence al timing del mercado.", author:"Ken Fisher" },
-      { text:"La historia no se repite, pero rima.", author:"Mark Twain" },
-      { text:"Comprá cuando haya sangre en las calles, incluso si es tuya.", author:"Baron Rothschild" },
-      { text:"La paciencia es la virtud más importante del inversor.", author:"Charlie Munger" },
-      { text:"Si la gente no estuviera equivocada tan seguido, no seríamos tan ricos.", author:"Charlie Munger" },
-      { text:"Lo más importante es lo que pagás por lo que obtenés.", author:"Howard Marks" },
-      { text:"En la inversión, lo cómodo rara vez es rentable.", author:"Robert Arnott" },
-      { text:"La bolsa es el único negocio donde cuando hay rebajas, los clientes salen corriendo.", author:"Warren Buffett" },
-    ];
-    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    setQuoteToast(q);
-    setTimeout(() => setQuoteToast(null), 4500);
-    setLogoClicks(n => { const next = n+1; if(next>=5){ setAdmin(true); return 0; } return next; });
+    // Spin + color cycle with professional colors
+    setLogoSpin(true);
+    setLogoIdx(i => (i + 1) % 7);
+    setTimeout(() => setLogoSpin(false), 600);
+    // Admin access after 5 rapid clicks
+    setLogoClicks(n => { const next = n+1; if(next>=5){ setAdminPrompt(true); setLogoIdx(0); return 0; } return next; });
   };
 
   // Mobile drawer
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [quoteToast, setQuoteToast] = useState(null);
+  const [logoSpin, setLogoSpin] = useState(false);
+  const [logoIdx, setLogoIdx] = useState(0);
+
+  // Professional, muted color palette for logo cycle
+  const LOGO_COLORS = [
+    null, // default (uses t.tx / t.go)
+    { main:"#1E3A5F", accent:"#B0782A" }, // navy + gold (original vibe)
+    { main:"#2D4A3E", accent:"#8B7355" }, // forest + bronze
+    { main:"#4A3728", accent:"#C4956A" }, // espresso + copper
+    { main:"#3B3B5C", accent:"#9B8EC4" }, // slate purple + lavender
+    { main:"#1A3C40", accent:"#5B9A8B" }, // dark teal + sage
+    { main:"#4A2C2A", accent:"#C17C74" }, // burgundy + rose
+  ];
+  const logoC = LOGO_COLORS[logoIdx];
 
   const handleMobileNav = (id) => { setTab(id); setMobileMenu(false); };
 
@@ -3990,16 +3987,18 @@ export default function App() {
         <div style={{ maxWidth:1200, margin:"0 auto", padding:`0 ${isMobile?12:20}px`, display:"flex", alignItems:"center", justifyContent:"space-between", height:isMobile?50:56, gap:isMobile?8:16 }}>
 
           {/* Logo */}
-          <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer" }} onClick={handleLogoClick}>
+          <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer", userSelect:"none" }} onClick={handleLogoClick}>
             <div style={{
               fontFamily:FD,
               fontSize: isMobile ? 18 : 23,
               fontWeight: 700,
-              color: t.tx,
+              color: logoC ? logoC.main : t.tx,
               letterSpacing: "-.02em",
               lineHeight: 1,
+              transition: "color .4s ease",
+              animation: logoSpin ? "logoSpin .5s cubic-bezier(.4,0,.2,1)" : "none",
             }}>
-              The Big <span style={{ color:t.go }}>Long</span>
+              The Big <span style={{ color: logoC ? logoC.accent : t.go, transition:"color .4s ease" }}>Long</span>
             </div>
           </div>
 
@@ -4147,6 +4146,53 @@ export default function App() {
         </div>
       </div>
 
+      {/* ── ADMIN PIN PROMPT ── */}
+      {adminPrompt && !admin && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:300, background:"rgba(0,0,0,.6)", backdropFilter:"blur(6px)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+        }} onClick={()=>{setAdminPrompt(false);setAdminPin("");}}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:t.srf, borderRadius:20, padding:"32px 36px", width:320,
+            boxShadow:"0 24px 64px rgba(0,0,0,.3)", border:`1px solid ${t.brd}`,
+          }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
+              <Lock size={20} color={t.go} />
+              <span style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx }}>Admin</span>
+            </div>
+            <input
+              type="password" placeholder="PIN de acceso"
+              value={adminPin} onChange={e=>setAdminPin(e.target.value)}
+              onKeyDown={e=>{
+                if(e.key==="Enter"){
+                  if(adminPin==="1243"){setAdmin(true);setAdminPrompt(false);setAdminPin("");}
+                  else{setAdminPin("");}
+                }
+              }}
+              autoFocus
+              style={{
+                width:"100%", padding:"12px 16px", borderRadius:12, fontFamily:FB, fontSize:14,
+                border:`1.5px solid ${t.brd}`, background:t.alt, color:t.tx, outline:"none",
+                letterSpacing:".15em", textAlign:"center",
+              }}
+            />
+            <div style={{ display:"flex", gap:8, marginTop:16 }}>
+              <button onClick={()=>{setAdminPrompt(false);setAdminPin("");}} style={{
+                flex:1, padding:"10px", borderRadius:10, border:`1px solid ${t.brd}`,
+                background:"transparent", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer",
+              }}>Cancelar</button>
+              <button onClick={()=>{
+                if(adminPin==="1243"){setAdmin(true);setAdminPrompt(false);setAdminPin("");}
+                else{setAdminPin("");}
+              }} style={{
+                flex:1, padding:"10px", borderRadius:10, border:"none",
+                background:t.go, fontFamily:FB, fontSize:12, fontWeight:700, color:"#fff", cursor:"pointer",
+              }}>Ingresar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ADMIN PANEL ── */}
       {admin && <AdminPanel onClose={()=>setAdmin(false)} onPublish={publishExtra} t={t} />}
 
@@ -4228,37 +4274,6 @@ export default function App() {
 
         </div>
       </footer>
-
-      {/* ── QUOTE TOAST ── */}
-      {quoteToast && (
-        <div style={{
-          position:"fixed", top:isMobile?60:70, left:"50%", transform:"translateX(-50%)",
-          zIndex:200, width:isMobile?"90%":"auto", maxWidth:480,
-          background:`linear-gradient(135deg, #0d1117 0%, #1a2744 100%)`,
-          borderRadius:16, padding:"18px 24px",
-          boxShadow:"0 12px 40px rgba(0,0,0,.35)",
-          border:"1px solid rgba(176,120,42,.3)",
-          animation:"fadeUp .3s ease",
-        }}>
-          <div style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
-            <div style={{
-              width:36, height:36, borderRadius:10, flexShrink:0,
-              background:"linear-gradient(135deg,#B0782A,#D4A853)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-            }}>
-              <Quote size={18} color="#fff" />
-            </div>
-            <div>
-              <p style={{ fontFamily:FD, fontSize:16, fontWeight:700, color:"#fff", lineHeight:1.45, margin:0, fontStyle:"italic" }}>
-                "{quoteToast.text}"
-              </p>
-              <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", marginTop:8, margin:"8px 0 0" }}>
-                — {quoteToast.author}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── AI CHAT WIDGET ── */}
       <AIChatWidget t={t} isMobile={isMobile} />

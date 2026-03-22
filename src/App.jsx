@@ -904,12 +904,19 @@ function SummaryCard({ s, t }) {
 /* ════════════════════════════════════════════════════════════════
    INFORMES VIEW — Balances · Informes de empresas
 ════════════════════════════════════════════════════════════════ */
-function InformesView({ t }) {
-  const [sub, setSub] = useState("balances");
+function InformesView({ t, initialSub="resumen", onSubChange }) {
+  const [sub, setSub] = useState(initialSub);
+  const [selS, setSelS] = useState(0);
+
+  // Sync with external sub changes (from Inicio → goResearch)
+  useEffect(() => { setSub(initialSub); }, [initialSub]);
+
+  const handleSub = (id) => { setSub(id); onSubChange?.(id); };
 
   const SUBTABS = [
-    { id:"balances",  label:"Balances",  Icon:BarChart3 },
-    { id:"informes",  label:"Informes",  Icon:FileText },
+    { id:"resumen",   label:"Resumen Diario", Icon:ClipboardList },
+    { id:"balances",  label:"Balances",        Icon:BarChart3 },
+    { id:"informes",  label:"Informes",        Icon:FileText },
   ];
 
   return (
@@ -917,7 +924,7 @@ function InformesView({ t }) {
       {/* Sub-tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
         {SUBTABS.map(s => (
-          <button key={s.id} onClick={()=>setSub(s.id)} style={{
+          <button key={s.id} onClick={()=>handleSub(s.id)} style={{
             padding:"9px 22px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:600,
             cursor:"pointer", transition:"all .18s",
             border:`2px solid ${sub===s.id?t.go:t.brd}`,
@@ -927,6 +934,27 @@ function InformesView({ t }) {
           }}>{s.Icon && <s.Icon size={14} />} {s.label}</button>
         ))}
       </div>
+
+      {/* ── RESUMEN DIARIO ── */}
+      {sub === "resumen" && (
+        <div>
+          <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+            {SUMMARIES.map((s,i) => (
+              <button key={s.id} onClick={()=>setSelS(i)} style={{
+                padding:"8px 18px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:500,
+                cursor:"pointer", transition:"all .2s",
+                border:`2px solid ${selS===i?t.tx:t.brd}`,
+                background:selS===i?t.tx:"transparent",
+                color:selS===i?"#fff":t.mu,
+              }}>
+                {i===0 && <CircleDot size={10} style={{marginRight:4,verticalAlign:"middle",color:"#ef4444"}} />}{s.date}
+                {i===0&&<span style={{ marginLeft:6, fontSize:9, background:t.rd, color:"#fff", padding:"1px 5px", borderRadius:8 }}>HOY</span>}
+              </button>
+            ))}
+          </div>
+          <SummaryCard s={SUMMARIES[selS]} t={t} />
+        </div>
+      )}
 
       {/* ── BALANCES ── */}
       {sub === "balances" && (
@@ -2757,7 +2785,7 @@ function NoticiasView({ t }) {
 /* ════════════════════════════════════════════════════════════════
    INICIO VIEW — Minimal, clean, great UX
 ════════════════════════════════════════════════════════════════ */
-function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveMarket={} }) {
+function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, clock, liveMarket={} }) {
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
 
@@ -2798,8 +2826,8 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
     </div>
   );
 
-  const NavCard = ({ Icon:NavIcon, title, desc, tab, accent }) => (
-    <button onClick={()=>setTab(tab)} style={{
+  const NavCard = ({ Icon:NavIcon, title, desc, tab, accent, onClick }) => (
+    <button onClick={onClick || (()=>setTab(tab))} style={{
       flex:1, minWidth:isMobile?"100%":170,
       background:t.srf, border:`1px solid ${t.brd}`,
       borderRadius:16, padding:"22px 22px 20px",
@@ -2857,7 +2885,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
         </p>
 
         <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-          <button onClick={()=>setTab("resumen")} style={{
+          <button onClick={()=>goResearch("resumen")} style={{
             background:t.go, color:"#fff", border:"none", borderRadius:12,
             padding:"13px 28px", fontFamily:FB, fontWeight:700, fontSize:13,
             cursor:"pointer", boxShadow:`0 4px 20px rgba(176,120,42,.4)`, transition:"opacity .15s",
@@ -2934,7 +2962,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
             Acciones argentinas suben a contramano del mundo. Fed sin recortes en todo 2026.
           </p>
         </div>
-        <button onClick={()=>setTab("resumen")} style={{
+        <button onClick={()=>goResearch("resumen")} style={{
           background:t.go, color:"#fff", border:"none", borderRadius:10,
           padding:"10px 22px", fontFamily:FB, fontWeight:700, fontSize:12,
           cursor:"pointer", whiteSpace:"nowrap", flexShrink:0, transition:"opacity .15s",
@@ -2947,14 +2975,14 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
 
       {/* ── NAVEGACIÓN RÁPIDA ────────────────────────────── */}
       <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-        <NavCard Icon={ClipboardList} tab="resumen"    title="Resumen Diario"  desc="Cierre del mercado argentino e internacional, día a día."    accent={t.go} />
+        <NavCard Icon={ClipboardList} tab="informes"    title="Resumen Diario"  desc="Cierre del mercado argentino e internacional, día a día."    accent={t.go} onClick={()=>goResearch("resumen")} />
         <NavCard Icon={DollarSign}    tab="mercados"   title="Cotizaciones"    desc="Cotizaciones en vivo: dólar, riesgo país, BCRA."             accent={t.bl} />
         <NavCard Icon={Search}        tab="instrumentos" title="Instrumentos" desc="Screener de renta fija, soberanos y renta variable."         accent={t.gr} />
         <NavCard Icon={Newspaper}     tab="noticias"   title="Noticias"       desc="Las novedades del mercado que importan."                     accent={t.pu} />
       </div>
 
       {/* ── ANÁLISIS DESTACADO ───────────────────────────── */}
-      <button onClick={()=>setTab("informes")} style={{
+      <button onClick={()=>goResearch("informes")} style={{
         width:"100%", marginTop:12,
         background:"transparent",
         border:`1.5px solid ${t.brd}`,
@@ -3680,7 +3708,7 @@ function AIChatWidget({ t, isMobile }) {
 export default function App() {
   const [dark, setDark] = useState(false);
   const [tab, setTab] = useState("inicio");
-  const [selS, setSelS] = useState(0);
+  const [researchSub, setResearchSub] = useState("resumen");
   const [admin, setAdmin] = useState(false);
   const [logoClicks, setLogoClicks] = useState(0);
   const [extra, setExtra] = useState([]);
@@ -3805,13 +3833,14 @@ export default function App() {
 
   const TABS = [
     { id:"inicio",          label:"Inicio",            Icon:Home },
-    { id:"resumen",         label:"Resumen Diario",    Icon:ClipboardList },
     { id:"noticias",        label:"Noticias",           Icon:Newspaper },
     { id:"mercados",        label:"Cotizaciones",       Icon:DollarSign },
     { id:"informes",         label:"Research",           Icon:BarChart3 },
     { id:"instrumentos",    label:"Instrumentos",       Icon:Search },
     { id:"recomendaciones", label:"Inversiones",        Icon:Briefcase },
   ];
+
+  const goResearch = (sub) => { setResearchSub(sub); setTab("informes"); };
 
   const of  = dolar?.oficial?.venta;
   const bl  = dolar?.blue?.venta;
@@ -3968,29 +3997,10 @@ export default function App() {
         )}
 
         {/* Tab content */}
-        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} isMobile={isMobile} clock={clock} liveMarket={liveMarket} />}
-        {tab==="resumen" && (
-          <div>
-            <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
-              {SUMMARIES.map((s,i) => (
-                <button key={s.id} onClick={()=>setSelS(i)} style={{
-                  padding:"8px 18px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:500,
-                  cursor:"pointer", transition:"all .2s",
-                  border:`2px solid ${selS===i?t.tx:t.brd}`,
-                  background:selS===i?t.tx:"transparent",
-                  color:selS===i?"#fff":t.mu,
-                }}>
-                  {i===0&&"🔴 "}{s.date}
-                  {i===0&&<span style={{ marginLeft:6, fontSize:9, background:t.rd, color:"#fff", padding:"1px 5px", borderRadius:8 }}>HOY</span>}
-                </button>
-              ))}
-            </div>
-            <SummaryCard s={SUMMARIES[selS]} t={t} />
-          </div>
-        )}
+        {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} goResearch={goResearch} isMobile={isMobile} clock={clock} liveMarket={liveMarket} />}
         {tab==="noticias" && <NoticiasView t={t} />}
         {tab==="mercados" && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} liveMarket={liveMarket} t={t} />}
-        {tab==="informes" && <InformesView t={t} />}
+        {tab==="informes" && <InformesView t={t} initialSub={researchSub} onSubChange={setResearchSub} />}
         {tab==="instrumentos" && <InstrumentosView t={t} />}
         {tab==="recomendaciones" && <RecomendacionesView t={t} />}
       </main>

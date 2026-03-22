@@ -1,4 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Home, ClipboardList, Newspaper, DollarSign, BarChart3, Search, Briefcase,
+  TrendingUp, TrendingDown, Banknote, Building2, LineChart, ArrowLeftRight,
+  Shield, Scale, Rocket, Globe, Package, Star, Zap, AlertTriangle,
+  Moon, Sun, MessageCircle, Lock, Send, Phone, Mail, X, ChevronDown,
+  ExternalLink, Clock, RefreshCw, Eye, Target, Flame, CircleDot,
+  Landmark, FileText, Mic, Gavel, Droplets, Info, Activity, Wallet,
+  PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp
+} from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════
    DESIGN TOKENS
@@ -428,41 +437,44 @@ const SOBERANOS = [
 
 const PERFILES = [
   {
-    id:"conservador", label:"Conservador", icon:"🛡️", color:"blue",
-    desc:"Preservación de capital con rendimiento real positivo. Horizonte corto-mediano plazo. Fondos de bajo riesgo y alta liquidez.",
+    id:"conservador", label:"Conservador", Icon:Shield, color:"blue",
+    desc:"Preservación de capital con rendimiento real positivo. Horizonte corto-mediano plazo. Fondos de bajo riesgo, LECAPs y cobertura cambiaria.",
     ideas:[
-      {inst:"Balanz Ahorro Corto Plazo",por:"35%",note:"RF corto plazo · T+1 · Destacado ARS",ticker:"BCAH"},
-      {inst:"Balanz Lecaps (Performance II)",por:"25%",note:"LECAPs · T+0 · Liquidez inmediata",ticker:"PERF2"},
-      {inst:"Balanz Money Market",por:"20%",note:"Money Market · T+0 · Parking",ticker:"BMMKT"},
-      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"20%",note:"RF USD corto · T+1 · Destacado USD",ticker:"ESTRA1"},
+      {inst:"Balanz Ahorro Corto Plazo",por:"30%",note:"Fondo RF corto plazo · T+1 · Destacado ARS",tipo:"fondo"},
+      {inst:"LECAP S29Y6 (Mayo 2026)",por:"25%",note:"Tasa fija · TEM ~2,36% · Vto. mayo",tipo:"lecap"},
+      {inst:"Balanz Money Market",por:"15%",note:"Fondo Money Market · T+0 · Parking",tipo:"fondo"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"15%",note:"Fondo RF USD · T+1 · Destacado USD",tipo:"fondo"},
+      {inst:"Caución Bursátil 7D",por:"15%",note:"~20% TNA · Liquidez semanal",tipo:"caucion"},
     ],
     retorno:"Renta fija ARS + cobertura USD",
     riesgo:"Bajo",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
-    id:"moderado", label:"Moderado", icon:"⚖️", color:"gold",
-    desc:"Equilibrio entre cobertura inflacionaria, tasa y rendimiento en dólares. Horizonte 6-12 meses.",
+    id:"moderado", label:"Moderado", Icon:Scale, color:"gold",
+    desc:"Equilibrio entre cobertura inflacionaria, tasa fija y rendimiento en dólares. Horizonte 6-12 meses.",
     ideas:[
-      {inst:"Balanz Ahorro Corto Plazo",por:"25%",note:"RF corto plazo · T+1 · Core ARS",ticker:"BCAH"},
-      {inst:"Balanz Inflation Linked (Inst.)",por:"20%",note:"CER · T+1 · Cobertura inflación",ticker:"BINFL"},
-      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"20%",note:"RF USD corto · T+1 · Core USD",ticker:"ESTRA1"},
-      {inst:"Balanz Corporativo (Ahorro USD)",por:"20%",note:"ONs USD · T+1 · Crédito corporativo",ticker:"BAUSD"},
-      {inst:"Balanz Renta Mixta (Retorno Total)",por:"15%",note:"Mixto · T+1 · Diversificación",ticker:"BRTOT"},
+      {inst:"LECAP S31L6 (Julio 2026)",por:"20%",note:"Tasa fija · TNA ~27,7% · 4 meses",tipo:"lecap"},
+      {inst:"Balanz Inflation Linked (Inst.)",por:"20%",note:"Fondo CER · Cobertura inflación",tipo:"fondo"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"20%",note:"Fondo RF USD corto · Core USD",tipo:"fondo"},
+      {inst:"GD30D — Global 2030 (Ley NY)",por:"15%",note:"Soberano USD · TIR ~8,2% · Duration 2,1",tipo:"bono"},
+      {inst:"Cedear Oro (GLD)",por:"15%",note:"Cobertura geopolítica · Refugio",tipo:"cedear"},
+      {inst:"Balanz Renta Mixta (Retorno Total)",por:"10%",note:"Fondo mixto · Diversificación táctica",tipo:"fondo"},
     ],
-    retorno:"Mixto ARS/USD · CER + RF USD",
+    retorno:"Mixto ARS/USD · CER + RF USD + Oro",
     riesgo:"Moderado",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
-    id:"dinamico", label:"Dinámico", icon:"🚀", color:"purple",
+    id:"dinamico", label:"Dinámico", Icon:Rocket, color:"purple",
     desc:"Exposición a activos de mayor beta con potencial de compresión de riesgo país. Horizonte 12-18 meses.",
     ideas:[
-      {inst:"Balanz Soberano (Renta Fija USD)",por:"25%",note:"Soberanos USD · T+1 · TIR ~10%",ticker:"BSOBU"},
-      {inst:"Balanz Acciones",por:"25%",note:"Acciones ARG · T+1 · Blue chips locales",ticker:"BACCA"},
-      {inst:"Balanz Renta Variable Global",por:"20%",note:"RV Global · T+2 · Exposición internacional",ticker:"BRVGL"},
-      {inst:"Balanz Latam (Estrategia III)",por:"15%",note:"RF Latam · T+1 · Diversificación regional",ticker:"ESTRA3"},
-      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"15%",note:"RF USD corto · Liquidez táctica",ticker:"ESTRA1"},
+      {inst:"GD38D — Global 2038 (Ley NY)",por:"20%",note:"Soberano USD · TIR ~10% · Duration 4,9",tipo:"bono"},
+      {inst:"Balanz Acciones",por:"20%",note:"Fondo Acciones ARG · Blue chips locales",tipo:"fondo"},
+      {inst:"Cedear VIST (Vista Energy)",por:"15%",note:"Pure-play Vaca Muerta · Score #1 RD",tipo:"cedear"},
+      {inst:"Balanz Renta Variable Global",por:"15%",note:"Fondo RV Global · Exposición internacional",tipo:"fondo"},
+      {inst:"Cedear NVDA / GOOGL",por:"15%",note:"Tech + IA · Mega-cap growth",tipo:"cedear"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"15%",note:"Fondo RF USD · Liquidez táctica",tipo:"fondo"},
     ],
     retorno:"Potencial alfa USD · Alta variabilidad",
     riesgo:"Moderado-Alto",
@@ -480,7 +492,7 @@ const BZ = "https://balanz.com/inversiones/fondos"; // base URL
 const FONDOS_BALANZ = [
   {
     cat: "Transaccionales — Pesos",
-    icon: "💵",
+    Icon: Banknote,
     color: "blue",
     moneda: "ARS",
     desc: "Liquidez inmediata (T+0). Ideal para parking de pesos a tasa diaria.",
@@ -491,7 +503,7 @@ const FONDOS_BALANZ = [
   },
   {
     cat: "Renta Fija — Pesos",
-    icon: "📋",
+    Icon: ClipboardList,
     color: "gold",
     moneda: "ARS",
     desc: "Bonos soberanos, ONs y LECAPs. Horizonte corto-mediano plazo.",
@@ -508,7 +520,7 @@ const FONDOS_BALANZ = [
   },
   {
     cat: "Cobertura — Pesos",
-    icon: "🛡️",
+    Icon: Shield,
     color: "green",
     moneda: "ARS",
     desc: "Cobertura inflación (CER) y tipo de cambio (Dólar Linked).",
@@ -519,7 +531,7 @@ const FONDOS_BALANZ = [
   },
   {
     cat: "Renta Variable — Pesos",
-    icon: "📈",
+    Icon: TrendingUp,
     color: "red",
     moneda: "ARS",
     desc: "Acciones argentinas, CEDEARs y commodities. Mayor volatilidad, mayor potencial.",
@@ -534,7 +546,7 @@ const FONDOS_BALANZ = [
   },
   {
     cat: "Transaccionales — Dólares",
-    icon: "💲",
+    Icon: DollarSign,
     color: "purple",
     moneda: "USD",
     desc: "Liquidez inmediata en dólares (T+0).",
@@ -544,7 +556,7 @@ const FONDOS_BALANZ = [
   },
   {
     cat: "Renta Fija — Dólares",
-    icon: "🌎",
+    Icon: Globe,
     color: "purple",
     moneda: "USD",
     desc: "Soberanos, corporativos y LATAM en USD. Horizonte 3-18 meses.",
@@ -559,7 +571,7 @@ const FONDOS_BALANZ = [
   },
   {
     cat: "Renta Variable — Dólares",
-    icon: "🌐",
+    Icon: Globe,
     color: "red",
     moneda: "USD",
     desc: "Acciones globales. Máximo potencial, máxima volatilidad.",
@@ -896,8 +908,8 @@ function InformesView({ t }) {
   const [sub, setSub] = useState("balances");
 
   const SUBTABS = [
-    { id:"balances",  label:"📊 Balances" },
-    { id:"informes",  label:"🔬 Informes" },
+    { id:"balances",  label:"Balances",  Icon:BarChart3 },
+    { id:"informes",  label:"Informes",  Icon:FileText },
   ];
 
   return (
@@ -911,7 +923,8 @@ function InformesView({ t }) {
             border:`2px solid ${sub===s.id?t.go:t.brd}`,
             background:sub===s.id?t.go+"18":"transparent",
             color:sub===s.id?t.go:t.mu,
-          }}>{s.label}</button>
+            display:"flex", alignItems:"center", gap:6,
+          }}>{s.Icon && <s.Icon size={14} />} {s.label}</button>
         ))}
       </div>
 
@@ -2007,9 +2020,10 @@ function InstrumentosView({ t }) {
   };
 
   const SUBTABS = [
-    {id:"lecap",   label:"📋 Renta Fija ARS"},
-    {id:"soberano",label:"🌎 Soberanos USD"},
-    {id:"rv",      label:"📊 Research Desk — Renta Variable"},
+    {id:"lecap",   label:"Renta Fija ARS",    Icon:ClipboardList},
+    {id:"soberano",label:"Soberanos USD",      Icon:Globe},
+    {id:"corp",    label:"Corporativos (ONs)", Icon:Building2},
+    {id:"rv",      label:"Research Desk",      Icon:LineChart},
   ];
 
   return (
@@ -2020,7 +2034,8 @@ function InstrumentosView({ t }) {
             padding:"8px 18px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:600,
             cursor:"pointer", transition:"all .18s", border:`2px solid ${sub===s.id?t.go:t.brd}`,
             background:sub===s.id?t.go+"18":"transparent", color:sub===s.id?t.go:t.mu,
-          }}>{s.label}</button>
+            display:"flex", alignItems:"center", gap:6,
+          }}><s.Icon size={14} /> {s.label}</button>
         ))}
       </div>
 
@@ -2273,6 +2288,33 @@ function InstrumentosView({ t }) {
           <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5 }}>
             * TIR calculada por bisección sobre flujos reales. No constituye recomendación de inversión.
           </p>
+        </div>
+      )}
+
+      {/* ── BONOS CORPORATIVOS (ONs) — PRÓXIMAMENTE ── */}
+      {sub === "corp" && (
+        <div className="fade-up">
+          <Card t={t}>
+            <div style={{ padding:"40px 30px", textAlign:"center" }}>
+              <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                <Building2 size={28} color={t.go} />
+              </div>
+              <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>Bonos Corporativos (ONs) — Próximamente</h3>
+              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:520, margin:"0 auto 20px" }}>
+                Estamos armando la interfaz de <strong>Obligaciones Negociables</strong> con datos de emisión, TIR, duration, calificación crediticia y comparación entre emisores.
+                Esta sección va a incluir ONs en pesos y en dólares de los principales emisores del mercado argentino.
+              </p>
+              <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap", marginBottom:20 }}>
+                {["ONs Hard Dollar","ONs Dollar Linked","ONs Tasa Fija ARS","ONs Badlar/TAMAR"].map((tag,i) => (
+                  <span key={i} style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.go, background:t.goBg, border:`1px solid ${t.go}33`, padding:"4px 12px", borderRadius:20 }}>{tag}</span>
+                ))}
+              </div>
+              <p style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
+                <AlertTriangle size={12} style={{verticalAlign:"middle",marginRight:4}} />
+                Si necesitás información sobre ONs ahora, contactá a Máximo directamente.
+              </p>
+            </div>
+          </Card>
         </div>
       )}
 
@@ -2756,7 +2798,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
     </div>
   );
 
-  const NavCard = ({ icon, title, desc, tab, accent }) => (
+  const NavCard = ({ Icon:NavIcon, title, desc, tab, accent }) => (
     <button onClick={()=>setTab(tab)} style={{
       flex:1, minWidth:isMobile?"100%":170,
       background:t.srf, border:`1px solid ${t.brd}`,
@@ -2767,7 +2809,9 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
     }}
     onMouseEnter={e=>{e.currentTarget.style.borderColor=accent;e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow=`0 12px 32px rgba(0,0,0,.07)`;}}
     onMouseLeave={e=>{e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
-      <div style={{ fontSize:26, lineHeight:1 }}>{icon}</div>
+      <div style={{ width:44, height:44, borderRadius:12, background:accent+"14", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <NavIcon size={22} color={accent} strokeWidth={1.8} />
+      </div>
       <div>
         <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx, marginBottom:3 }}>{title}</div>
         <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }}>{desc}</div>
@@ -2903,10 +2947,10 @@ function InicioView({ dolar, riesgoPais, t, setTab, isMobile=false, clock, liveM
 
       {/* ── NAVEGACIÓN RÁPIDA ────────────────────────────── */}
       <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-        <NavCard icon="📋" tab="resumen"    title="Resumen Diario"  desc="Cierre del mercado argentino e internacional, día a día."    accent={t.go} />
-        <NavCard icon="📈" tab="mercados"   title="Mercados"        desc="Cotizaciones en vivo: dólar, riesgo país, BCRA."             accent={t.bl} />
-        <NavCard icon="🔍" tab="instrumentos" title="Instrumentos" desc="Screener de renta fija, soberanos y renta variable."         accent={t.gr} />
-        <NavCard icon="🗞️" tab="noticias"   title="Noticias"       desc="Las novedades del mercado que importan."                     accent={t.pu} />
+        <NavCard Icon={ClipboardList} tab="resumen"    title="Resumen Diario"  desc="Cierre del mercado argentino e internacional, día a día."    accent={t.go} />
+        <NavCard Icon={DollarSign}    tab="mercados"   title="Cotizaciones"    desc="Cotizaciones en vivo: dólar, riesgo país, BCRA."             accent={t.bl} />
+        <NavCard Icon={Search}        tab="instrumentos" title="Instrumentos" desc="Screener de renta fija, soberanos y renta variable."         accent={t.gr} />
+        <NavCard Icon={Newspaper}     tab="noticias"   title="Noticias"       desc="Las novedades del mercado que importan."                     accent={t.pu} />
       </div>
 
       {/* ── ANÁLISIS DESTACADO ───────────────────────────── */}
@@ -2959,15 +3003,16 @@ function RecomendacionesView({ t }) {
   const col = cMap[pf.color]||cMap.blue;
 
   const SUBTABS = [
-    { id:"perfiles", label:"🎯 Perfiles de Inversión" },
-    { id:"fondos",   label:"💰 Fondos Balanz" },
-    { id:"etps",     label:"📦 ETPs Balanz" },
+    { id:"perfiles", label:"Perfiles de Inversión", Icon:Target },
+    { id:"fondos",   label:"Fondos Balanz",         Icon:Wallet },
+    { id:"etps",     label:"ETPs Balanz",            Icon:Package },
   ];
 
   return (
     <div className="fade-up">
-      <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:10, padding:"12px 18px", fontFamily:FB, fontSize:12, color:t.rd, marginBottom:20, lineHeight:1.6 }}>
-        ⚠️ <strong>Aviso importante:</strong> El contenido de esta sección es exclusivamente orientativo e informativo. No constituye asesoramiento financiero, recomendación de inversión ni oferta de compra o venta de valores. Consultá siempre con un asesor antes de invertir.
+      <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:10, padding:"12px 18px", fontFamily:FB, fontSize:12, color:t.rd, marginBottom:20, lineHeight:1.6, display:"flex", alignItems:"flex-start", gap:10 }}>
+        <AlertTriangle size={16} style={{flexShrink:0, marginTop:2}} />
+        <span><strong>Aviso importante:</strong> El contenido de esta sección es exclusivamente orientativo e informativo. No constituye asesoramiento financiero, recomendación de inversión ni oferta de compra o venta de valores. Consultá siempre con un asesor antes de invertir.</span>
       </div>
 
       {/* Sub-tabs */}
@@ -2979,7 +3024,8 @@ function RecomendacionesView({ t }) {
             border:`2px solid ${sub===s.id?t.go:t.brd}`,
             background:sub===s.id?t.go+"18":"transparent",
             color:sub===s.id?t.go:t.mu,
-          }}>{s.label}</button>
+            display:"flex", alignItems:"center", gap:6,
+          }}><s.Icon size={14} /> {s.label}</button>
         ))}
       </div>
 
@@ -2998,8 +3044,9 @@ function RecomendacionesView({ t }) {
                   border:`2px solid ${isA?pc.ac:t.brd}`,
                   background:isA?pc.ac:"transparent",
                   color:isA?"#fff":t.mu,
+                  display:"flex", alignItems:"center", gap:7,
                 }}>
-                  {p.icon} {p.label}
+                  <p.Icon size={16} /> {p.label}
                 </button>
               );
             })}
@@ -3010,8 +3057,8 @@ function RecomendacionesView({ t }) {
             <div style={{ padding:"24px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:20 }}>
                 <div>
-                  <h2 style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:t.tx, marginBottom:6 }}>
-                    {pf.icon} Perfil {pf.label}
+                  <h2 style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:t.tx, marginBottom:6, display:"flex", alignItems:"center", gap:10 }}>
+                    <pf.Icon size={26} color={col.ac} /> Perfil {pf.label}
                   </h2>
                   <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.6, maxWidth:520 }}>{pf.desc}</p>
                 </div>
@@ -3035,21 +3082,27 @@ function RecomendacionesView({ t }) {
 
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:10 }}>
                 {pf.ideas.map((idea,i) => {
-                  const colors = [t.bl, t.gr, t.go, t.pu, t.rd];
-                  const bgColors = [t.blBg, t.grBg, t.goBg, t.puBg, t.rdBg];
-                  const c = colors[i%colors.length];
-                  const bg = bgColors[i%bgColors.length];
+                  const tipoMap = {
+                    fondo:  { c:t.bl, bg:t.blBg, Icon:PieChart, label:"FONDO" },
+                    lecap:  { c:t.go, bg:t.goBg, Icon:ClipboardList, label:"LECAP" },
+                    bono:   { c:t.pu, bg:t.puBg, Icon:FileText, label:"BONO" },
+                    cedear: { c:t.gr, bg:t.grBg, Icon:Globe, label:"CEDEAR" },
+                    caucion:{ c:t.mu, bg:t.alt,  Icon:Clock, label:"CAUCIÓN" },
+                  };
+                  const tm = tipoMap[idea.tipo] || tipoMap.fondo;
                   return (
                     <div key={i} style={{
-                      background:bg, border:`1px solid ${c}22`,
+                      background:tm.bg, border:`1px solid ${tm.c}22`,
                       borderRadius:12, padding:"16px 18px",
-                      borderLeft:`4px solid ${c}`,
+                      borderLeft:`4px solid ${tm.c}`,
                     }}>
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                        <span style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:c }}>{idea.por}</span>
-                        <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"2px 8px", borderRadius:6 }}>
-                          {idea.note?.split("|")[0]?.trim()}
-                        </span>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <span style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:tm.c }}>{idea.por}</span>
+                          <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:tm.c, background:tm.c+"18", padding:"2px 7px", borderRadius:10, letterSpacing:".06em", display:"flex", alignItems:"center", gap:3 }}>
+                            <tm.Icon size={10} /> {tm.label}
+                          </span>
+                        </div>
                       </div>
                       <div style={{ fontFamily:FB, fontSize:13, fontWeight:600, color:t.tx, marginBottom:4 }}>{idea.inst}</div>
                       <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.5 }}>{idea.note}</div>
@@ -3078,7 +3131,9 @@ function RecomendacionesView({ t }) {
             return (
               <div key={ci} style={{ marginBottom:24 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                  <span style={{ fontSize:20 }}>{cat.icon}</span>
+                  <div style={{ width:36, height:36, borderRadius:10, background:catCol.bg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <cat.Icon size={18} color={catCol.ac} strokeWidth={2} />
+                  </div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <span style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>{cat.cat}</span>
@@ -3114,10 +3169,9 @@ function RecomendacionesView({ t }) {
                         </div>
 
                         <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                          <span style={{ fontFamily:"monospace", fontSize:10, background:catCol.bg, color:catCol.ac, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>
-                            {f.ticker}
+                          <span style={{ fontFamily:FB, fontSize:10, color:catCol.ac, background:catCol.bg, padding:"2px 8px", borderRadius:5, fontWeight:600 }}>
+                            {f.tipo}
                           </span>
-                          <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{f.tipo}</span>
                           <span style={{ fontFamily:FB, fontSize:10, color:t.fa, marginLeft:"auto" }}>
                             Rescate: <strong style={{color:t.tx}}>{f.rescate}</strong>
                           </span>
@@ -3147,7 +3201,9 @@ function RecomendacionesView({ t }) {
         <div>
           <Card t={t}>
             <div style={{ padding:"40px 30px", textAlign:"center" }}>
-              <div style={{ fontSize:48, marginBottom:16 }}>📦</div>
+              <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                <Package size={28} color={t.go} />
+              </div>
               <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>ETPs Balanz — Próximamente</h3>
               <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>
                 Estamos evaluando la incorporación de los Exchange Traded Products de Balanz al dashboard.
@@ -3350,7 +3406,7 @@ function AIChatWidget({ t, isMobile }) {
         fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, textDecoration:"none",
         boxShadow:"0 2px 10px rgba(34,197,94,.3)",
       }}>
-        <span style={{fontSize:16}}>💬</span> {label}
+        <MessageCircle size={16} /> {label}
       </a>
     );
     if (content.includes("[WA_ALERT]")) return (
@@ -3384,7 +3440,7 @@ function AIChatWidget({ t, isMobile }) {
         }}
         onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)";e.currentTarget.style.boxShadow="0 6px 32px rgba(176,120,42,.5)";}}
         onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,.35)";}}>
-          <span style={{fontSize:22}}>💬</span>
+          <span style={{fontSize:22}}><MessageCircle size={22} color="#D4A853" /></span>
         </button>
       )}
 
@@ -3412,7 +3468,7 @@ function AIChatWidget({ t, isMobile }) {
               background:"linear-gradient(135deg,#B0782A,#D4A853)",
               display:"flex", alignItems:"center", justifyContent:"center",
               fontSize:20, flexShrink:0,
-            }}>💬</div>
+            }}><MessageCircle size={16} color="#fff" /></div>
             <div style={{flex:1}}>
               <div style={{
                 fontFamily:"'Cormorant Garamond',serif",
@@ -3447,7 +3503,7 @@ function AIChatWidget({ t, isMobile }) {
                 background:"linear-gradient(135deg,#B0782A22,#D4A85322)",
                 border:"1px solid rgba(176,120,42,.3)",
                 display:"flex", alignItems:"center", justifyContent:"center", fontSize:28,
-              }}>🔒</div>
+              }}><Lock size={28} color="#D4A853" /></div>
               <div style={{ textAlign:"center" }}>
                 <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700, color:t.tx, marginBottom:6 }}>Acceso privado</div>
                 <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.mu, lineHeight:1.7 }}>
@@ -3498,7 +3554,7 @@ function AIChatWidget({ t, isMobile }) {
                         width:28, height:28, borderRadius:8, flexShrink:0,
                         background:"linear-gradient(135deg,#B0782A,#D4A853)",
                         display:"flex", alignItems:"center", justifyContent:"center", fontSize:14,
-                      }}>💬</div>
+                      }}><MessageCircle size={16} color="#fff" /></div>
                     )}
                     <div style={{
                       maxWidth:"82%",
@@ -3526,7 +3582,7 @@ function AIChatWidget({ t, isMobile }) {
                       width:28, height:28, borderRadius:8, flexShrink:0,
                       background:"linear-gradient(135deg,#B0782A,#D4A853)",
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:14,
-                    }}>💬</div>
+                    }}><MessageCircle size={16} color="#fff" /></div>
                     <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:"18px 18px 18px 4px", padding:"12px 16px" }}>
                       <div style={{ display:"flex", gap:5, alignItems:"center" }}>
                         {[0,1,2].map(i => (
@@ -3748,13 +3804,13 @@ export default function App() {
   }, [extra]);
 
   const TABS = [
-    { id:"inicio",          label:"Inicio",            icon:"🏠" },
-    { id:"resumen",         label:"Resumen Diario",    icon:"📋" },
-    { id:"noticias",        label:"Noticias",           icon:"📰" },
-    { id:"mercados",        label:"Cotizaciones",       icon:"💱" },
-    { id:"informes",         label:"Research",           icon:"📊" },
-    { id:"instrumentos",    label:"Instrumentos",       icon:"🔬" },
-    { id:"recomendaciones", label:"Inversiones",        icon:"💼" },
+    { id:"inicio",          label:"Inicio",            Icon:Home },
+    { id:"resumen",         label:"Resumen Diario",    Icon:ClipboardList },
+    { id:"noticias",        label:"Noticias",           Icon:Newspaper },
+    { id:"mercados",        label:"Cotizaciones",       Icon:DollarSign },
+    { id:"informes",         label:"Research",           Icon:BarChart3 },
+    { id:"instrumentos",    label:"Instrumentos",       Icon:Search },
+    { id:"recomendaciones", label:"Inversiones",        Icon:Briefcase },
   ];
 
   const of  = dolar?.oficial?.venta;
@@ -3816,7 +3872,8 @@ export default function App() {
                   background:tab===tb.id?t.go+"18":"transparent",
                   color:tab===tb.id?t.go:t.mu,
                   cursor:"pointer", transition:"all .2s", whiteSpace:"nowrap",
-                }}>{tb.label}</button>
+                  display:"flex", alignItems:"center", gap:5,
+                }}><tb.Icon size={13} strokeWidth={tab===tb.id?2.5:1.8} /> {tb.label}</button>
               ))}
             </nav>
           )}
@@ -3836,7 +3893,7 @@ export default function App() {
             <button onClick={()=>setDark(d=>!d)} style={{
               background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8,
               padding:isMobile?"6px 10px":"6px 12px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer",
-            }}>{dark?"☀️":"🌙"}</button>
+            }}>{dark?<Sun size={14}/>:<Moon size={14}/>}</button>
           </div>
         </div>
       </header>
@@ -3855,7 +3912,7 @@ export default function App() {
               padding:"4px 6px", border:"none", background:"transparent",
               cursor:"pointer", flex:1,
             }}>
-              <span style={{ fontSize:18, lineHeight:1 }}>{tb.icon}</span>
+              <span style={{ fontSize:18, lineHeight:1 }}><tb.Icon size={18} strokeWidth={tab===tb.id?2.5:1.5} /></span>
               <span style={{
                 fontFamily:FB, fontSize:8, fontWeight:tab===tb.id?700:400,
                 color:tab===tb.id?t.go:t.fa, letterSpacing:".04em",
@@ -3957,11 +4014,11 @@ export default function App() {
                 <div style={{ fontFamily:FB, fontSize:11, fontWeight:300, color:"rgba(255,255,255,.35)" }}>{CONTACT.title}</div>
               </div>
               <div style={{ display:"flex", gap:16 }}>
-                <a href={`tel:${CONTACT.phone}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none" }}>
-                  📞 {CONTACT.phone}
+                <a href={`tel:${CONTACT.phone}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
+                  <Phone size={14} /> {CONTACT.phone}
                 </a>
-                <a href={`mailto:${CONTACT.email}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none" }}>
-                  ✉️ {CONTACT.email}
+                <a href={`mailto:${CONTACT.email}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
+                  <Mail size={14} /> {CONTACT.email}
                 </a>
               </div>
             </div>

@@ -792,8 +792,8 @@ function SummaryCard({ s, t }) {
             </div>
           </div>
           <div style={{ background:"rgba(255,255,255,.08)", borderRadius:10, padding:"8px 16px", border:"1px solid rgba(255,255,255,.12)" }}>
-            <div style={{ fontSize:9, color:"rgba(255,255,255,.5)", fontFamily:FB, letterSpacing:".08em", textTransform:"uppercase", marginBottom:2 }}>ACTUALIZACIÓN</div>
-            <div style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:"rgba(255,255,255,.8)" }}>19 MAR 2026</div>
+            <div style={{ fontSize:9, color:"rgba(255,255,255,.5)", fontFamily:FB, letterSpacing:".08em", textTransform:"uppercase", marginBottom:2 }}>CIERRE</div>
+            <div style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:"rgba(255,255,255,.8)" }}>{s.date}</div>
           </div>
         </div>
         {/* KPIs */}
@@ -950,7 +950,7 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
                 color:selS===i?"#fff":t.mu,
               }}>
                 {i===0 && <CircleDot size={10} style={{marginRight:4,verticalAlign:"middle",color:"#ef4444"}} />}{s.date}
-                {i===0&&<span style={{ marginLeft:6, fontSize:9, background:t.rd, color:"#fff", padding:"1px 5px", borderRadius:8 }}>HOY</span>}
+                {i===0&&<span style={{ marginLeft:6, fontSize:9, background:t.rd, color:"#fff", padding:"1px 5px", borderRadius:8 }}>ÚLTIMO</span>}
               </button>
             ))}
           </div>
@@ -961,6 +961,71 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
       {/* ── BALANCES ── */}
       {sub === "balances" && (
         <div>
+          {/* Earnings Calendar — semana 23-27 MAR 2026 */}
+          <Card t={t} style={{ marginBottom:20, borderLeft:`4px solid ${t.go}` }}>
+            <div style={{ padding:"20px 22px" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:16 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:t.goBg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <ClipboardList size={18} color={t.go} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>Earnings de la semana</div>
+                    <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>23 — 27 MAR 2026 · Empresas que reportan resultados</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:8 }}>
+                {[
+                  { dia:"Lun 23", empresas:[
+                    {t:"BNGO",n:"Bionano Genomics",nota:"Genómica · Pre-market"},
+                  ]},
+                  { dia:"Mar 24", empresas:[
+                    {t:"GME",n:"GameStop",nota:"Retail/Gaming · After hours",destacado:true},
+                    {t:"MKC",n:"McCormick & Co.",nota:"Consumo defensivo · Pre-market"},
+                  ]},
+                  { dia:"Mié 25", empresas:[
+                    {t:"CTAS",n:"Cintas Corp.",nota:"Servicios industriales · Pre-market",destacado:true},
+                    {t:"PAYX",n:"Paychex",nota:"Payroll/HR · Pre-market",destacado:true},
+                    {t:"RJF",n:"Raymond James",nota:"Brokerage · Pre-market"},
+                    {t:"CHWY",n:"Chewy",nota:"E-commerce mascotas · After hours"},
+                    {t:"BYND",n:"Beyond Meat",nota:"Alimentos alt. · After hours"},
+                  ]},
+                  { dia:"Jue 26", empresas:[
+                    {t:"DLTR",n:"Dollar Tree",nota:"Retail discount · Pre-market",destacado:true},
+                    {t:"LULU",n:"Lululemon",nota:"Retail athleisure · After hours",destacado:true},
+                    {t:"BLNK",n:"Blink Charging",nota:"EV charging · After hours"},
+                  ]},
+                  { dia:"Vie 27", empresas:[
+                    {t:"CCL",n:"Carnival Corp.",nota:"Cruceros · Pre-market",destacado:true},
+                  ]},
+                ].map((d,di) => (
+                  <div key={di} style={{ background:t.alt, borderRadius:10, padding:"12px 14px" }}>
+                    <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.go, textTransform:"uppercase", letterSpacing:".08em", marginBottom:8 }}>{d.dia}</div>
+                    {d.empresas.map((e,ei) => (
+                      <div key={ei} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:ei<d.empresas.length-1?6:0 }}>
+                        <span style={{
+                          fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:4,
+                          background:e.destacado?t.go+"22":t.srf, color:e.destacado?t.go:t.tx,
+                          border:`1px solid ${e.destacado?t.go+"44":t.brd}`,
+                        }}>{e.t}</span>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:t.tx, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.n}</div>
+                          <div style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{e.nota}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12 }}>
+                Destacados en dorado = mayor relevancia para el mercado. Fuente: Yahoo Finance / Earnings Whispers.
+              </p>
+            </div>
+          </Card>
+
           <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
             Resultados trimestrales con análisis de ingresos, rentabilidad y guidance. Reportados por Máximo Ricciardi · Balanz Capital.
           </p>
@@ -1152,13 +1217,13 @@ function EarningsCard({ t }) {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
         <Card t={t}>
           <div style={{ padding:"18px 20px" }}>
-            <SectionLabel t={t}>📊 INGRESOS (REVENUE)</SectionLabel>
+            <SectionLabel t={t}>INGRESOS (REVENUE)</SectionLabel>
             {m.resultados.map((r,i) => <StatRow key={i} label={r.label} value={r.valor} badge={r.badge} bc={r.bc} t={t} />)}
           </div>
         </Card>
         <Card t={t}>
           <div style={{ padding:"18px 20px" }}>
-            <SectionLabel t={t}>💰 RENTABILIDAD</SectionLabel>
+            <SectionLabel t={t}>RENTABILIDAD</SectionLabel>
             {m.rentabilidad.map((r,i) => <StatRow key={i} label={r.label} value={r.valor} badge={r.badge} bc={r.bc} t={t} />)}
           </div>
         </Card>
@@ -3468,7 +3533,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
               fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".1em",
               textTransform:"uppercase", color:t.go,
               background:t.goBg, padding:"3px 10px", borderRadius:20,
-            }}>● {clock?.dateShort || "21 MAR"} · Último cierre</span>
+            }}>● {SUMMARIES[0].date} · Último cierre</span>
           </div>
           <h2 style={{ fontFamily:FH, fontSize:isMobile?18:22, fontWeight:700, color:t.tx, lineHeight:1.25, marginBottom:8 }}>
             Bancos +4/+6% · Reservas cubiertas · Wall St. a la baja
@@ -4629,12 +4694,12 @@ export default function App() {
       {admin && <AdminPanel onClose={()=>setAdmin(false)} onPublish={publishExtra} t={t} />}
 
       {/* ── MAIN ── */}
-      <main style={{ maxWidth:1200, margin:"0 auto", padding:isMobile?"16px 12px 80px":"28px 20px 60px" }}>
+      <main style={{ maxWidth:1200, margin:"0 auto", padding:isMobile?"16px 12px 40px":"28px 20px 60px" }}>
 
         {/* Extra published content */}
         {extra.length > 0 && (
           <div style={{ marginBottom:24 }}>
-            <SectionLabel t={t}>⚡ ÚLTIMO · ACTUALIZACIÓN EN VIVO</SectionLabel>
+            <SectionLabel t={t}>ÚLTIMO · ACTUALIZACIÓN EN VIVO</SectionLabel>
             {extra.map(item => (
               <Card key={item.id} t={t} style={{ marginBottom:12, borderLeft:`4px solid ${t.go}` }}>
                 <div style={{ padding:"16px 20px", position:"relative" }}>

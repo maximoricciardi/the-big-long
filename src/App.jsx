@@ -1846,7 +1846,181 @@ function EquityScreener({ t }) {
   );
 }
 /* ════════════════════════════════════════════════════════════════
-   INSTRUMENTOS VIEW — tabs: LECAP | Soberanos | Renta Variable
+   CALCULADORA RENTA FIJA ARS
+   Monto + Instrumento (LECAP live) + Comisión → Resultado
+════════════════════════════════════════════════════════════════ */
+function RentaFijaCalc({ instrumentos, t }) {
+  const [monto, setMonto] = useState(1000000);
+  const [selTicker, setSelTicker] = useState(instrumentos[0]?.ticker || "");
+  const [comision, setComision] = useState(0.5);
+  const [open, setOpen] = useState(false);
+
+  const inst = instrumentos.find(i => i.ticker === selTicker) || instrumentos[0];
+  if (!inst) return null;
+
+  // Cálculos
+  const montoNum = parseFloat(String(monto).replace(/\./g,"").replace(",",".")) || 0;
+  const comPct = parseFloat(String(comision).replace(",",".")) || 0;
+
+  const rendBruto = montoNum * (inst.rendimiento / 100);
+  const costoComision = montoNum * (comPct / 100);
+  const rendNeto = rendBruto - costoComision;
+  const montoFinal = montoNum + rendNeto;
+  const tnaEfectiva = inst.diasRest > 0 ? (rendNeto / montoNum) * (365 / inst.diasRest) * 100 : 0;
+
+  const fmtARS = (v) => `$${Math.round(v).toLocaleString("es-AR")}`;
+
+  return (
+    <Card t={t} style={{ marginBottom:20, borderLeft:`4px solid ${t.go}` }}>
+      <div style={{ padding:"18px 20px" }}>
+        <button onClick={()=>setOpen(o=>!o)} style={{
+          display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%",
+          background:"none", border:"none", cursor:"pointer", padding:0,
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:t.goBg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <PieChart size={18} color={t.go} />
+            </div>
+            <div style={{ textAlign:"left" }}>
+              <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>Calculadora de Rendimiento</div>
+              <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>Simulá tu inversión en LECAPs y BONCAPs con datos en vivo</div>
+            </div>
+          </div>
+          <div style={{ transform:open?"rotate(180deg)":"rotate(0deg)", transition:"transform .2s", color:t.mu }}>
+            <ChevronDown size={20} />
+          </div>
+        </button>
+
+        {open && (
+          <div style={{ marginTop:18, borderTop:`1px solid ${t.brd}`, paddingTop:18 }}>
+            {/* Inputs */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:12, marginBottom:18 }}>
+
+              {/* Monto */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>
+                  Monto a invertir (ARS)
+                </label>
+                <div style={{ position:"relative" }}>
+                  <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontFamily:FB, fontSize:13, color:t.mu }}>$</span>
+                  <input
+                    type="text"
+                    value={monto.toLocaleString("es-AR")}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/\./g,"").replace(/[^0-9]/g,"");
+                      setMonto(parseInt(raw) || 0);
+                    }}
+                    style={{
+                      width:"100%", padding:"10px 12px 10px 24px", borderRadius:10,
+                      fontFamily:FB, fontSize:14, fontWeight:600, border:`1.5px solid ${t.brd}`,
+                      background:t.srf, color:t.tx, outline:"none",
+                    }}
+                    onFocus={e=>e.target.style.borderColor=t.go}
+                    onBlur={e=>e.target.style.borderColor=t.brd}
+                  />
+                </div>
+              </div>
+
+              {/* Instrumento */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>
+                  Instrumento
+                </label>
+                <select
+                  value={selTicker}
+                  onChange={e=>setSelTicker(e.target.value)}
+                  style={{
+                    width:"100%", padding:"10px 12px", borderRadius:10,
+                    fontFamily:FB, fontSize:13, border:`1.5px solid ${t.brd}`,
+                    background:t.srf, color:t.tx, outline:"none", cursor:"pointer",
+                  }}
+                  onFocus={e=>e.target.style.borderColor=t.go}
+                  onBlur={e=>e.target.style.borderColor=t.brd}
+                >
+                  {instrumentos.map(i => (
+                    <option key={i.ticker} value={i.ticker}>
+                      {i.ticker} — Vto. {i.vto} — TNA {i.tna.toFixed(2)}% — {i.diasRest}d
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Comisión */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>
+                  Comisión (%)
+                </label>
+                <div style={{ position:"relative" }}>
+                  <input
+                    type="text"
+                    value={comision}
+                    onChange={e=>setComision(e.target.value)}
+                    style={{
+                      width:"100%", padding:"10px 12px", borderRadius:10,
+                      fontFamily:FB, fontSize:14, fontWeight:600, border:`1.5px solid ${t.brd}`,
+                      background:t.srf, color:t.tx, outline:"none",
+                    }}
+                    onFocus={e=>e.target.style.borderColor=t.go}
+                    onBlur={e=>e.target.style.borderColor=t.brd}
+                  />
+                  <span style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontFamily:FB, fontSize:13, color:t.mu }}>%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Instrument details chip */}
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+              {[
+                { label:"Ticker", value:inst.ticker, color:t.go },
+                { label:"TNA", value:`${inst.tna.toFixed(2)}%`, color:t.go },
+                { label:"TEM", value:`${inst.tem.toFixed(2)}%`, color:t.bl },
+                { label:"Rendim.", value:`${inst.rendimiento.toFixed(2)}%`, color:t.gr },
+                { label:"Días rest.", value:`${inst.diasRest}d`, color:inst.diasRest<=30?t.rd:inst.diasRest<=90?t.go:t.mu },
+                { label:"Precio teórico", value:`$${inst.pLive.toFixed(2)}`, color:t.tx },
+              ].map((c,i) => (
+                <div key={i} style={{ background:t.alt, borderRadius:8, padding:"5px 12px", fontFamily:FB }}>
+                  <span style={{ fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".06em" }}>{c.label}: </span>
+                  <span style={{ fontSize:12, fontWeight:700, color:c.color }}>{c.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Results */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10 }}>
+              <div style={{ background:t.goBg, border:`1px solid ${t.go}22`, borderRadius:12, padding:"14px 16px" }}>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.go, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>RENDIMIENTO BRUTO</div>
+                <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:t.go, lineHeight:1 }}>{fmtARS(rendBruto)}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>{inst.rendimiento.toFixed(2)}% en {inst.diasRest} días</div>
+              </div>
+              <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:12, padding:"14px 16px" }}>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.rd, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>COMISIÓN</div>
+                <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:t.rd, lineHeight:1 }}>-{fmtARS(costoComision)}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>{comPct}% sobre capital</div>
+              </div>
+              <div style={{ background:t.grBg, border:`1px solid ${t.gr}22`, borderRadius:12, padding:"14px 16px" }}>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.gr, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>RENDIMIENTO NETO</div>
+                <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:rendNeto>=0?t.gr:t.rd, lineHeight:1 }}>{fmtARS(rendNeto)}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>TNA neta: {tnaEfectiva.toFixed(2)}%</div>
+              </div>
+              <div style={{ background:t.blBg, border:`1px solid ${t.bl}22`, borderRadius:12, padding:"14px 16px" }}>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.bl, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>MONTO FINAL</div>
+                <div style={{ fontFamily:FH, fontSize:24, fontWeight:700, color:t.bl, lineHeight:1 }}>{fmtARS(montoFinal)}</div>
+                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>Al vencimiento ({inst.vto})</div>
+              </div>
+            </div>
+
+            <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12 }}>
+              * Cálculo estimativo basado en precio teórico. No incluye spread bid/ask ni impuestos. No constituye asesoramiento.
+            </p>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INSTRUMENTOS VIEW — tabs: LECAP | Soberanos | Corp | PF | RV
 ════════════════════════════════════════════════════════════════ */
 /* ── Calcula YTM via bisección numérica (Newton aproximado) ── */
 function calcBondMetrics(s, livePrice) {
@@ -2079,6 +2253,18 @@ function InstrumentosView({ t }) {
               Precio teórico = precio base 19-MAR capitalizado a TEM diaria. No incluye spread bid/ask.
             </span>
           </div>
+
+          {/* ── CALCULADORA RENTA FIJA ── */}
+          {(() => {
+            // Build instrument list with live metrics
+            const instrumentos = LECAP.flatMap(g => g.rows.map(r => {
+              const m = calcLECAPMetrics(r, g);
+              if (!m || m.diasRest <= 0) return null;
+              return { ticker: r.t, vto: g.vto, mes: g.mes, ...m };
+            })).filter(Boolean);
+
+            return <RentaFijaCalc instrumentos={instrumentos} t={t} />;
+          })()}
 
           {/* LECAP / BONCAP */}
           <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>

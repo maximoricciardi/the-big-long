@@ -468,7 +468,7 @@ const PERFILES = [
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
-    id:"dinamico", label:"Dinámico", Icon:Rocket, color:"purple",
+    id:"agresivo", label:"Agresivo", Icon:Rocket, color:"purple",
     desc:"Exposición a activos de mayor beta con potencial de compresión de riesgo país. Horizonte 12-18 meses.",
     ideas:[
       {inst:"GD38D — Global 2038 (Ley NY)",por:"20%",note:"Soberano USD · TIR ~10% · Duration 4,9",tipo:"bono"},
@@ -2295,6 +2295,8 @@ function InstrumentosView({ t }) {
     {id:"soberano",label:"Soberanos USD",      Icon:Globe},
     {id:"corp",    label:"Corporativos (ONs)", Icon:Building2},
     {id:"pf",      label:"Plazos Fijos",       Icon:Landmark},
+    {id:"fondos",  label:"Fondos Balanz",      Icon:Wallet},
+    {id:"etps",    label:"ETPs Balanz",        Icon:Package},
     {id:"rv",      label:"Research Desk",      Icon:LineChart},
   ];
 
@@ -2600,6 +2602,97 @@ function InstrumentosView({ t }) {
                 <AlertTriangle size={12} style={{verticalAlign:"middle",marginRight:4}} />
                 Si necesitás información sobre ONs ahora, contactá a Máximo directamente.
               </p>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── FONDOS BALANZ ── */}
+      {sub === "fondos" && (
+        <div className="fade-up">
+          <p style={{ fontFamily:FB, fontSize:12, color:t.mu, marginBottom:20, lineHeight:1.6 }}>
+            Los 24 Fondos Comunes de Inversión de Balanz Capital. Hacé click en cualquier fondo para ver su ficha completa en balanz.com.
+          </p>
+          {(() => {
+            const cMapF = {blue:{ac:t.bl,bg:t.blBg},gold:{ac:t.go,bg:t.goBg},purple:{ac:t.pu,bg:t.puBg},green:{ac:t.gr,bg:t.grBg},red:{ac:t.rd,bg:t.rdBg}};
+            return FONDOS_BALANZ.map((cat, ci) => {
+              const catCol = cMapF[cat.color] || cMapF.blue;
+              return (
+                <div key={ci} style={{ marginBottom:24 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                    <div style={{ width:36, height:36, borderRadius:10, background:catCol.bg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <cat.Icon size={18} color={catCol.ac} strokeWidth={2} />
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <span style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>{cat.cat}</span>
+                        <Badge c={cat.color==="purple"?"purple":"gray"} sm t={t}>{cat.moneda}</Badge>
+                      </div>
+                      <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>{cat.desc}</div>
+                    </div>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:8 }}>
+                    {cat.fondos.map((f, fi) => (
+                      <a key={fi} href={f.url} target="_blank" rel="noreferrer" style={{ textDecoration:"none", color:"inherit" }}>
+                        <div style={{
+                          background:f.destacado ? catCol.bg : t.srf,
+                          border:`1px solid ${f.destacado ? catCol.ac+"44" : t.brd}`,
+                          borderLeft:`3px solid ${f.destacado ? catCol.ac : catCol.ac+"66"}`,
+                          borderRadius:12, padding:"14px 16px", transition:"all .18s", cursor:"pointer", position:"relative",
+                        }}
+                        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=t.sh;}}
+                        onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+                          {f.destacado && (
+                            <div style={{ position:"absolute", top:8, right:10, fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em",
+                              color:"#fff", background:catCol.ac, padding:"2px 8px", borderRadius:10, textTransform:"uppercase", display:"flex", alignItems:"center", gap:3 }}>
+                              <Star size={9} /> DESTACADO
+                            </div>
+                          )}
+                          <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:6, paddingRight:f.destacado?80:0 }}>{f.nombre}</div>
+                          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                            <span style={{ fontFamily:FB, fontSize:10, color:catCol.ac, background:catCol.bg, padding:"2px 8px", borderRadius:5, fontWeight:600 }}>{f.tipo}</span>
+                            <span style={{ fontFamily:FB, fontSize:10, color:t.fa, marginLeft:"auto" }}>Rescate: <strong style={{color:t.tx}}>{f.rescate}</strong></span>
+                          </div>
+                          {f.note && <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:6 }}>{f.note}</div>}
+                          <div style={{ fontFamily:FB, fontSize:10, color:catCol.ac, fontWeight:600, marginTop:8, display:"flex", alignItems:"center", gap:4 }}>
+                            <ExternalLink size={10} /> Ver ficha en Balanz
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            });
+          })()}
+          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.5 }}>
+            * Rendimientos pasados no garantizan rendimientos futuros. Consultá valores actualizados con tu asesor. · Balanz Capital S.A.U. · ACDIFCI N°62 ante CNV
+          </p>
+        </div>
+      )}
+
+      {/* ── ETPs BALANZ — PRÓXIMAMENTE ── */}
+      {sub === "etps" && (
+        <div className="fade-up">
+          <Card t={t}>
+            <div style={{ padding:"40px 30px", textAlign:"center" }}>
+              <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                <Package size={28} color={t.go} />
+              </div>
+              <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>ETPs Balanz — Próximamente</h3>
+              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>
+                Estamos evaluando la incorporación de los Exchange Traded Products de Balanz al dashboard.
+                Los ETPs permiten replicar índices y activos internacionales con acceso simplificado desde Argentina.
+              </p>
+              <a href="https://balanz.com/inversiones/" target="_blank" rel="noreferrer" style={{
+                display:"inline-block", marginTop:20, padding:"10px 24px", borderRadius:10,
+                background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:13,
+                textDecoration:"none", transition:"opacity .15s",
+              }}
+              onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
+              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                Ver inversiones en Balanz →
+              </a>
             </div>
           </Card>
         </div>
@@ -3602,239 +3695,146 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
 }
 
 /* ════════════════════════════════════════════════════════════════
-   RECOMENDACIONES VIEW
+   RECOMENDACIONES VIEW — Password protected
 ════════════════════════════════════════════════════════════════ */
+const RECO_PWD = "1243";
+
 function RecomendacionesView({ t }) {
-  const [sub, setSub] = useState("perfiles");
+  const [auth, setAuth] = useState(false);
+  const [pwd, setPwd] = useState("");
+  const [pwdErr, setPwdErr] = useState(false);
   const [active, setActive] = useState("conservador");
-  const [expandedFondo, setExpandedFondo] = useState(null);
   const pf = PERFILES.find(p=>p.id===active);
   const cMap = {blue:{ac:t.bl,bg:t.blBg},gold:{ac:t.go,bg:t.goBg},purple:{ac:t.pu,bg:t.puBg},green:{ac:t.gr,bg:t.grBg},red:{ac:t.rd,bg:t.rdBg}};
   const col = cMap[pf.color]||cMap.blue;
 
-  const SUBTABS = [
-    { id:"perfiles", label:"Perfiles de Inversión", Icon:Target },
-    { id:"fondos",   label:"Fondos Balanz",         Icon:Wallet },
-    { id:"etps",     label:"ETPs Balanz",            Icon:Package },
-  ];
+  const checkPwd = () => {
+    if (pwd === RECO_PWD) { setAuth(true); setPwdErr(false); }
+    else { setPwdErr(true); setPwd(""); }
+  };
+
+  if (!auth) {
+    return (
+      <div className="fade-up" style={{ maxWidth:400, margin:"60px auto", textAlign:"center" }}>
+        <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+          <Lock size={28} color={t.go} />
+        </div>
+        <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>Recomendaciones</h3>
+        <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, marginBottom:24 }}>
+          Esta sección es de acceso exclusivo para clientes. Ingresá la contraseña para ver las recomendaciones de cartera.
+        </p>
+        <input
+          type="password" placeholder="Contraseña"
+          value={pwd} onChange={e=>{setPwd(e.target.value);setPwdErr(false);}}
+          onKeyDown={e=>e.key==="Enter"&&checkPwd()}
+          autoFocus
+          style={{
+            width:"100%", padding:"12px 16px", borderRadius:12, fontFamily:FB, fontSize:14,
+            border:`1.5px solid ${pwdErr?t.rd:t.brd}`, background:t.srf, color:t.tx, outline:"none",
+            letterSpacing:".1em", textAlign:"center", marginBottom:12,
+          }}
+        />
+        {pwdErr && <p style={{ fontFamily:FB, fontSize:11, color:t.rd, marginBottom:8 }}>Contraseña incorrecta.</p>}
+        <button onClick={checkPwd} style={{
+          width:"100%", padding:"12px", borderRadius:12, border:"none",
+          background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:14, cursor:"pointer",
+        }}>Ingresar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="fade-up">
       <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:10, padding:"12px 18px", fontFamily:FB, fontSize:12, color:t.rd, marginBottom:20, lineHeight:1.6, display:"flex", alignItems:"flex-start", gap:10 }}>
         <AlertTriangle size={16} style={{flexShrink:0, marginTop:2}} />
-        <span><strong>Aviso importante:</strong> El contenido de esta sección es exclusivamente orientativo e informativo. No constituye asesoramiento financiero, recomendación de inversión ni oferta de compra o venta de valores. Consultá siempre con un asesor antes de invertir.</span>
+        <span><strong>Aviso importante:</strong> Contenido orientativo e informativo. No constituye asesoramiento financiero ni oferta de compra o venta. Consultá siempre con un asesor.</span>
       </div>
 
-      {/* Sub-tabs */}
-      <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
-        {SUBTABS.map(s => (
-          <button key={s.id} onClick={()=>setSub(s.id)} style={{
-            padding:"9px 22px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:600,
-            cursor:"pointer", transition:"all .18s",
-            border:`2px solid ${sub===s.id?t.go:t.brd}`,
-            background:sub===s.id?t.go+"18":"transparent",
-            color:sub===s.id?t.go:t.mu,
-            display:"flex", alignItems:"center", gap:6,
-          }}><s.Icon size={14} /> {s.label}</button>
-        ))}
+      {/* Profile selector */}
+      <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
+        {PERFILES.map(p => {
+          const pc = cMap[p.color]||cMap.blue;
+          const isA = active===p.id;
+          return (
+            <button key={p.id} onClick={()=>setActive(p.id)} style={{
+              padding:"10px 22px", borderRadius:10, fontFamily:FB, fontSize:13, fontWeight:600,
+              cursor:"pointer", transition:"all .2s",
+              border:`2px solid ${isA?pc.ac:t.brd}`,
+              background:isA?pc.ac:"transparent",
+              color:isA?"#fff":t.mu,
+              display:"flex", alignItems:"center", gap:7,
+            }}>
+              <p.Icon size={16} /> {p.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── PERFILES ── */}
-      {sub === "perfiles" && (
-        <div>
-          {/* Profile selector */}
-          <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
-            {PERFILES.map(p => {
-              const pc = cMap[p.color]||cMap.blue;
-              const isA = active===p.id;
+      {/* Profile detail */}
+      <Card t={t}>
+        <div style={{ padding:"24px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:20 }}>
+            <div>
+              <h2 style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:t.tx, marginBottom:6, display:"flex", alignItems:"center", gap:10 }}>
+                <pf.Icon size={26} color={col.ac} /> Perfil {pf.label}
+              </h2>
+              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.6, maxWidth:520 }}>{pf.desc}</p>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:4 }}>Retorno orientativo</div>
+              <Badge c={pf.color==="blue"?"blue":pf.color==="gold"?"gold":"purple"} t={t}>{pf.retorno}</Badge>
+              <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:8 }}>Nivel de riesgo: <strong>{pf.riesgo}</strong></div>
+            </div>
+          </div>
+
+          <SectionLabel t={t}>COMPOSICIÓN ORIENTATIVA DE CARTERA</SectionLabel>
+
+          <div style={{ display:"flex", height:8, borderRadius:6, overflow:"hidden", marginBottom:16 }}>
+            {pf.ideas.map((idea,i) => {
+              const pctNum = parseInt(idea.por);
+              const colors = [t.bl, t.gr, t.go, t.pu, t.rd, t.mu];
+              return <div key={i} style={{ width:`${pctNum}%`, background:colors[i%colors.length], transition:"width .4s" }} />;
+            })}
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:10 }}>
+            {pf.ideas.map((idea,i) => {
+              const tipoMap = {
+                fondo:  { c:t.bl, bg:t.blBg, Icon:PieChart, label:"FONDO" },
+                lecap:  { c:t.go, bg:t.goBg, Icon:ClipboardList, label:"LECAP" },
+                bono:   { c:t.pu, bg:t.puBg, Icon:FileText, label:"BONO" },
+                cedear: { c:t.gr, bg:t.grBg, Icon:Globe, label:"CEDEAR" },
+                caucion:{ c:t.mu, bg:t.alt,  Icon:Clock, label:"CAUCIÓN" },
+              };
+              const tm = tipoMap[idea.tipo] || tipoMap.fondo;
               return (
-                <button key={p.id} onClick={()=>setActive(p.id)} style={{
-                  padding:"10px 22px", borderRadius:10, fontFamily:FB, fontSize:13, fontWeight:600,
-                  cursor:"pointer", transition:"all .2s",
-                  border:`2px solid ${isA?pc.ac:t.brd}`,
-                  background:isA?pc.ac:"transparent",
-                  color:isA?"#fff":t.mu,
-                  display:"flex", alignItems:"center", gap:7,
+                <div key={i} style={{
+                  background:tm.bg, border:`1px solid ${tm.c}22`,
+                  borderRadius:12, padding:"16px 18px",
+                  borderLeft:`4px solid ${tm.c}`,
                 }}>
-                  <p.Icon size={16} /> {p.label}
-                </button>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                    <span style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:tm.c }}>{idea.por}</span>
+                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:tm.c, background:tm.c+"18", padding:"2px 7px", borderRadius:10, letterSpacing:".06em", display:"flex", alignItems:"center", gap:3 }}>
+                      <tm.Icon size={10} /> {tm.label}
+                    </span>
+                  </div>
+                  <div style={{ fontFamily:FB, fontSize:13, fontWeight:600, color:t.tx, marginBottom:4 }}>{idea.inst}</div>
+                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.5 }}>{idea.note}</div>
+                </div>
               );
             })}
           </div>
 
-          {/* Profile detail */}
-          <Card t={t}>
-            <div style={{ padding:"24px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:20 }}>
-                <div>
-                  <h2 style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:t.tx, marginBottom:6, display:"flex", alignItems:"center", gap:10 }}>
-                    <pf.Icon size={26} color={col.ac} /> Perfil {pf.label}
-                  </h2>
-                  <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.6, maxWidth:520 }}>{pf.desc}</p>
-                </div>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:4 }}>Retorno orientativo</div>
-                  <Badge c={pf.color==="blue"?"blue":pf.color==="gold"?"gold":"purple"} t={t}>{pf.retorno}</Badge>
-                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:8 }}>Nivel de riesgo: <strong>{pf.riesgo}</strong></div>
-                </div>
-              </div>
-
-              <SectionLabel t={t}>COMPOSICIÓN ORIENTATIVA DE CARTERA</SectionLabel>
-
-              {/* Visual bar */}
-              <div style={{ display:"flex", height:8, borderRadius:6, overflow:"hidden", marginBottom:16 }}>
-                {pf.ideas.map((idea,i) => {
-                  const pctNum = parseInt(idea.por);
-                  const colors = [t.bl, t.gr, t.go, t.pu, t.rd];
-                  return <div key={i} style={{ width:`${pctNum}%`, background:colors[i%colors.length], transition:"width .4s" }} />;
-                })}
-              </div>
-
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:10 }}>
-                {pf.ideas.map((idea,i) => {
-                  const tipoMap = {
-                    fondo:  { c:t.bl, bg:t.blBg, Icon:PieChart, label:"FONDO" },
-                    lecap:  { c:t.go, bg:t.goBg, Icon:ClipboardList, label:"LECAP" },
-                    bono:   { c:t.pu, bg:t.puBg, Icon:FileText, label:"BONO" },
-                    cedear: { c:t.gr, bg:t.grBg, Icon:Globe, label:"CEDEAR" },
-                    caucion:{ c:t.mu, bg:t.alt,  Icon:Clock, label:"CAUCIÓN" },
-                  };
-                  const tm = tipoMap[idea.tipo] || tipoMap.fondo;
-                  return (
-                    <div key={i} style={{
-                      background:tm.bg, border:`1px solid ${tm.c}22`,
-                      borderRadius:12, padding:"16px 18px",
-                      borderLeft:`4px solid ${tm.c}`,
-                    }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                          <span style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:tm.c }}>{idea.por}</span>
-                          <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:tm.c, background:tm.c+"18", padding:"2px 7px", borderRadius:10, letterSpacing:".06em", display:"flex", alignItems:"center", gap:3 }}>
-                            <tm.Icon size={10} /> {tm.label}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ fontFamily:FB, fontSize:13, fontWeight:600, color:t.tx, marginBottom:4 }}>{idea.inst}</div>
-                      <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.5 }}>{idea.note}</div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:16, fontStyle:"italic" }}>
-                {pf.disclaimer}
-              </p>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ── FONDOS BALANZ ── */}
-      {sub === "fondos" && (
-        <div>
-          <p style={{ fontFamily:FB, fontSize:12, color:t.mu, marginBottom:20, lineHeight:1.6 }}>
-            Los 24 Fondos Comunes de Inversión de Balanz Capital. Hacé click en cualquier fondo para ver su ficha completa en balanz.com.
-          </p>
-
-          {FONDOS_BALANZ.map((cat, ci) => {
-            const catCol = cMap[cat.color] || cMap.blue;
-            return (
-              <div key={ci} style={{ marginBottom:24 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                  <div style={{ width:36, height:36, borderRadius:10, background:catCol.bg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <cat.Icon size={18} color={catCol.ac} strokeWidth={2} />
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <span style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>{cat.cat}</span>
-                      <Badge c={cat.color==="purple"?"purple":"gray"} sm t={t}>{cat.moneda}</Badge>
-                    </div>
-                    <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>{cat.desc}</div>
-                  </div>
-                </div>
-
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:8 }}>
-                  {cat.fondos.map((f, fi) => (
-                    <a key={fi} href={f.url} target="_blank" rel="noreferrer" style={{ textDecoration:"none", color:"inherit" }}>
-                      <div style={{
-                        background:f.destacado ? catCol.bg : t.srf,
-                        border:`1px solid ${f.destacado ? catCol.ac+"44" : t.brd}`,
-                        borderLeft:`3px solid ${f.destacado ? catCol.ac : catCol.ac+"66"}`,
-                        borderRadius:12, padding:"14px 16px",
-                        transition:"all .18s", cursor:"pointer",
-                        position:"relative",
-                      }}
-                      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=t.sh;e.currentTarget.style.borderColor=catCol.ac;}}
-                      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor=f.destacado?catCol.ac+"44":t.brd;}}>
-
-                        {f.destacado && (
-                          <div style={{ position:"absolute", top:8, right:10, fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em",
-                            color:"#fff", background:catCol.ac, padding:"2px 8px", borderRadius:10, textTransform:"uppercase" }}>
-                            ⭐ DESTACADO
-                          </div>
-                        )}
-
-                        <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:6, paddingRight:f.destacado?80:0 }}>
-                          {f.nombre}
-                        </div>
-
-                        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                          <span style={{ fontFamily:FB, fontSize:10, color:catCol.ac, background:catCol.bg, padding:"2px 8px", borderRadius:5, fontWeight:600 }}>
-                            {f.tipo}
-                          </span>
-                          <span style={{ fontFamily:FB, fontSize:10, color:t.fa, marginLeft:"auto" }}>
-                            Rescate: <strong style={{color:t.tx}}>{f.rescate}</strong>
-                          </span>
-                        </div>
-
-                        {f.note && <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:6 }}>{f.note}</div>}
-
-                        <div style={{ fontFamily:FB, fontSize:10, color:catCol.ac, fontWeight:600, marginTop:8 }}>
-                          Ver ficha en Balanz →
-                        </div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.5 }}>
-            * Rendimientos pasados no garantizan rendimientos futuros. Consultá valores actualizados con tu asesor. · Balanz Capital S.A.U. · ACDIFCI N°62 ante CNV
+          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:16, fontStyle:"italic" }}>
+            {pf.disclaimer}
           </p>
         </div>
-      )}
-
-      {/* ── ETPs BALANZ ── */}
-      {sub === "etps" && (
-        <div>
-          <Card t={t}>
-            <div style={{ padding:"40px 30px", textAlign:"center" }}>
-              <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                <Package size={28} color={t.go} />
-              </div>
-              <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>ETPs Balanz — Próximamente</h3>
-              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>
-                Estamos evaluando la incorporación de los Exchange Traded Products de Balanz al dashboard.
-                Los ETPs permiten replicar índices y activos internacionales con acceso simplificado desde Argentina.
-              </p>
-              <a href="https://balanz.com/inversiones/" target="_blank" rel="noreferrer" style={{
-                display:"inline-block", marginTop:20, padding:"10px 24px", borderRadius:10,
-                background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:13,
-                textDecoration:"none", transition:"opacity .15s",
-              }}
-              onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
-              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                Ver inversiones en Balanz →
-              </a>
-            </div>
-          </Card>
-        </div>
-      )}
+      </Card>
     </div>
   );
 }
+
 
 /* ════════════════════════════════════════════════════════════════
    ADMIN PANEL
@@ -4479,7 +4479,7 @@ export default function App() {
     { id:"mercados",        label:"Cotizaciones",       Icon:DollarSign,    desc:"Dólar, riesgo país, BCRA en vivo" },
     { id:"informes",         label:"Research",           Icon:BarChart3,     desc:"Resúmenes diarios, balances e informes" },
     { id:"instrumentos",    label:"Instrumentos",       Icon:Search,        desc:"Renta fija, soberanos y screener" },
-    { id:"recomendaciones", label:"Inversiones",        Icon:Briefcase,     desc:"Perfiles, fondos y recomendaciones" },
+    { id:"recomendaciones", label:"Recomendaciones",   Icon:Briefcase,     desc:"Perfiles y carteras sugeridas" },
   ];
 
   const goResearch = (sub) => { setResearchSub(sub); setTab("informes"); };

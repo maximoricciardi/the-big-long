@@ -444,44 +444,47 @@ const PERFILES = [
     id:"conservador", label:"Conservador", Icon:Shield, color:"blue",
     desc:"Preservación de capital con rendimiento real positivo. Horizonte corto-mediano plazo. Fondos de bajo riesgo, LECAPs y cobertura cambiaria.",
     ideas:[
-      {inst:"Balanz Ahorro Corto Plazo",por:"30%",note:"Fondo RF corto plazo · T+1 · Destacado ARS",tipo:"fondo"},
-      {inst:"LECAP S29Y6 (Mayo 2026)",por:"25%",note:"Tasa fija · TEM ~2,36% · Vto. mayo",tipo:"lecap"},
+      {inst:"Balanz Income (ETP)",por:"25%",note:"T-Bills US · Rating AA · Duration 0.16 · Exterior",tipo:"fondo"},
+      {inst:"Balanz Ahorro Corto Plazo",por:"20%",note:"Fondo RF corto plazo · T+1 · Destacado ARS",tipo:"fondo"},
+      {inst:"LECAP S29Y6 (Mayo 2026)",por:"20%",note:"Tasa fija · TEM ~2,36% · Vto. mayo",tipo:"lecap"},
       {inst:"Balanz Money Market",por:"15%",note:"Fondo Money Market · T+0 · Parking",tipo:"fondo"},
-      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"15%",note:"Fondo RF USD · T+1 · Destacado USD",tipo:"fondo"},
-      {inst:"Caución Bursátil 7D",por:"15%",note:"~20% TNA · Liquidez semanal",tipo:"caucion"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"10%",note:"Fondo RF USD · T+1 · Destacado USD",tipo:"fondo"},
+      {inst:"Caución Bursátil 7D",por:"10%",note:"~20% TNA · Liquidez semanal",tipo:"caucion"},
     ],
-    retorno:"Renta fija ARS + cobertura USD",
+    retorno:"Renta fija ARS + T-Bills US + cobertura USD",
     riesgo:"Bajo",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
     id:"moderado", label:"Moderado", Icon:Scale, color:"gold",
-    desc:"Equilibrio entre cobertura inflacionaria, tasa fija y rendimiento en dólares. Horizonte 6-12 meses.",
+    desc:"Equilibrio entre cobertura inflacionaria, tasa fija y rendimiento en dólares. Horizonte 6-12 meses. Incluye exposición a corporativos LatAm y balance de activos.",
     ideas:[
-      {inst:"LECAP S31L6 (Julio 2026)",por:"20%",note:"Tasa fija · TNA ~27,7% · 4 meses",tipo:"lecap"},
-      {inst:"Balanz Inflation Linked (Inst.)",por:"20%",note:"Fondo CER · Cobertura inflación",tipo:"fondo"},
-      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"20%",note:"Fondo RF USD corto · Core USD",tipo:"fondo"},
+      {inst:"Balanz Fixed Income LATAM (ETP)",por:"20%",note:"+50 bonos LatAm · YTM 6,86% · Ley NY · Exterior",tipo:"bono"},
+      {inst:"Balanz Balanced (ETP)",por:"15%",note:"50/50 RV/RF · Gestión activa · Exterior",tipo:"fondo"},
+      {inst:"LECAP S31L6 (Julio 2026)",por:"15%",note:"Tasa fija · TNA ~27,7% · 4 meses",tipo:"lecap"},
+      {inst:"Balanz Inflation Linked (Inst.)",por:"15%",note:"Fondo CER · Cobertura inflación",tipo:"fondo"},
       {inst:"GD30D — Global 2030 (Ley NY)",por:"15%",note:"Soberano USD · TIR ~8,2% · Duration 2,1",tipo:"bono"},
-      {inst:"Cedear Oro (GLD)",por:"15%",note:"Cobertura geopolítica · Refugio",tipo:"cedear"},
-      {inst:"Balanz Renta Mixta (Retorno Total)",por:"10%",note:"Fondo mixto · Diversificación táctica",tipo:"fondo"},
+      {inst:"Cedear Oro (GLD)",por:"10%",note:"Cobertura geopolítica · Refugio",tipo:"cedear"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"10%",note:"Fondo RF USD · Liquidez táctica",tipo:"fondo"},
     ],
-    retorno:"Mixto ARS/USD · CER + RF USD + Oro",
+    retorno:"Mixto ARS/USD · LatAm + RF + Oro",
     riesgo:"Moderado",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
   {
     id:"agresivo", label:"Agresivo", Icon:Rocket, color:"purple",
-    desc:"Exposición a activos de mayor beta con potencial de compresión de riesgo país. Horizonte 12-18 meses.",
+    desc:"Máxima exposición a activos de mayor beta. Renta variable global, cripto y compresión de riesgo país. Horizonte 12-18 meses.",
     ideas:[
+      {inst:"Balanz Global Equity (ETP)",por:"20%",note:"RV global · Supera S&P500 · Gestión activa · Exterior",tipo:"cedear"},
+      {inst:"Balanz Crypto (ETP)",por:"10%",note:"BTC + ETH + ecosistema cripto · Alta volatilidad · Exterior",tipo:"cedear"},
       {inst:"GD38D — Global 2038 (Ley NY)",por:"20%",note:"Soberano USD · TIR ~10% · Duration 4,9",tipo:"bono"},
-      {inst:"Balanz Acciones",por:"20%",note:"Fondo Acciones ARG · Blue chips locales",tipo:"fondo"},
+      {inst:"Balanz Acciones",por:"15%",note:"Fondo Acciones ARG · Blue chips locales",tipo:"fondo"},
       {inst:"Cedear VIST (Vista Energy)",por:"15%",note:"Pure-play Vaca Muerta · Score #1 RD",tipo:"cedear"},
-      {inst:"Balanz Renta Variable Global",por:"15%",note:"Fondo RV Global · Exposición internacional",tipo:"fondo"},
-      {inst:"Cedear NVDA / GOOGL",por:"15%",note:"Tech + IA · Mega-cap growth",tipo:"cedear"},
-      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"15%",note:"Fondo RF USD · Liquidez táctica",tipo:"fondo"},
+      {inst:"Cedear NVDA / GOOGL",por:"10%",note:"Tech + IA · Mega-cap growth",tipo:"cedear"},
+      {inst:"Balanz Dólar Corto Plazo (Estrategia I)",por:"10%",note:"Fondo RF USD · Liquidez táctica",tipo:"fondo"},
     ],
-    retorno:"Potencial alfa USD · Alta variabilidad",
-    riesgo:"Moderado-Alto",
+    retorno:"Potencial alfa USD+Cripto · Alta variabilidad",
+    riesgo:"Alto",
     disclaimer:"Solo a modo orientativo. Consultar asesor antes de invertir.",
   },
 ];
@@ -585,8 +588,67 @@ const FONDOS_BALANZ = [
   },
 ];
 
-/* ETPs Balanz — pendiente de confirmación */
-const ETPS_BALANZ = [];
+/* ════════════════════════════════════════════════════════════════
+   ETPs BALANZ INTERNATIONAL — Fact Sheets Febrero 2026
+   Domicilio: Irlanda · Custodio: StoneX · Auditor: BDO
+   Todos en USD cable · Inversión mínima 1.000 VNs · T+2
+════════════════════════════════════════════════════════════════ */
+const BALANZ_ETPS = [
+  {
+    id:"income", nombre:"Balanz Income", tipo:"Renta Fija", perfil:"Ultra Conservador",
+    color:"blue", tagline:"Bonos del Tesoro de EE.UU. — la inversión más segura del mundo",
+    desc:"Preservación de capital invirtiendo en T-Bills de corta duración. Ideal para quien quiere estar en dólares, fuera del riesgo argentino, con la máxima seguridad.",
+    aum:"84.9", nav:"108.48", ytm:"3.68%", duration:"0.16", fee:"0.85%", rating:"AA", isin:"XS2621330369", inicio:"15/09/2023",
+    rend:{ m1:0.2, m3:0.7, m6:1.4, y1:2.9, ytd:0.4, y2024:3.8, sinceInc:8.5 },
+    top3:[{n:"US Treasury Bill Jun-26",w:"34.9%"},{n:"US Treasury Bill Mar-26",w:"33.6%"},{n:"US Treasury Bill Abr-26",w:"31.2%"}],
+    highlight:"100% US Treasuries · Rating AA · Duration 0.16 años",
+  },
+  {
+    id:"short", nombre:"Balanz Short Duration", tipo:"Renta Fija", perfil:"Conservador+",
+    color:"blue", tagline:"Renta fija global de corta duración con gestión activa",
+    desc:"Portafolio diversificado de RF de corta duración. Alta calidad crediticia con exposición selectiva a mayor rendimiento para optimizar el carry.",
+    aum:"5.0", nav:"100.17", ytm:"5.17%", duration:"1.44", fee:"0.85%", rating:"A", isin:"XS3281861446", inicio:"02/02/2026",
+    rend:{ m1:0.2, m3:null, m6:null, y1:null, ytd:0.2, y2024:null, sinceInc:0.2 },
+    top3:[{n:"Deuda corporativa global",w:"36.6%"},{n:"Deuda securitizada",w:"29.7%"},{n:"T-Bills",w:"12.5%"}],
+    highlight:"64% EE.UU. · 23% Europa · Rating A · Nuevo (Feb 2026)",
+  },
+  {
+    id:"latam", nombre:"Balanz Fixed Income LATAM", tipo:"Renta Fija", perfil:"Moderado",
+    color:"gold", tagline:"+50 bonos corporativos LatAm con ley New York",
+    desc:"Exposición diversificada a renta fija corporativa latinoamericana. Fuera del riesgo argentino, con rendimientos superiores al 7% anual y 53 emisores en cartera.",
+    aum:"80.0", nav:"119.29", ytm:"6.86%", duration:"3.23", fee:"1.25%", rating:"BB+", isin:"XS2707193509", inicio:"20/11/2023",
+    rend:{ m1:0.6, m3:2.7, m6:4.0, y1:7.6, ytd:1.6, y2024:7.0, sinceInc:19.3 },
+    top3:[{n:"Ecopetrol",w:"4.5%"},{n:"Samarco Mineracao",w:"3.1%"},{n:"Engie Energía Chile",w:"2.9%"}],
+    highlight:"53 emisores · 6 países · YTM 6.86% · Duration 3.23",
+  },
+  {
+    id:"balanced", nombre:"Balanz Balanced", tipo:"Multi Activo", perfil:"Moderado",
+    color:"gold", tagline:"50% renta fija + 50% renta variable — diversificación ideal",
+    desc:"Asignación dinámica y diversificada. Gestión activa que combina crecimiento de capital con ingresos. El instrumento más equilibrado para inversores moderados.",
+    aum:"37.8", nav:"121.86", ytm:"4.73%", duration:"0.94", fee:"1.50%", rating:null, isin:"XS2707193418", inicio:"18/01/2024",
+    rend:{ m1:-0.6, m3:0.3, m6:4.2, y1:9.0, ytd:0.6, y2024:8.9, sinceInc:21.9 },
+    top3:[{n:"SPDR S&P 500 ETF",w:"36.2%"},{n:"T-Bills",w:"17.6%"},{n:"Deuda securitizada",w:"12.5%"}],
+    highlight:"54% RV + 45% RF · +21.9% desde inicio · NAV $121.86",
+  },
+  {
+    id:"equity", nombre:"Balanz Global Equity", tipo:"Renta Variable", perfil:"Agresivo",
+    color:"purple", tagline:"Superar al S&P 500 cuando sube, amortiguar cuando baja",
+    desc:"Cartera global de renta variable con gestión activa profesional. Busca alfa sobre el benchmark, menor volatilidad en caídas y exposición a los mejores sectores del momento.",
+    aum:"22.4", nav:"114.05", ytm:null, duration:null, fee:"1.50%", rating:null, isin:"XS3067937642", inicio:"19/05/2025",
+    rend:{ m1:-1.4, m3:0.4, m6:6.2, y1:null, ytd:0.5, y2024:null, sinceInc:14.1 },
+    top3:[{n:"SPDR S&P 500 ETF",w:"49.6%"},{n:"Fundstrat Granny Shots",w:"14.1%"},{n:"MSCI ACWI",w:"10.0%"}],
+    highlight:"+14.1% desde inicio · Gestión activa · Exposición global",
+  },
+  {
+    id:"crypto", nombre:"Balanz Crypto", tipo:"Criptoactivos", perfil:"Agresivo",
+    color:"purple", tagline:"Bitcoin, Ethereum y el ecosistema cripto en un solo instrumento",
+    desc:"Exposición diversificada al ecosistema de criptoactivos. Combina activos digitales directos con acciones de empresas del sector. Horizonte largo plazo, alta volatilidad.",
+    aum:"3.8", nav:"51.20", ytm:null, duration:null, fee:"2.00%", rating:null, isin:"XS3146740496", inicio:"18/08/2025",
+    rend:{ m1:-23.0, m3:-32.0, m6:-47.3, y1:null, ytd:-28.5, y2024:null, sinceInc:-48.8 },
+    top3:[{n:"iShares Bitcoin Trust ETF",w:"59.6%"},{n:"iShares Ethereum Trust ETF",w:"28.7%"},{n:"BitMine Immersion",w:"4.3%"}],
+    highlight:"88% cripto directo · Alta volatilidad · Largo plazo",
+  },
+];
 
 const NOTICIAS = [
   {
@@ -2673,30 +2735,129 @@ function InstrumentosView({ t }) {
         </div>
       )}
 
-      {/* ── ETPs BALANZ — PRÓXIMAMENTE ── */}
+      {/* ── ETPs BALANZ INTERNATIONAL ── */}
       {sub === "etps" && (
         <div className="fade-up">
-          <Card t={t}>
-            <div style={{ padding:"40px 30px", textAlign:"center" }}>
-              <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                <Package size={28} color={t.go} />
+          {/* Balanz header */}
+          <div style={{
+            background:"linear-gradient(135deg, #0A1E3D 0%, #14355A 50%, #1A4270 100%)",
+            borderRadius:16, padding:"28px 28px 24px", marginBottom:24,
+            border:"1px solid rgba(255,255,255,.08)",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+              <div>
+                <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:"rgba(255,255,255,.4)", letterSpacing:".15em", textTransform:"uppercase", marginBottom:6 }}>BALANZ INTERNATIONAL</div>
+                <h2 style={{ fontFamily:FD, fontSize:28, fontWeight:700, color:"#fff", lineHeight:1.1, margin:0 }}>
+                  Fondos de Inversión <span style={{ color:"#4A90D9" }}>Offshore</span>
+                </h2>
+                <p style={{ fontFamily:FB, fontSize:13, color:"rgba(255,255,255,.6)", marginTop:10, lineHeight:1.6, maxWidth:520 }}>
+                  Instrumentos domiciliados en Irlanda con custodia en StoneX. Inversión mínima 1.000 VNs, liquidación T+2, en dólares cable. Gestión activa del equipo de Balanz Capital.
+                </p>
               </div>
-              <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>ETPs Balanz — Próximamente</h3>
-              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>
-                Estamos evaluando la incorporación de los Exchange Traded Products de Balanz al dashboard.
-                Los ETPs permiten replicar índices y activos internacionales con acceso simplificado desde Argentina.
-              </p>
-              <a href="https://balanz.com/inversiones/" target="_blank" rel="noreferrer" style={{
-                display:"inline-block", marginTop:20, padding:"10px 24px", borderRadius:10,
-                background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:13,
-                textDecoration:"none", transition:"opacity .15s",
-              }}
-              onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
-              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                Ver inversiones en Balanz →
-              </a>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {[{l:"Domicilio",v:"Irlanda"},{l:"Moneda",v:"USD Cable"},{l:"Custodio",v:"StoneX"},{l:"Auditor",v:"BDO"}].map((c,i)=>(
+                  <div key={i} style={{ background:"rgba(255,255,255,.06)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"6px 12px", textAlign:"center" }}>
+                    <div style={{ fontFamily:FB, fontSize:8, color:"rgba(255,255,255,.4)", letterSpacing:".08em", textTransform:"uppercase" }}>{c.l}</div>
+                    <div style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:"#fff", marginTop:2 }}>{c.v}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </Card>
+          </div>
+
+          {/* Fund cards */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))", gap:16 }}>
+            {BALANZ_ETPS.map((f, fi) => {
+              const cMapE = {blue:{ac:"#4A90D9",bg:"rgba(74,144,217,.08)",grad:"linear-gradient(135deg,#0A1E3D,#1A4270)"},
+                gold:{ac:"#B0782A",bg:"rgba(176,120,42,.08)",grad:"linear-gradient(135deg,#2A1A05,#4A3010)"},
+                purple:{ac:"#7C3AED",bg:"rgba(124,58,237,.08)",grad:"linear-gradient(135deg,#1A0A3D,#2D1A5E)"}};
+              const cc = cMapE[f.color]||cMapE.blue;
+              const waUrl = `https://wa.me/5491140500087?text=${encodeURIComponent(`Hola Máximo, me gustaría conocer más acerca del fondo ${f.nombre} que cotiza en el exterior.`)}`;
+              const rendArr = [
+                {l:"1M",v:f.rend.m1},{l:"3M",v:f.rend.m3},{l:"6M",v:f.rend.m6},{l:"1A",v:f.rend.y1},{l:"YTD",v:f.rend.ytd},{l:"Inicio",v:f.rend.sinceInc}
+              ].filter(r=>r.v!==null);
+
+              return (
+                <a key={fi} href={waUrl} target="_blank" rel="noreferrer" style={{ textDecoration:"none", color:"inherit" }}>
+                  <div style={{
+                    background:t.srf, border:`1px solid ${t.brd}`, borderRadius:16,
+                    overflow:"hidden", transition:"all .2s", cursor:"pointer",
+                  }}
+                  onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 12px 40px rgba(0,0,0,.15)";e.currentTarget.style.borderColor=cc.ac;}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor=t.brd;}}>
+
+                    {/* Card header */}
+                    <div style={{ background:cc.grad, padding:"20px 22px 16px" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                        <div>
+                          <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:cc.ac, background:"rgba(255,255,255,.1)", padding:"3px 8px", borderRadius:6, letterSpacing:".08em" }}>{f.tipo.toUpperCase()}</span>
+                          <h3 style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:"#fff", margin:"8px 0 4px", lineHeight:1.2 }}>{f.nombre}</h3>
+                          <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", margin:0 }}>{f.tagline}</p>
+                        </div>
+                        <div style={{ textAlign:"right", flexShrink:0 }}>
+                          <div style={{ fontFamily:FB, fontSize:8, color:"rgba(255,255,255,.4)", letterSpacing:".06em" }}>NAV</div>
+                          <div style={{ fontFamily:FH, fontSize:22, fontWeight:800, color:"#fff" }}>${f.nav}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card body */}
+                    <div style={{ padding:"16px 22px 20px" }}>
+                      <p style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.6, marginBottom:14 }}>{f.desc}</p>
+
+                      {/* KPI chips */}
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:14 }}>
+                        {[
+                          f.ytm && {l:"YTM",v:f.ytm},
+                          f.duration && {l:"Duration",v:`${f.duration}a`},
+                          {l:"Fee",v:f.fee},
+                          {l:"AUM",v:`$${f.aum}M`},
+                          f.rating && {l:"Rating",v:f.rating},
+                        ].filter(Boolean).map((c,i)=>(
+                          <div key={i} style={{ background:t.alt, borderRadius:6, padding:"3px 10px", fontFamily:FB }}>
+                            <span style={{ fontSize:8, color:t.fa, textTransform:"uppercase", letterSpacing:".05em" }}>{c.l} </span>
+                            <span style={{ fontSize:11, fontWeight:700, color:cc.ac }}>{c.v}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Rendimientos */}
+                      <div style={{ display:"flex", gap:4, marginBottom:14 }}>
+                        {rendArr.map((r,i)=>(
+                          <div key={i} style={{ flex:1, background:t.alt, borderRadius:6, padding:"5px 0", textAlign:"center" }}>
+                            <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".05em" }}>{r.l}</div>
+                            <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:r.v>=0?t.gr:t.rd }}>{r.v>0?"+":""}{r.v}%</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Top 3 tenencias */}
+                      <div style={{ borderTop:`1px solid ${t.brd}`, paddingTop:10 }}>
+                        <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".08em", textTransform:"uppercase", marginBottom:6 }}>PRINCIPALES TENENCIAS</div>
+                        {f.top3.map((h,i)=>(
+                          <div key={i} style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:11, color:t.mu, marginBottom:2 }}>
+                            <span>{h.n}</span><span style={{ fontWeight:700, color:t.tx }}>{h.w}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* CTA */}
+                      <div style={{ marginTop:14, padding:"10px 0", borderTop:`1px solid ${t.brd}`, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                        <MessageCircle size={14} color={cc.ac} />
+                        <span style={{ fontFamily:FB, fontSize:12, fontWeight:700, color:cc.ac }}>Consultar con Máximo</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop:20, padding:"16px 20px", background:t.alt, borderRadius:12, border:`1px solid ${t.brd}` }}>
+            <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.6, margin:0 }}>
+              Informe mensual Febrero 2026 · Balanz Capital S.A.U. · Los rendimientos pasados no garantizan rendimientos futuros. Inversión mínima 1.000 VNs. Domicilio Irlanda. Custodio StoneX. Agente de cálculo: LynX Markets. Trustee: TMF Group. Auditor: BDO. Agente emisor y de pago: BNY Mellon. No constituye asesoramiento de inversión.
+            </p>
+          </div>
         </div>
       )}
 
@@ -4784,7 +4945,7 @@ export default function App() {
                 <div style={{ fontFamily:FB, fontSize:11, fontWeight:300, color:"rgba(255,255,255,.35)" }}>{CONTACT.title}</div>
               </div>
               <div style={{ display:"flex", gap:16 }}>
-                <a href={`tel:${CONTACT.phone}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
+                <a href={WA_LINK("Hola Máximo, te escribo desde The Big Long.")} target="_blank" rel="noreferrer" style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
                   <Phone size={14} /> {CONTACT.phone}
                 </a>
                 <a href={`mailto:${CONTACT.email}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>

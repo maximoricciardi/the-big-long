@@ -9,6 +9,7 @@ import {
   PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp,
   Menu
 } from "lucide-react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 /* ════════════════════════════════════════════════════════════════
    DESIGN TOKENS
@@ -4810,6 +4811,9 @@ export default function App() {
 
       {/* ── AI CHAT WIDGET ── */}
       <AIChatWidget t={t} isMobile={isMobile} />
+
+      {/* ── VERCEL SPEED INSIGHTS ── */}
+      <SpeedInsights />
 
     </div>
   );

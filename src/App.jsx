@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Home, ClipboardList, Newspaper, DollarSign, BarChart3, Search, Briefcase,
@@ -4810,6 +4811,9 @@ export default function App() {
 
       {/* ── AI CHAT WIDGET ── */}
       <AIChatWidget t={t} isMobile={isMobile} />
+      
+      {/* ── VERCEL WEB ANALYTICS ── */}
+      <Analytics />
 
     </div>
   );

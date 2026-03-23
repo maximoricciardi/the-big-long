@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Home, ClipboardList, Newspaper, DollarSign, BarChart3, Search, Briefcase,
@@ -4814,6 +4815,9 @@ export default function App() {
       
       {/* ── VERCEL WEB ANALYTICS ── */}
       <Analytics />
+      
+      {/* ── VERCEL SPEED INSIGHTS ── */}
+      <SpeedInsights />
 
     </div>
   );

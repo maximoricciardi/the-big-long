@@ -4572,7 +4572,6 @@ export default function App() {
         if (d.c > 0) updates.spy = { price: d.c, changePct: d.dp };
       } catch {}
       try {
-      try {
         // Oro — XAU/USD spot price via Finnhub OANDA feed (~USD/oz real)
         const rg = await fetch(`${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol=OANDA:XAU_USD`);
         const dg = await rg.json();
@@ -4585,7 +4584,7 @@ export default function App() {
         if (db.c > 0) updates.brent = { price: db.c, changePct: db.dp };
       } catch {}
       try {
-        // Merval (BYMA) — Finnhub symbol MERV, misma infraestructura que SPY/GLD/BNO
+        // Merval (BYMA) — Finnhub symbol MERV
         const r = await fetch(`${FINNHUB_PROXY}=MERV`);
         const d = await r.json();
         if (d.c > 0) updates.mervalARS = { value: d.c, changePct: d.dp };

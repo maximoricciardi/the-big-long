@@ -3474,36 +3474,13 @@ function NoticiasView({ t }) {
   const [expandida, setExpandida] = useState(null);
   const [seccion, setSeccion]     = useState("todas");
 
-  // ── Google News RSS — triple proxy fallback ──────────────────
+  // ── Google News RSS via Vercel Function propia (/api/news) ──
   const [liveNews,    setLiveNews]    = useState([]);
   const [liveStatus,  setLiveStatus]  = useState("loading");
   const [liveUpdated, setLiveUpdated] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    // Proxy chain — si falla uno, intenta el siguiente
-    const proxies = [
-      (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-      (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-      (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    ];
-
-    const fetchWithFallback = async (url) => {
-      for (const makeProxy of proxies) {
-        try {
-          const r = await fetch(makeProxy(url), { signal: AbortSignal.timeout(6000) });
-          if (!r.ok) continue;
-          const json = await r.json();
-          // allorigins wraps in {contents:...}, corsproxy devuelve el XML directamente
-          const text = typeof json === "string" ? json : json?.contents || JSON.stringify(json);
-          if (text && text.includes("<item>")) return text;
-          // codetabs puede devolver el XML como string directo
-          if (text && text.length > 100) return text;
-        } catch {}
-      }
-      return null;
-    };
 
     const parseRSS = (xmlText) => {
       try {
@@ -3515,8 +3492,8 @@ function NoticiasView({ t }) {
           const pub   = item.querySelector("pubDate")?.textContent?.trim() || "";
           const src   = item.querySelector("source")?.textContent?.trim() || "";
           const d     = new Date(pub);
-          return { link, title, src, fecha: d, fechaStr: isNaN(d) ? "" :
-            d.toLocaleString("es-AR", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) };
+          return { link, title, src, fechaObj: d,
+            fechaStr: isNaN(d) ? "" : d.toLocaleString("es-AR", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) };
         }).filter(i => i.link && i.title);
       } catch { return []; }
     };
@@ -3530,15 +3507,17 @@ function NoticiasView({ t }) {
       const results = [];
 
       for (const q of queries) {
-        const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=es-419&gl=AR&ceid=AR:es`;
-        const xml = await fetchWithFallback(rssUrl);
-        if (!xml) continue;
-        for (const item of parseRSS(xml)) {
-          if (seen.has(item.link)) continue;
-          seen.add(item.link);
-          const host = (() => { try { return new URL(item.link).hostname.replace("www.","").replace(".com.ar","").replace(".com",""); } catch { return item.src || ""; } })();
-          results.push({ id: item.link, titulo: item.title, fuente: item.src || host, link: item.link, fechaObj: item.fecha, fecha: item.fechaStr });
-        }
+        try {
+          const r = await fetch(`/api/news?q=${q}`);
+          if (!r.ok) continue;
+          const xml = await r.text();
+          for (const item of parseRSS(xml)) {
+            if (seen.has(item.link)) continue;
+            seen.add(item.link);
+            const host = (() => { try { return new URL(item.link).hostname.replace("www.","").replace(".com.ar","").replace(".com",""); } catch { return item.src || ""; } })();
+            results.push({ id: item.link, titulo: item.title, fuente: item.src || host, link: item.link, fechaObj: item.fechaObj, fecha: item.fechaStr });
+          }
+        } catch {}
       }
 
       results.sort((a,b) => b.fechaObj - a.fechaObj);

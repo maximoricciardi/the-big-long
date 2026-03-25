@@ -2192,6 +2192,7 @@ function InstrumentosView({ t }) {
   const [sub, setSub] = useState("lecap");
   const [bondPrices,  setBondPrices]  = useState({});
   const [bondStatus,  setBondStatus]  = useState("loading");
+  const [lecapLive,   setLecapLive]   = useState({}); // precios live S-prefix de DATA912
   const [uvaIndex,    setUvaIndex]    = useState(null);
   const [tamarRate,   setTamarRate]   = useState(null);
   const [arsStatus,   setArsStatus]   = useState("loading");
@@ -2203,25 +2204,43 @@ function InstrumentosView({ t }) {
   const daysSinceBase = Math.floor((Date.now() - BASE_DATE.getTime()) / 86400000);
   const today = new Date().toLocaleDateString("es-AR");
 
-  // Fetch 1: ArgentinaDatos bonos soberanos USD — refresh cada 5 min
+  // Fetch 1: DATA912 — bonos soberanos USD + letras S-prefix en tiempo real
+  // Verificado el 24/MAR/2026: AO27D=102.5, AL30D=60.96, GD30D=62.68, S29Y6=126.01
   useEffect(() => {
-    const load = () => {
-      fetch("https://api.argentinadatos.com/v1/finanzas/bonos")
-        .then(r => r.json())
-        .then(data => {
-          const prices = {};
-          data.forEach(b => {
-            if (!b.ticker || !b.ultimo) return;
-            const tk = b.ticker.toUpperCase();
-            prices[tk] = b.ultimo;
-            prices[tk + "D"] = b.ultimo;
-          });
-          const matched = SOBERANOS.filter(s => prices[s.t]).length;
-          setBondPrices(prices);
-          setBondStatus(matched > 0 ? "ok" : "error");
-          setLastUpdate(new Date());
-        })
-        .catch(() => setBondStatus("error"));
+    const load = async () => {
+      try {
+        // Bonos soberanos
+        const rb = await fetch("https://data912.com/live/arg_bonds", {
+          headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        const bonds = await rb.json();
+        const prices = {};
+        bonds.forEach(b => {
+          if (!b.symbol || b.c == null) return;
+          prices[b.symbol] = b.c;
+        });
+        const matched = SOBERANOS.filter(s => prices[s.t]).length;
+        setBondPrices(prices);
+        setBondStatus(matched > 0 ? "ok" : "error");
+      } catch {
+        setBondStatus("error");
+      }
+
+      try {
+        // Letras del Tesoro — solo S-prefix (T-prefix no disponible en DATA912)
+        const rn = await fetch("https://data912.com/live/arg_notes", {
+          headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        const notes = await rn.json();
+        const lp = {};
+        notes.forEach(n => {
+          if (!n.symbol || n.c == null) return;
+          lp[n.symbol] = { price: n.c, pct: n.pct_change };
+        });
+        setLecapLive(lp);
+      } catch {}
+
+      setLastUpdate(new Date());
     };
     load();
     const id = setInterval(load, REFRESH_MS);
@@ -2271,10 +2290,15 @@ function InstrumentosView({ t }) {
     const diasBase = g.dias;                                        // días al vto al 19-MAR
     const diasRest = Math.max(1, diasBase - daysSinceBase);        // días restantes hoy
 
-    // precio teórico hoy = capitalización desde precio base
-    const pLive = pBase * Math.pow(1 + temBase, daysSinceBase / 30);
+    // Precio: DATA912 live si es S-prefix, teórico si es T-prefix (BONCAP)
+    const isS = row.t.startsWith("S");
+    const liveData = lecapLive[row.t];
+    const pLive = (isS && liveData?.price > 0)
+      ? liveData.price
+      : pBase * Math.pow(1 + temBase, daysSinceBase / 30);
+    const isLiveLECAP = isS && !!liveData?.price;
 
-    if (diasRest <= 0) return { pLive, rendimiento:0, tem:0, tna:0, diasRest:0 };
+    if (diasRest <= 0) return { pLive, rendimiento:0, tem:0, tna:0, diasRest:0, isLiveLECAP };
 
     // rendimiento total desde precio live hasta vto
     const rendimiento = (vnVto / pLive - 1) * 100;
@@ -2285,7 +2309,7 @@ function InstrumentosView({ t }) {
     // TNA = rendimiento total × (365 / días restantes) — convención BYMA/MAE
     const tnaLive = rendimiento * (365 / diasRest);
 
-    return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest };
+    return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest, isLiveLECAP };
   };
 
   const diasHasta = (vtoStr) => {
@@ -2413,7 +2437,6 @@ function InstrumentosView({ t }) {
                   {LECAP.map((g, i) => g.rows.map((r, j) => {
                     const m = calcLECAPMetrics(r, g);
                     if (!m) return null;
-                    const isLive = daysSinceBase > 0;
                     const pBase = parseFloat(r.pre.replace("$","").replace(/\./g,"").replace(",","."));
                     const varBase = ((m.pLive - pBase) / pBase * 100);
                     return (
@@ -2422,7 +2445,10 @@ function InstrumentosView({ t }) {
                         <Td2>
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                             <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{r.t}</span>
-                            {isLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}} title="Precio vivo"/>}
+                            {m.isLiveLECAP
+                              ? <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo · DATA912"/>
+                              : <span style={{fontSize:8,color:t.fa,fontFamily:FB}} title="Precio teórico (BONCAP)">~</span>
+                            }
                           </div>
                         </Td2>
                         <Td2 right bold>
@@ -2579,7 +2605,7 @@ function InstrumentosView({ t }) {
                 boxShadow:bondStatus==="ok"?"0 0 6px #22c55e":"none",
                 animation:bondStatus==="loading"?"blink 1s infinite":"none"}}/>
               {bondStatus==="loading" && "Actualizando bonos..."}
-              {bondStatus==="ok"      && "Precios en vivo · ArgentinaDatos"}
+              {bondStatus==="ok"      && "Precios en vivo · DATA912"}
               {bondStatus==="error"   && "Usando precios de cierre"}
             </div>
           </div>
@@ -4584,10 +4610,20 @@ export default function App() {
         if (db.c > 0) updates.brent = { price: db.c, changePct: db.dp };
       } catch {}
       try {
-        // Merval (BYMA) — Finnhub symbol MERV
-        const r = await fetch(`${FINNHUB_PROXY}=MERV`);
+        // Merval ^MERV — Yahoo Finance (único endpoint que devuelve el índice BYMA real)
+        // Verificado 24/MAR/2026: regularMarketPrice=2,778,025 ARS
+        const r = await fetch(
+          "https://query1.finance.yahoo.com/v8/finance/chart/%5EMERV?range=1d&interval=1m",
+          { headers: { "User-Agent": "Mozilla/5.0" } }
+        );
         const d = await r.json();
-        if (d.c > 0) updates.mervalARS = { value: d.c, changePct: d.dp };
+        const meta = d?.chart?.result?.[0]?.meta;
+        if (meta?.regularMarketPrice > 0) {
+          const price = meta.regularMarketPrice;
+          const prev  = meta.chartPreviousClose || meta.regularMarketPrice;
+          const changePct = ((price / prev) - 1) * 100;
+          updates.mervalARS = { value: price, changePct };
+        }
       } catch {}
       if (!cancelled && Object.keys(updates).length > 0) {
         setLiveMarket(prev => ({ ...prev, ...updates }));

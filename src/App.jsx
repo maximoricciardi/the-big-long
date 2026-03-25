@@ -3473,10 +3473,61 @@ function NoticiasView({ t }) {
   const [search, setSearch] = useState("");
   const [expandida, setExpandida] = useState(null);
 
+  // ── Google News RSS — noticias en vivo ─────────────────────
+  const [liveNews, setLiveNews]     = useState([]);
+  const [liveStatus, setLiveStatus] = useState("loading");
+  const [liveUpdated, setLiveUpdated] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchNews = async () => {
+      try {
+        // Google News RSS via rss2json (convierte RSS a JSON, sin CORS issues)
+        const queries = [
+          "mercado+argentino+finanzas",
+          "economia+argentina+dolar",
+          "BCRA+bonos+argentina",
+        ];
+        const results = [];
+        for (const q of queries) {
+          const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${q}&hl=es-419&gl=AR&ceid=AR:es`)}&count=8`;
+          const r = await fetch(url);
+          const d = await r.json();
+          if (d.status === "ok" && d.items) {
+            d.items.forEach(item => {
+              if (!results.find(x => x.link === item.link)) {
+                results.push({
+                  id: item.guid || item.link,
+                  titulo: item.title,
+                  fuente: item.author || (item.source?.name) || new URL(item.link).hostname.replace("www.",""),
+                  link: item.link,
+                  fecha: new Date(item.pubDate).toLocaleDateString("es-AR", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}),
+                  fechaObj: new Date(item.pubDate),
+                });
+              }
+            });
+          }
+        }
+        // Sort by date, most recent first
+        results.sort((a,b) => b.fechaObj - a.fechaObj);
+        if (!cancelled) {
+          setLiveNews(results.slice(0, 20));
+          setLiveStatus("ok");
+          setLiveUpdated(new Date());
+        }
+      } catch {
+        if (!cancelled) setLiveStatus("error");
+      }
+    };
+    fetchNews();
+    const id = setInterval(fetchNews, 2 * 60 * 1000); // refresh cada 2 min
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   const catColors = { blue:t.bl, green:t.gr, red:t.rd, purple:t.pu, gold:t.go, gray:t.mu };
   const catBgs    = { blue:t.blBg, green:t.grBg, red:t.rdBg, purple:t.puBg, gold:t.goBg, gray:t.alt };
 
-  // Filter by section + search
+  // Filter hardcoded noticias
   const filtradas = NOTICIAS.filter(n => {
     if (seccion !== "todas" && n.seccion !== seccion) return false;
     if (search.trim()) {
@@ -3489,189 +3540,227 @@ function NoticiasView({ t }) {
     return true;
   });
 
-  // Count per section
   const countPorSeccion = (id) => id === "todas" ? NOTICIAS.length : NOTICIAS.filter(n => n.seccion === id).length;
 
   return (
     <div className="fade-up">
 
-      {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:16 }}>
-        <div>
-          <SectionLabel t={t}>NOTICIAS</SectionLabel>
-          <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:-10 }}>
-            {NOTICIAS.length} noticias · Información procesada y diferenciada de interpretación.
-          </p>
-        </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <div style={{ background:t.rdBg, borderRadius:8, padding:"6px 14px", fontFamily:FB, fontSize:11, color:t.rd, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-            <CircleDot size={10} /> {NOTICIAS.filter(n=>n.relevancia==="alta").length} alta relevancia
+      {/* ── NOTICIAS EN VIVO — Google News RSS ── */}
+      <div style={{ marginBottom:28 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:14 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <SectionLabel t={t}>NOTICIAS EN VIVO</SectionLabel>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{
+              display:"flex", alignItems:"center", gap:6, padding:"5px 12px",
+              borderRadius:8, fontFamily:FB, fontSize:10,
+              background: liveStatus==="ok" ? t.grBg : t.alt,
+              border: `1px solid ${liveStatus==="ok" ? t.grAcc+"44" : t.brd}`,
+              color: liveStatus==="ok" ? t.gr : t.mu,
+            }}>
+              <span style={{
+                width:6, height:6, borderRadius:"50%", display:"inline-block",
+                background: liveStatus==="ok" ? "#22c55e" : "#94a3b8",
+                boxShadow: liveStatus==="ok" ? "0 0 5px #22c55e" : "none",
+                animation: liveStatus==="loading" ? "blink 1s infinite" : "none",
+              }}/>
+              {liveStatus==="loading" && "Cargando noticias..."}
+              {liveStatus==="ok" && `${liveNews.length} noticias · ${liveUpdated?.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}`}
+              {liveStatus==="error" && "Sin conexión · Google News"}
+            </div>
+            <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>Google News · actualiza cada 2 min</span>
           </div>
         </div>
-      </div>
 
-      {/* Search bar */}
-      <div style={{ position:"relative", marginBottom:16 }}>
-        <Search size={16} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
-        <input
-          value={search}
-          onChange={e=>setSearch(e.target.value)}
-          placeholder="Buscar por palabra clave: YPF, inflación, Fed, petróleo…"
-          style={{
-            width:"100%", padding:"12px 14px 12px 40px", borderRadius:12,
-            fontFamily:FB, fontSize:13, border:`1.5px solid ${t.brd}`,
-            background:t.srf, color:t.tx, outline:"none", transition:"border-color .2s",
-          }}
-          onFocus={e=>e.target.style.borderColor=t.go}
-          onBlur={e=>e.target.style.borderColor=t.brd}
-        />
-        {search && (
-          <button onClick={()=>setSearch("")} style={{
-            position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
-            background:"none", border:"none", cursor:"pointer", color:t.mu, padding:4,
-          }}><X size={16} /></button>
+        {liveStatus === "loading" && (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:8 }}>
+            {[...Array(6)].map((_,i) => (
+              <div key={i} style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:10, padding:"14px 16px", height:80, animation:"blink 1.2s infinite" }} />
+            ))}
+          </div>
+        )}
+
+        {liveStatus === "ok" && liveNews.length > 0 && (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:8 }}>
+            {liveNews.map((n, i) => (
+              <a key={n.id} href={n.link} target="_blank" rel="noreferrer" style={{ textDecoration:"none", color:"inherit" }}>
+                <div style={{
+                  background:t.srf, border:`1px solid ${t.brd}`,
+                  borderRadius:10, padding:"14px 16px",
+                  transition:"all .18s", cursor:"pointer",
+                  borderLeft:`3px solid ${i < 3 ? t.go : t.brd}`,
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=t.go;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=t.sh;}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
+                    <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:6, textTransform:"uppercase", letterSpacing:".06em", maxWidth:140, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {n.fuente}
+                    </span>
+                    <span style={{ fontFamily:FB, fontSize:9, color:t.fa, whiteSpace:"nowrap" }}>{n.fecha}</span>
+                  </div>
+                  <p style={{ fontFamily:FB, fontSize:12, fontWeight:500, color:t.tx, lineHeight:1.5, margin:0 }}>
+                    {n.titulo}
+                  </p>
+                  <div style={{ fontFamily:FB, fontSize:10, color:t.go, marginTop:6, display:"flex", alignItems:"center", gap:4 }}>
+                    <ExternalLink size={9} /> Ver nota →
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {liveStatus === "error" && (
+          <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:10, padding:"16px 20px", fontFamily:FB, fontSize:12, color:t.rd }}>
+            No se pudo conectar con Google News. Verificá tu conexión.
+          </div>
         )}
       </div>
 
-      {/* Section pills */}
-      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
-        {SECCIONES.map(s => {
-          const isActive = seccion === s.id;
-          const count = countPorSeccion(s.id);
-          const pillColor = s.color ? catColors[s.color] || t.mu : t.mu;
-          return (
-            <button key={s.id} onClick={()=>setSeccion(s.id)} style={{
-              padding:"7px 16px", borderRadius:20, fontFamily:FB, fontSize:11, fontWeight:600,
-              cursor:"pointer", transition:"all .18s",
-              border:`1.5px solid ${isActive ? pillColor : t.brd}`,
-              background: isActive ? (s.color ? catBgs[s.color] || t.alt : t.tx) : "transparent",
-              color: isActive ? (s.color ? pillColor : (t===TH.d?"#0D1117":"#FFFFFF")) : t.mu,
-              display:"flex", alignItems:"center", gap:5,
-            }}>
-              <s.Icon size={12} />
-              {s.label}
-              <span style={{
-                fontFamily:FB, fontSize:9, fontWeight:700, opacity:.7,
-                background: isActive ? "rgba(255,255,255,.15)" : t.alt,
-                padding:"1px 6px", borderRadius:10, marginLeft:2,
-              }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Divider */}
+      <div style={{ height:1, background:t.brd, marginBottom:24 }} />
 
-      {/* Results count */}
-      {(search || seccion !== "todas") && (
-        <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
-          <Info size={12} />
-          {filtradas.length} resultado{filtradas.length!==1?"s":""}{search && ` para "${search}"`}{seccion!=="todas" && ` en ${seccion}`}
-          {(search || seccion!=="todas") && (
-            <button onClick={()=>{setSearch("");setSeccion("todas");}} style={{
-              background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"2px 10px",
-              fontFamily:FB, fontSize:10, color:t.mu, cursor:"pointer", display:"flex", alignItems:"center", gap:3,
-            }}><X size={10} /> Limpiar</button>
+      {/* ── MICRO NOTICIAS DE IMPACTO — Hardcodeadas / Curadas ── */}
+      <div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:16 }}>
+          <div>
+            <SectionLabel t={t}>ANÁLISIS DE IMPACTO</SectionLabel>
+            <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:-10 }}>
+              {NOTICIAS.length} notas curadas · Dato separado de interpretación · Balanz Capital Research
+            </p>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <div style={{ background:t.rdBg, borderRadius:8, padding:"6px 14px", fontFamily:FB, fontSize:11, color:t.rd, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+              <CircleDot size={10} /> {NOTICIAS.filter(n=>n.relevancia==="alta").length} alta relevancia
+            </div>
+          </div>
+        </div>
+
+        {/* Search bar */}
+        <div style={{ position:"relative", marginBottom:16 }}>
+          <Search size={16} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+          <input
+            value={search}
+            onChange={e=>setSearch(e.target.value)}
+            placeholder="Buscar por palabra clave: YPF, inflación, Fed, petróleo…"
+            style={{
+              width:"100%", padding:"12px 14px 12px 40px", borderRadius:12,
+              fontFamily:FB, fontSize:13, border:`1.5px solid ${t.brd}`,
+              background:t.srf, color:t.tx, outline:"none", transition:"border-color .2s",
+            }}
+            onFocus={e=>e.target.style.borderColor=t.go}
+            onBlur={e=>e.target.style.borderColor=t.brd}
+          />
+          {search && (
+            <button onClick={()=>setSearch("")} style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:t.mu, padding:4 }}>
+              <X size={16} />
+            </button>
           )}
         </div>
-      )}
 
-      {/* Noticias list */}
-      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-        {filtradas.length === 0 && (
-          <Card t={t}>
-            <div style={{ padding:"40px 20px", textAlign:"center" }}>
-              <Search size={32} color={t.fa} style={{ marginBottom:12 }} />
-              <p style={{ fontFamily:FB, fontSize:14, color:t.mu }}>No se encontraron noticias con esos criterios.</p>
-              <p style={{ fontFamily:FB, fontSize:12, color:t.fa, marginTop:4 }}>Probá con otra palabra clave o cambiá la sección.</p>
-            </div>
-          </Card>
+        {/* Section pills */}
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
+          {SECCIONES.map(s => {
+            const isActive = seccion === s.id;
+            const count = countPorSeccion(s.id);
+            const pillColor = s.color ? catColors[s.color] || t.mu : t.mu;
+            return (
+              <button key={s.id} onClick={()=>setSeccion(s.id)} style={{
+                padding:"7px 16px", borderRadius:20, fontFamily:FB, fontSize:11, fontWeight:600,
+                cursor:"pointer", transition:"all .18s",
+                border:`1.5px solid ${isActive ? pillColor : t.brd}`,
+                background: isActive ? (s.color ? catBgs[s.color] || t.alt : t.tx) : "transparent",
+                color: isActive ? (s.color ? pillColor : (t===TH.d?"#0D1117":"#FFFFFF")) : t.mu,
+                display:"flex", alignItems:"center", gap:5,
+              }}>
+                <s.Icon size={12} />
+                {s.label}
+                <span style={{
+                  fontFamily:FB, fontSize:9, fontWeight:700, opacity:.7,
+                  background: isActive ? "rgba(255,255,255,.15)" : t.alt,
+                  padding:"1px 6px", borderRadius:10, marginLeft:2,
+                }}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Results count */}
+        {(search || seccion !== "todas") && (
+          <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
+            <Info size={12} />
+            {filtradas.length} resultado{filtradas.length!==1?"s":""}{search && ` para "${search}"`}{seccion!=="todas" && ` en ${seccion}`}
+            {(search || seccion!=="todas") && (
+              <button onClick={()=>{setSearch("");setSeccion("todas");}} style={{
+                background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"2px 10px",
+                fontFamily:FB, fontSize:10, color:t.mu, cursor:"pointer", display:"flex", alignItems:"center", gap:3,
+              }}><X size={10} /> Limpiar</button>
+            )}
+          </div>
         )}
 
-        {filtradas.map(n => {
-          const ac  = catColors[n.catColor] || t.mu;
-          const bg  = catBgs[n.catColor]   || t.alt;
-          const open = expandida === n.id;
-
-          return (
-            <div key={n.id} style={{
-              background:t.srf, borderRadius:14, border:`1px solid ${t.brd}`,
-              borderLeft:`4px solid ${ac}`, overflow:"hidden",
-              boxShadow: open ? t.sh : "none",
-              transition:"box-shadow .2s",
-            }}>
-              {/* Card header — always visible */}
-              <button onClick={()=>setExpandida(open ? null : n.id)} style={{
-                width:"100%", textAlign:"left", background:"none", border:"none",
-                padding:"18px 20px", cursor:"pointer", display:"flex",
-                justifyContent:"space-between", alignItems:"flex-start", gap:16,
+        {/* Noticias list */}
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {filtradas.length === 0 && (
+            <Card t={t}>
+              <div style={{ padding:"40px 20px", textAlign:"center" }}>
+                <Search size={32} color={t.fa} style={{ marginBottom:12 }} />
+                <p style={{ fontFamily:FB, fontSize:14, color:t.mu }}>No se encontraron noticias con esos criterios.</p>
+              </div>
+            </Card>
+          )}
+          {filtradas.map(n => {
+            const ac  = catColors[n.catColor] || t.mu;
+            const bg  = catBgs[n.catColor]   || t.alt;
+            const open = expandida === n.id;
+            return (
+              <div key={n.id} style={{
+                background:t.srf, borderRadius:14, border:`1px solid ${t.brd}`,
+                borderLeft:`4px solid ${ac}`, overflow:"hidden",
+                boxShadow: open ? t.sh : "none", transition:"box-shadow .2s",
               }}>
-                <div style={{ flex:1 }}>
-                  {/* Meta row */}
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, flexWrap:"wrap" }}>
-                    <span style={{
-                      fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".08em",
-                      textTransform:"uppercase", color:ac,
-                      background:bg, padding:"2px 9px", borderRadius:20,
-                    }}>{n.cat}</span>
-                    {n.seccion && (
-                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:t.mu, background:t.alt, padding:"2px 8px", borderRadius:20 }}>
-                        {n.seccion}
-                      </span>
-                    )}
-                    {n.relevancia === "alta" && (
-                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.rd, background:t.rdBg, padding:"2px 8px", borderRadius:20, display:"flex", alignItems:"center", gap:3 }}>
-                        <AlertTriangle size={9} /> ALTA
-                      </span>
-                    )}
-                    <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{n.fecha}</span>
-                  </div>
-                  {/* Titular */}
-                  <h3 style={{
-                    fontFamily:FH, fontSize:19, fontWeight:700, color:t.tx,
-                    lineHeight:1.25, marginBottom: open ? 0 : 4,
-                  }}>{n.titulo}</h3>
-                  {/* Preview line when collapsed */}
-                  {!open && (
-                    <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:6 }}
-                      dangerouslySetInnerHTML={{ __html: n.cuerpo.replace(/<[^>]+>/g,"").slice(0, 140) + "…" }}
-                    />
-                  )}
-                </div>
-                {/* Toggle icon */}
-                <div style={{
-                  color:t.mu, flexShrink:0, marginTop:2,
-                  transform: open ? "rotate(180deg)" : "rotate(0deg)",
-                  transition:"transform .2s",
-                }}><ChevronDown size={18} /></div>
-              </button>
-
-              {/* Expanded body */}
-              {open && (
-                <div style={{
-                  padding:"0 20px 22px",
-                  borderTop:`1px solid ${t.brd}`,
-                  paddingTop:18,
+                <button onClick={()=>setExpandida(open ? null : n.id)} style={{
+                  width:"100%", textAlign:"left", background:"none", border:"none",
+                  padding:"18px 20px", cursor:"pointer", display:"flex",
+                  justifyContent:"space-between", alignItems:"flex-start", gap:16,
                 }}>
-                  <div
-                    style={{ fontFamily:FB, fontSize:13, color:t.tx, lineHeight:1.85 }}
-                    dangerouslySetInnerHTML={{ __html: n.cuerpo }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, flexWrap:"wrap" }}>
+                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:ac, background:bg, padding:"2px 9px", borderRadius:20 }}>{n.cat}</span>
+                      {n.seccion && <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:t.mu, background:t.alt, padding:"2px 8px", borderRadius:20 }}>{n.seccion}</span>}
+                      {n.relevancia === "alta" && (
+                        <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.rd, background:t.rdBg, padding:"2px 8px", borderRadius:20, display:"flex", alignItems:"center", gap:3 }}>
+                          <AlertTriangle size={9} /> ALTA
+                        </span>
+                      )}
+                      <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{n.fecha}</span>
+                    </div>
+                    <h3 style={{ fontFamily:FH, fontSize:19, fontWeight:700, color:t.tx, lineHeight:1.25, marginBottom: open ? 0 : 4 }}>{n.titulo}</h3>
+                    {!open && <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6, marginTop:6 }} dangerouslySetInnerHTML={{ __html: n.cuerpo.replace(/<[^>]+>/g,"").slice(0, 140) + "…" }} />}
+                  </div>
+                  <div style={{ color:t.mu, flexShrink:0, marginTop:2, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition:"transform .2s" }}>
+                    <ChevronDown size={18} />
+                  </div>
+                </button>
+                {open && (
+                  <div style={{ padding:"0 20px 22px", borderTop:`1px solid ${t.brd}`, paddingTop:18 }}>
+                    <div style={{ fontFamily:FB, fontSize:13, color:t.tx, lineHeight:1.85 }} dangerouslySetInnerHTML={{ __html: n.cuerpo }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:20, lineHeight:1.5 }}>
-        Contenido de carácter informativo. Los análisis e interpretaciones son opinión editorial y no constituyen asesoramiento de inversión.
-      </p>
+        <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:20, lineHeight:1.5 }}>
+          Análisis de impacto: contenido editorial, no constituye asesoramiento de inversión.
+        </p>
+      </div>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════
-   INICIO VIEW — Minimal, clean, great UX
-════════════════════════════════════════════════════════════════ */
 function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, clock, liveMarket={} }) {
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
@@ -3768,7 +3857,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
           color:"rgba(255,255,255,.45)", lineHeight:1.7,
           maxWidth:440, marginBottom:30,
         }}>
-          Inteligencia financiera para el mercado argentino e internacional.
+          Para decidir mejor, todo en un solo lugar.
         </p>
 
         <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>

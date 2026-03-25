@@ -2204,12 +2204,18 @@ function InstrumentosView({ t }) {
   const daysSinceBase = Math.floor((Date.now() - BASE_DATE.getTime()) / 86400000);
   const today = new Date().toLocaleDateString("es-AR");
 
-  // Fetch 1: DATA912 — bonos soberanos USD + letras S-prefix en tiempo real
-  // Verificado el 24/MAR/2026: AO27D=102.5, AL30D=60.96, GD30D=62.68, S29Y6=126.01
+  // Fetch 1: DATA912 — UN SOLO endpoint arg_bonds tiene TODO
+  // Verificado 24/MAR/2026:
+  //   Soberanos: AO27D=102.5, AL30D=60.96, GD30D=62.68
+  //   BONCAPs:   T15E7=128.5, T30A7=116.7, T30J6=135.5, T31Y7=109.8, TY30P=117.9
+  //   Duales:    TTJ26=151.4, TTS26=150.0, TTD26=148.5
+  //   CER:       TX26=1300, TX28=1880, TX31=1333
+  //   DL:        TZV26=138700, TZV27=132480
+  // arg_notes tiene S-prefix (LECAPs) + X-prefix (LECAP DL)
   useEffect(() => {
     const load = async () => {
       try {
-        // Bonos soberanos
+        // arg_bonds: soberanos USD + BONCAPs + Duales + CER + DL
         const rb = await fetch("https://data912.com/live/arg_bonds", {
           headers: { "User-Agent": "Mozilla/5.0" }
         });
@@ -2217,17 +2223,17 @@ function InstrumentosView({ t }) {
         const prices = {};
         bonds.forEach(b => {
           if (!b.symbol || b.c == null) return;
-          prices[b.symbol] = b.c;
+          prices[b.symbol] = { price: b.c, pct: b.pct_change };
         });
         const matched = SOBERANOS.filter(s => prices[s.t]).length;
-        setBondPrices(prices);
+        setBondPrices(prices); // ahora guarda {price, pct} en vez de solo precio
         setBondStatus(matched > 0 ? "ok" : "error");
       } catch {
         setBondStatus("error");
       }
 
       try {
-        // Letras del Tesoro — solo S-prefix (T-prefix no disponible en DATA912)
+        // arg_notes: LECAPs S-prefix + X-prefix (LECAP DL)
         const rn = await fetch("https://data912.com/live/arg_notes", {
           headers: { "User-Agent": "Mozilla/5.0" }
         });
@@ -2286,27 +2292,24 @@ function InstrumentosView({ t }) {
     const temBase = parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
     if (!pBase || !rBase || !temBase) return null;
 
-    const vnVto    = pBase * (1 + rBase);                          // VN al vto — fijo
-    const diasBase = g.dias;                                        // días al vto al 19-MAR
-    const diasRest = Math.max(1, diasBase - daysSinceBase);        // días restantes hoy
+    const vnVto    = pBase * (1 + rBase);
+    const diasBase = g.dias;
+    const diasRest = Math.max(1, diasBase - daysSinceBase);
 
-    // Precio: DATA912 live si es S-prefix, teórico si es T-prefix (BONCAP)
+    // Precio live: S-prefix → lecapLive (arg_notes), T-prefix → bondPrices (arg_bonds)
+    // Verificado 24/MAR: T15E7=128.5, T31Y7=109.8, S29Y6=126.01
     const isS = row.t.startsWith("S");
-    const liveData = lecapLive[row.t];
-    const pLive = (isS && liveData?.price > 0)
+    const isT = row.t.startsWith("T");
+    const liveData = isS ? lecapLive[row.t] : isT ? bondPrices[row.t] : null;
+    const pLive = liveData?.price > 0
       ? liveData.price
       : pBase * Math.pow(1 + temBase, daysSinceBase / 30);
-    const isLiveLECAP = isS && !!liveData?.price;
+    const isLiveLECAP = !!(liveData?.price > 0);
 
     if (diasRest <= 0) return { pLive, rendimiento:0, tem:0, tna:0, diasRest:0, isLiveLECAP };
 
-    // rendimiento total desde precio live hasta vto
     const rendimiento = (vnVto / pLive - 1) * 100;
-
-    // TEM implícita del mercado hoy
     const temLive = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
-
-    // TNA = rendimiento total × (365 / días restantes) — convención BYMA/MAE
     const tnaLive = rendimiento * (365 / diasRest);
 
     return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest, isLiveLECAP };
@@ -2488,11 +2491,20 @@ function InstrumentosView({ t }) {
                   {DUALES.map((d,i) => {
                     const diasAct = diasHasta(d.vto);
                     const tamarTEM = tamarRate ? ((Math.pow(1 + tamarRate/100/365, 30) - 1)*100) : null;
+                    const liveD = bondPrices[d.t];
                     return (
                       <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                        <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
+                        <Td2>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span>
+                            {liveD && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo · DATA912"/>}
+                          </div>
+                        </Td2>
                         <Td2 bold>{d.vto}</Td2>
                         <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
+                        <Td2 right bold color={liveD?t.tx:t.mu}>
+                          {liveD ? `$${liveD.price.toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})}` : "—"}
+                        </Td2>
                         <Td2 right color={parseFloat(d.temFija.replace(",","."))<0?t.rd:t.go} bold>{d.temFija}</Td2>
                         <Td2 right color={parseFloat(d.tnaFija.replace(",","."))<0?t.rd:t.go}>{d.tnaFija}</Td2>
                         <Td2 right color={t.bl} bold>{d.temVar}</Td2>
@@ -2560,17 +2572,27 @@ function InstrumentosView({ t }) {
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                 <thead><tr>
-                  {["Ticker","Vto","Días rest.","Precio base","Rendim.","TNA"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
+                  {["Ticker","Vto","Días rest.","Precio live","Rendim.","TNA"].map((h,i) => <Th2 key={h} right={i>1}>{h}</Th2>)}
                 </tr></thead>
                 <tbody>
                   {DOLARLINKED.map((d,i) => {
                     const diasAct = diasHasta(d.vto);
+                    const liveD = bondPrices[d.t];
                     return (
                       <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>
-                        <Td2><span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span></Td2>
+                        <Td2>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span>
+                            {liveD && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo · DATA912"/>}
+                          </div>
+                        </Td2>
                         <Td2 bold>{d.vto}</Td2>
                         <Td2 right color={diasAct<=30?t.rd:diasAct<=90?t.go:t.mu}>{diasAct}d</Td2>
-                        <Td2 right color={t.mu}>{d.pre}</Td2>
+                        <Td2 right bold color={liveD?t.tx:t.mu}>
+                          {liveD
+                            ? `$${liveD.price.toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:0})}`
+                            : d.pre}
+                        </Td2>
                         <Td2 right color={parseFloat(d.rend.replace(",","."))<0?t.rd:t.gr} bold>{d.rend}</Td2>
                         <Td2 right color={parseFloat(d.tna.replace(",","."))<0?t.rd:t.gr}>{d.tna}</Td2>
                       </tr>
@@ -2625,7 +2647,8 @@ function InstrumentosView({ t }) {
                     </tr></thead>
                     <tbody>
                       {grp.items.map((s,i) => {
-                        const liveRaw = bondPrices[s.t] || bondPrices[s.t.replace("D","")] || null;
+                        const liveEntry = bondPrices[s.t] || bondPrices[s.t.replace("D","")] || null;
+                        const liveRaw = liveEntry?.price ?? null;
                         const m = calcBondMetrics(s, liveRaw);
                         return (
                           <tr key={i} style={trStyle} onMouseEnter={trHover} onMouseLeave={trLeave}>

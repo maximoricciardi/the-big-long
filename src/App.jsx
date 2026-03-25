@@ -1456,9 +1456,11 @@ const upColor   = {"MUY ALTO":"green",ALTO:"blue",MEDIO:"gold",BAJO:"gray"};
 /* ════════════════════════════════════════════════════════════════
    EQUITY SCREENER COMPONENT
 ════════════════════════════════════════════════════════════════ */
-// Finnhub API key moved to Vercel env var (FINNHUB_KEY) — proxied via /api/quote and /api/candle
-const FINNHUB_PROXY = "/api/quote";
-const FINNHUB_CANDLE_PROXY = "/api/candle";
+// Finnhub — llamadas directas al API con key en frontend
+const FINNHUB_KEY = "d6uv5a9r01qig5460670d6uv5a9r01qig546067g";
+const FINNHUB_BASE = "https://finnhub.io/api/v1";
+const FINNHUB_PROXY = `${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol`;
+const FINNHUB_CANDLE_PROXY = `${FINNHUB_BASE}/stock/candle?token=${FINNHUB_KEY}&symbol`;
 
 function EquityScreener({ t }) {
   // ── Filtros & sort ────────────────────────────────────────────
@@ -1489,7 +1491,7 @@ function EquityScreener({ t }) {
       for (let i = 0; i < tickers.length; i++) {
         if (cancelled) return;
         try {
-          const r = await fetch(`${FINNHUB_PROXY}?symbol=${tickers[i]}`);
+          const r = await fetch(`${FINNHUB_PROXY}=${tickers[i]}`);
           const d = await r.json();
           if (d.c && d.c > 0) {
             const entry = { price: d.c, change: d.d, changePct: d.dp };
@@ -1532,7 +1534,7 @@ function EquityScreener({ t }) {
       for (let i = 0; i < tickers.length; i++) {
         if (cancelled) return;
         try {
-          const url = `${FINNHUB_CANDLE_PROXY}?symbol=${tickers[i]}&resolution=W&from=${W52_AGO}&to=${NOW}`;
+          const url = `${FINNHUB_CANDLE_PROXY}=${tickers[i]}&resolution=W&from=${W52_AGO}&to=${NOW}`;
           const r = await fetch(url);
           const d = await r.json();
           if (d.s === "ok" && d.c?.length > 1) {
@@ -3277,25 +3279,25 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
           dot={!!mervalARS}
         />
 
-        {/* Oro — GLD ETF, Finnhub */}
+        {/* Oro — XAU/USD spot via OANDA/Finnhub */}
         <LivePanel
-          label="Oro (GLD)"
+          label="Oro spot (XAU/USD)"
           value={gold ? `USD ${gold.price.toFixed(2)}` : null}
-          sub="SPDR Gold Shares · Finnhub"
+          sub="Precio spot oz · OANDA via Finnhub"
           changePct={gold?.changePct ?? null}
           color="gold"
           dot={!!gold}
         />
 
-        {/* Brent — BNO ETF, Finnhub */}
+        {/* Brent — BCO/USD precio real barril via OANDA/Finnhub */}
         <LivePanel
-          label="Petróleo (BNO)"
+          label="Brent (BCO/USD)"
           value={brent ? `USD ${brent.price.toFixed(2)}` : null}
-          sub="United States Brent Oil Fund · ETF"
+          sub="Precio barril · OANDA via Finnhub"
           changePct={brent?.changePct ?? null}
           color="gold"
           dot={!!brent}
-          badge="ETF PROXY"
+          
         />
 
         {/* LECAP mayor TNA ≤ 6 meses — dinámico */}
@@ -3399,7 +3401,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
       </Card>
 
       <p style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:16, lineHeight:1.6 }}>
-        Fuentes: <strong>dolarapi.com</strong> (FX — tiempo real) · <strong>ArgentinaDatos</strong> (Riesgo País EMBI JP Morgan · Merval ARS) · <strong>Finnhub</strong> (GLD · BNO — tiempo real)
+        Fuentes: <strong>dolarapi.com</strong> (FX — tiempo real) · <strong>ArgentinaDatos</strong> (Riesgo País EMBI JP Morgan) · <strong>Finnhub/OANDA</strong> (Oro XAU/USD · Brent BCO/USD · MERV — tiempo real)
       </p>
     </div>
   );
@@ -4565,23 +4567,26 @@ export default function App() {
     const fetchMarket = async () => {
       const updates = {};
       try {
-        const r = await fetch(`${FINNHUB_PROXY}?symbol=SPY`);
+        const r = await fetch(`${FINNHUB_PROXY}=SPY`);
         const d = await r.json();
         if (d.c > 0) updates.spy = { price: d.c, changePct: d.dp };
       } catch {}
       try {
-        const r = await fetch(`${FINNHUB_PROXY}?symbol=GLD`);
-        const d = await r.json();
-        if (d.c > 0) updates.gold = { price: d.c, changePct: d.dp };
+      try {
+        // Oro — XAU/USD spot price via Finnhub OANDA feed (~USD/oz real)
+        const rg = await fetch(`${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol=OANDA:XAU_USD`);
+        const dg = await rg.json();
+        if (dg.c > 0) updates.gold = { price: dg.c, changePct: dg.dp };
       } catch {}
       try {
-        const r = await fetch(`${FINNHUB_PROXY}?symbol=BNO`);
-        const d = await r.json();
-        if (d.c > 0) updates.brent = { price: d.c, changePct: d.dp };
+        // Brent crude — precio real del barril vía Finnhub OANDA feed
+        const rb = await fetch(`${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol=OANDA:BCO_USD`);
+        const db = await rb.json();
+        if (db.c > 0) updates.brent = { price: db.c, changePct: db.dp };
       } catch {}
       try {
         // Merval (BYMA) — Finnhub symbol MERV, misma infraestructura que SPY/GLD/BNO
-        const r = await fetch(`${FINNHUB_PROXY}?symbol=MERV`);
+        const r = await fetch(`${FINNHUB_PROXY}=MERV`);
         const d = await r.json();
         if (d.c > 0) updates.mervalARS = { value: d.c, changePct: d.dp };
       } catch {}
@@ -4664,8 +4669,8 @@ export default function App() {
     `USD Blue ${fmt2(bl)}`,
     liveMarket.spy    ? `SPY USD ${liveMarket.spy.price.toFixed(2)}${fmtPct(liveMarket.spy.changePct)}`       : "SPY —",
     liveMarket.mervalARS ? `Merval ${liveMarket.mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0})} ARS${fmtPct(liveMarket.mervalARS.changePct)}` : "Merval —",
-    liveMarket.gold   ? `Oro (GLD) USD ${liveMarket.gold.price.toFixed(2)}${fmtPct(liveMarket.gold.changePct)}`   : "Oro —",
-    liveMarket.brent  ? `Brent (BNO) USD ${liveMarket.brent.price.toFixed(2)}${fmtPct(liveMarket.brent.changePct)}` : "Brent —",
+    liveMarket.gold   ? `Oro (XAU/USD) ${liveMarket.gold.price.toFixed(2)}${fmtPct(liveMarket.gold.changePct)}`   : "Oro —",
+    liveMarket.brent  ? `Brent (BCO/USD) ${liveMarket.brent.price.toFixed(2)}${fmtPct(liveMarket.brent.changePct)}` : "Brent —",
     riesgoPais ? `Riesgo País ${riesgoPais.valor} pb` : "Riesgo País —",
     newsSnippet,
   ].filter(Boolean).join("  ·  ");

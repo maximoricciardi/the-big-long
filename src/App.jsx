@@ -1,5 +1,3 @@
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Home, ClipboardList, Newspaper, DollarSign, BarChart3, Search, Briefcase,
@@ -4582,10 +4580,10 @@ export default function App() {
         if (d.c > 0) updates.brent = { price: d.c, changePct: d.dp };
       } catch {}
       try {
-        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
+        // Merval (BYMA) — Finnhub symbol MERV, misma infraestructura que SPY/GLD/BNO
+        const r = await fetch(`${FINNHUB_PROXY}?symbol=MERV`);
         const d = await r.json();
-        const val = d?.valor || d?.ultimo || (Array.isArray(d) ? d[d.length-1]?.valor : null);
-        if (val > 0) updates.mervalARS = { value: val, changePct: d?.variacion ?? null };
+        if (d.c > 0) updates.mervalARS = { value: d.c, changePct: d.dp };
       } catch {}
       if (!cancelled && Object.keys(updates).length > 0) {
         setLiveMarket(prev => ({ ...prev, ...updates }));
@@ -4973,12 +4971,6 @@ export default function App() {
 
       {/* ── AI CHAT WIDGET ── */}
       <AIChatWidget t={t} isMobile={isMobile} />
-      
-      {/* ── VERCEL WEB ANALYTICS ── */}
-      <Analytics />
-      
-      {/* ── VERCEL SPEED INSIGHTS ── */}
-      <SpeedInsights />
 
     </div>
   );

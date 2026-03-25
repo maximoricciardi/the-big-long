@@ -2188,6 +2188,444 @@ function calcBondMetrics(s, livePrice) {
   return { price, isLive, newTIR, newCY, newPar, varVsBase };
 }
 
+/* ════════════════════════════════════════════════════════════════
+   CALCULADORA DE SOBERANOS USD
+   Cash flows reales por bono · TIR bisección · Todos los flujos
+════════════════════════════════════════════════════════════════ */
+
+// Schedules de flujos por bono (por cada $100 VN original)
+// Formato: { date, cpn (cupón en USD), amort (amortización en USD) }
+// Basado en prospectos de emisión y restructuración 2020
+const BOND_SCHEDULES = {
+  "AO27D": (() => {
+    // BOPREAL Serie 1-D — mensual, vto Oct 2027, cupón 3% anual
+    const flows = [];
+    const start = new Date("2026-04-04");
+    const end   = new Date("2027-10-04");
+    let d = new Date(start);
+    let outstanding = 100;
+    const totalPeriods = Math.round((end - start) / (30*24*3600*1000)) + 1;
+    const amortPerPeriod = 100 / totalPeriods;
+    while (d <= end) {
+      flows.push({ date: d.toISOString().slice(0,10), cpn: parseFloat((outstanding * 0.03 / 12).toFixed(4)), amort: parseFloat(amortPerPeriod.toFixed(4)) });
+      outstanding -= amortPerPeriod;
+      d = new Date(d.getFullYear(), d.getMonth()+1, d.getDate());
+    }
+    return flows;
+  })(),
+  "AL29D": [
+    // Bonar 2029 — semestral Ene/Jul — cupón step-up — amort 4 cuotas desde Jul 2027
+    {date:"2026-07-09",cpn:0.50,amort:0},
+    {date:"2027-01-09",cpn:0.50,amort:0},
+    {date:"2027-07-09",cpn:0.50,amort:25},
+    {date:"2028-01-09",cpn:0.375,amort:25},
+    {date:"2028-07-09",cpn:0.25,amort:25},
+    {date:"2029-01-09",cpn:0.125,amort:25},
+  ],
+  "AN29D": [
+    // Bonar Nov 2029 — semestral May/Nov — cupón 3.5%
+    {date:"2026-05-09",cpn:1.75,amort:0},
+    {date:"2026-11-09",cpn:1.75,amort:0},
+    {date:"2027-05-09",cpn:1.75,amort:0},
+    {date:"2027-11-09",cpn:1.75,amort:0},
+    {date:"2028-05-09",cpn:1.75,amort:0},
+    {date:"2028-11-09",cpn:1.75,amort:0},
+    {date:"2029-05-09",cpn:1.75,amort:0},
+    {date:"2029-11-09",cpn:1.75,amort:100},
+  ],
+  "AL30D": [
+    // Bonar 2030 — semestral Ene/Jul — step-up cupón — amort 4 cuotas desde Ene 2027
+    {date:"2026-07-09",cpn:0.25,amort:0},
+    {date:"2027-01-09",cpn:0.25,amort:25},
+    {date:"2027-07-09",cpn:0.375,amort:25},
+    {date:"2028-01-09",cpn:0.50,amort:25},
+    {date:"2028-07-09",cpn:0.75,amort:0},
+    {date:"2029-01-09",cpn:0.75,amort:0},
+    {date:"2029-07-09",cpn:0.75,amort:0},
+    {date:"2030-01-09",cpn:0.75,amort:0},
+    {date:"2030-07-09",cpn:0.75,amort:25},
+  ],
+  "AL35D": [
+    // Bonar 2035 — semestral Ene/Jul — cupón 3.625% — amort desde Ene 2029
+    ...[["2026-07-09",1.8125,0],["2027-01-09",1.8125,0],["2027-07-09",1.8125,0],
+        ["2028-01-09",1.8125,0],["2028-07-09",1.8125,0],["2029-01-09",1.8125,14.29],
+        ["2029-07-09",1.5560,14.29],["2030-01-09",1.2995,14.29],["2030-07-09",1.0430,14.29],
+        ["2031-01-09",0.7864,14.29],["2031-07-09",0.5299,14.29],["2032-01-09",0.2734,14.27]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+  "AE38D": [
+    // Bonar 2038 — semestral Ene/Jul — cupón step-up 3.875% - amort desde Ene 2031
+    ...[["2026-07-09",1.9375,0],["2027-01-09",1.9375,0],["2027-07-09",1.9375,0],
+        ["2028-01-09",1.9375,0],["2028-07-09",1.9375,0],["2029-01-09",1.9375,0],
+        ["2029-07-09",1.9375,0],["2030-01-09",1.9375,0],["2030-07-09",1.9375,0],
+        ["2031-01-09",1.9375,12.5],["2031-07-09",1.6953,12.5],["2032-01-09",1.4531,12.5],
+        ["2032-07-09",1.2109,12.5],["2033-01-09",0.9688,12.5],["2033-07-09",0.7266,12.5],
+        ["2034-01-09",0.4844,12.5],["2034-07-09",0.2422,12.5],["2035-01-09",0.1,12.5]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+  "AL41D": [
+    // Bonar 2041 — semestral Ene/Jul — cupón 4.125% — amort desde Jul 2027
+    ...[["2026-07-09",2.0625,0],["2027-01-09",2.0625,0],["2027-07-09",2.0625,12.5],
+        ["2028-01-09",1.8047,12.5],["2028-07-09",1.5469,12.5],["2029-01-09",1.2891,12.5],
+        ["2029-07-09",1.0313,12.5],["2030-01-09",0.7734,12.5],["2030-07-09",0.5156,12.5],
+        ["2031-01-09",0.2578,12.5],["2031-07-09",0.1,12.5]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+  "GD29D": [
+    // Global 2029 — semestral Ene/Jul — cupón step-up — amort 4 cuotas Jul 2027
+    {date:"2026-07-09",cpn:0.50,amort:0},
+    {date:"2027-01-09",cpn:0.50,amort:0},
+    {date:"2027-07-09",cpn:0.50,amort:25},
+    {date:"2028-01-09",cpn:0.375,amort:25},
+    {date:"2028-07-09",cpn:0.25,amort:25},
+    {date:"2029-01-09",cpn:0.125,amort:25},
+  ],
+  "GD30D": [
+    {date:"2026-07-09",cpn:0.25,amort:0},
+    {date:"2027-01-09",cpn:0.25,amort:25},
+    {date:"2027-07-09",cpn:0.375,amort:25},
+    {date:"2028-01-09",cpn:0.50,amort:25},
+    {date:"2028-07-09",cpn:0.75,amort:0},
+    {date:"2029-01-09",cpn:0.75,amort:0},
+    {date:"2029-07-09",cpn:0.75,amort:0},
+    {date:"2030-01-09",cpn:0.75,amort:0},
+    {date:"2030-07-09",cpn:0.75,amort:25},
+  ],
+  "GD35D": [
+    ...[["2026-07-09",1.8125,0],["2027-01-09",1.8125,0],["2027-07-09",1.8125,0],
+        ["2028-01-09",1.8125,0],["2028-07-09",1.8125,0],["2029-01-09",1.8125,14.29],
+        ["2029-07-09",1.5560,14.29],["2030-01-09",1.2995,14.29],["2030-07-09",1.0430,14.29],
+        ["2031-01-09",0.7864,14.29],["2031-07-09",0.5299,14.29],["2032-01-09",0.2734,14.27]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+  "GD38D": [
+    ...[["2026-07-09",1.9375,0],["2027-01-09",1.9375,0],["2027-07-09",1.9375,0],
+        ["2028-01-09",1.9375,0],["2028-07-09",1.9375,0],["2029-01-09",1.9375,0],
+        ["2029-07-09",1.9375,0],["2030-01-09",1.9375,0],["2030-07-09",1.9375,0],
+        ["2031-01-09",1.9375,12.5],["2031-07-09",1.6953,12.5],["2032-01-09",1.4531,12.5],
+        ["2032-07-09",1.2109,12.5],["2033-01-09",0.9688,12.5],["2033-07-09",0.7266,12.5],
+        ["2034-01-09",0.4844,12.5],["2034-07-09",0.2422,12.5],["2035-01-09",0.1,12.5]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+  "GD41D": [
+    ...[["2026-07-09",2.0625,0],["2027-01-09",2.0625,0],["2027-07-09",2.0625,12.5],
+        ["2028-01-09",1.8047,12.5],["2028-07-09",1.5469,12.5],["2029-01-09",1.2891,12.5],
+        ["2029-07-09",1.0313,12.5],["2030-01-09",0.7734,12.5],["2030-07-09",0.5156,12.5],
+        ["2031-01-09",0.2578,12.5],["2031-07-09",0.1,12.5]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+  "GD46D": [
+    ...[["2026-07-09",2.125,0],["2027-01-09",2.125,0],["2027-07-09",2.125,0],
+        ["2028-01-09",2.125,0],["2028-07-09",2.125,0],["2029-01-09",2.125,0],
+        ["2029-07-09",2.125,0],["2030-01-09",2.125,0],["2030-07-09",2.125,0],
+        ["2031-01-09",2.125,0],["2031-07-09",2.125,0],["2032-01-09",2.125,0],
+        ["2032-07-09",2.125,0],["2033-01-09",2.125,0],["2033-07-09",2.125,0],
+        ["2034-01-09",2.125,0],["2034-07-09",2.125,0],["2035-01-09",2.125,0],
+        ["2035-07-09",2.125,0],["2036-01-09",2.125,0],["2036-07-09",2.125,0],
+        ["2037-01-09",2.125,0],["2037-07-09",2.125,0],["2038-01-09",2.125,0],
+        ["2038-07-09",2.125,0],["2039-01-09",2.125,0],["2039-07-09",2.125,0],
+        ["2040-01-09",2.125,0],["2040-07-09",2.125,0],["2041-01-09",2.125,0],
+        ["2041-07-09",2.125,0],["2042-01-09",2.125,0],["2042-07-09",2.125,0],
+        ["2043-01-09",2.125,0],["2043-07-09",2.125,0],["2044-01-09",2.125,0],
+        ["2044-07-09",2.125,0],["2045-01-09",2.125,0],["2045-07-09",2.125,0],
+        ["2046-01-09",2.125,0],["2046-07-09",2.125,100]
+    ].map(([date,cpn,amort])=>({date,cpn,amort})),
+  ],
+};
+
+// Bisección para TIR de soberano dado price y flows
+function calcSovTIR(price, flows) {
+  // flows: array de {days, cashflow} donde cashflow es en $ por $100 VN
+  // price: precio de compra por $100 VN
+  const f = (r) => flows.reduce((acc, {days, cashflow}) => acc + cashflow / Math.pow(1+r, days/365), 0) - price;
+  let lo = -0.5, hi = 5.0;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) > 0) lo = mid; else hi = mid;
+    if (hi - lo < 1e-8) break;
+  }
+  return (lo + hi) / 2;
+}
+
+function SoberanosCalc({ t, bondPrices }) {
+  const [selTicker, setSelTicker] = useState("GD30D");
+  const [monto, setMonto]         = useState("10000");
+  const [comision, setComision]   = useState("0.5");
+  const [precioEdit, setPrecioEdit] = useState("");
+  const [open, setOpen]           = useState(false);
+
+  const bond = SOBERANOS.find(s => s.t === selTicker) || SOBERANOS[0];
+  const liveEntry = bondPrices[selTicker];
+  const livePrice = liveEntry?.price ?? null;
+
+  // Precio efectivo — live o editado
+  const precioBase = livePrice ?? parseFloat(bond.p.replace("$","").replace(",","."));
+  const precioUso  = precioEdit !== "" ? parseFloat(precioEdit) : precioBase;
+
+  // Cash flows del bono seleccionado filtrados a partir de hoy
+  const today = new Date();
+  const rawFlows = (BOND_SCHEDULES[selTicker] || []).filter(f => new Date(f.date) > today);
+
+  const montoNum   = parseFloat(monto) || 0;
+  const comPct     = parseFloat(comision) || 0;
+  const comFactor  = 1 + comPct / 100;
+  const precioComp = precioUso * comFactor; // precio con comisión por $100 VN
+
+  // VN comprado = inversión / (precioComp / 100)
+  const vnComprado = montoNum > 0 ? montoNum / (precioComp / 100) : 0;
+
+  // Flujos escalados al VN comprado
+  const flows = rawFlows.map(f => {
+    const total = (f.cpn + f.amort) * vnComprado / 100;
+    const days  = Math.round((new Date(f.date) - today) / 86400000);
+    return { ...f, cpnUSD: f.cpn * vnComprado / 100, amortUSD: f.amort * vnComprado / 100, totalUSD: total, days };
+  });
+
+  const totalCobros  = flows.reduce((a, f) => a + f.totalUSD, 0);
+  const gananciaNeta = totalCobros - montoNum;
+  const retornoPct   = montoNum > 0 ? (gananciaNeta / montoNum) * 100 : 0;
+
+  // TIR
+  const tirFlows = rawFlows.map(f => ({ days: Math.round((new Date(f.date) - today) / 86400000), cashflow: f.cpn + f.amort }));
+  const tirVal   = tirFlows.length > 0 ? calcSovTIR(precioComp, tirFlows) * 100 : null;
+
+  // Acumulado para tabla
+  let acum = 0;
+
+  const fmt2 = (n) => n.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const fmtD = (s) => { const d = new Date(s); return d.toLocaleDateString("es-AR", {day:"numeric",month:"short",year:"numeric"}); };
+
+  return (
+    <div style={{ marginTop:32 }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+        <div>
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, letterSpacing:".1em", textTransform:"uppercase", marginBottom:4 }}>
+            CALCULADORA DE FLUJOS
+          </div>
+          <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>
+            Bonos Soberanos USD
+          </h3>
+        </div>
+        <button onClick={()=>setOpen(o=>!o)} style={{
+          display:"flex", alignItems:"center", gap:7, padding:"9px 18px", borderRadius:10,
+          fontFamily:FB, fontSize:12, fontWeight:600, cursor:"pointer", border:"none",
+          background: open ? t.goBg : t.go, color: open ? t.go : "#fff",
+          border:`1.5px solid ${t.go}`,
+        }}>
+          {open ? <><ChevronUp size={14}/> Cerrar calculadora</> : <><Target size={14}/> Calcular flujos</>}
+        </button>
+      </div>
+
+      {open && (
+        <div className="fade-up">
+          <Card t={t}>
+            {/* ── INPUTS ── */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:14, marginBottom:24 }}>
+
+              {/* Selección de bono */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", display:"block", marginBottom:5 }}>
+                  Bono
+                </label>
+                <select value={selTicker} onChange={e=>{setSelTicker(e.target.value); setPrecioEdit("");}} style={{
+                  width:"100%", padding:"10px 12px", borderRadius:9, fontFamily:FB, fontSize:13, fontWeight:600,
+                  border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, cursor:"pointer", outline:"none",
+                }}>
+                  <optgroup label="Ley Argentina">
+                    {SOBERANOS.filter(s=>s.ley==="ARG").map(s=>(
+                      <option key={s.t} value={s.t}>{s.t} — {s.vto}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Ley Nueva York">
+                    {SOBERANOS.filter(s=>s.ley==="NY").map(s=>(
+                      <option key={s.t} value={s.t}>{s.t} — {s.vto}</option>
+                    ))}
+                  </optgroup>
+                </select>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:4 }}>
+                  {bond.ley === "NY" ? "🇺🇸 Ley Nueva York" : "🇦🇷 Ley Argentina"} · Pago {bond.pago}
+                </div>
+              </div>
+
+              {/* Monto inversión */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", display:"block", marginBottom:5 }}>
+                  Inversión (USD)
+                </label>
+                <div style={{ position:"relative" }}>
+                  <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontFamily:FB, fontSize:13, fontWeight:600, color:t.mu }}>$</span>
+                  <input type="number" value={monto} onChange={e=>setMonto(e.target.value)} min="0"
+                    style={{ width:"100%", padding:"10px 12px 10px 26px", borderRadius:9, fontFamily:FB, fontSize:13, fontWeight:600,
+                      border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}
+                    onFocus={e=>e.target.style.borderColor=t.go}
+                    onBlur={e=>e.target.style.borderColor=t.brd}
+                  />
+                </div>
+              </div>
+
+              {/* Precio */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", display:"block", marginBottom:5 }}>
+                  Precio por $100 VN
+                  {livePrice && precioEdit === "" && (
+                    <span style={{ marginLeft:5, background:"#22c55e22", color:"#16a34a", padding:"1px 6px", borderRadius:6, fontSize:8 }}>● LIVE</span>
+                  )}
+                </label>
+                <input type="number" value={precioEdit !== "" ? precioEdit : precioBase.toFixed(2)}
+                  onChange={e=>setPrecioEdit(e.target.value)}
+                  placeholder={precioBase.toFixed(2)}
+                  style={{ width:"100%", padding:"10px 12px", borderRadius:9, fontFamily:FB, fontSize:13, fontWeight:600,
+                    border:`1.5px solid ${precioEdit !== "" ? t.go : t.brd}`, background:t.srf, color:t.tx, outline:"none" }}
+                  onFocus={e=>e.target.style.borderColor=t.go}
+                  onBlur={e=>e.target.style.borderColor=precioEdit!==""?t.go:t.brd}
+                />
+                {precioEdit !== "" && (
+                  <button onClick={()=>setPrecioEdit("")} style={{ fontFamily:FB, fontSize:9, color:t.go, background:"none", border:"none", cursor:"pointer", marginTop:3, padding:0 }}>
+                    ↩ Volver al precio live
+                  </button>
+                )}
+              </div>
+
+              {/* Comisión */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", display:"block", marginBottom:5 }}>
+                  Comisión (%)
+                </label>
+                <div style={{ position:"relative" }}>
+                  <input type="number" value={comision} onChange={e=>setComision(e.target.value)} min="0" max="5" step="0.1"
+                    style={{ width:"100%", padding:"10px 36px 10px 12px", borderRadius:9, fontFamily:FB, fontSize:13, fontWeight:600,
+                      border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}
+                    onFocus={e=>e.target.style.borderColor=t.go}
+                    onBlur={e=>e.target.style.borderColor=t.brd}
+                  />
+                  <span style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontFamily:FB, fontSize:13, fontWeight:600, color:t.mu }}>%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── RESUMEN KPIs ── */}
+            {montoNum > 0 && flows.length > 0 && (
+              <>
+                <div style={{ height:1, background:t.brd, marginBottom:20 }} />
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:12, marginBottom:24 }}>
+                  {[
+                    { label:"Inversión inicial",  val:`USD ${fmt2(montoNum)}`,          color:t.rd,  bg:t.rdBg },
+                    { label:"VN comprado",         val:`USD ${fmt2(vnComprado)}`,         color:t.bl,  bg:t.blBg },
+                    { label:"Precio compra total", val:`$${fmt2(precioComp)} c/com.`,    color:t.mu,  bg:t.alt  },
+                    { label:"TIR anual",           val: tirVal != null ? `${tirVal.toFixed(2)}%` : "—", color:t.go, bg:t.goBg },
+                    { label:"Total a cobrar",      val:`USD ${fmt2(totalCobros)}`,        color:t.gr,  bg:t.grBg },
+                    { label:"Ganancia neta",       val:`USD ${fmt2(gananciaNeta)}`,       color:gananciaNeta>=0?t.gr:t.rd, bg:gananciaNeta>=0?t.grBg:t.rdBg },
+                    { label:"Retorno total",       val:`${retornoPct>=0?"+":""}${retornoPct.toFixed(2)}%`, color:retornoPct>=0?t.gr:t.rd, bg:retornoPct>=0?t.grBg:t.rdBg },
+                    { label:"Próximo pago",        val: flows[0] ? fmtD(flows[0].date) : "—", color:t.pu, bg:t.puBg },
+                  ].map((k,i) => (
+                    <div key={i} style={{ background:k.bg, border:`1px solid ${k.color}22`, borderRadius:12, padding:"14px 16px" }}>
+                      <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".08em", color:k.color, marginBottom:5 }}>{k.label}</div>
+                      <div style={{ fontFamily:FH, fontSize:17, fontWeight:700, color:k.color, lineHeight:1 }}>{k.val}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Barra de recupero */}
+                <div style={{ marginBottom:24 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:10, color:t.mu, marginBottom:5 }}>
+                    <span>Recupero de inversión</span>
+                    <span>{Math.min(100, (totalCobros/montoNum*100)).toFixed(1)}%</span>
+                  </div>
+                  <div style={{ height:8, background:t.alt, borderRadius:99, overflow:"hidden" }}>
+                    <div style={{ height:"100%", borderRadius:99, width:`${Math.min(100, totalCobros/montoNum*100)}%`,
+                      background:`linear-gradient(90deg, ${t.bl}, ${t.gr})`, transition:"width .4s" }} />
+                  </div>
+                </div>
+
+                {/* ── TABLA DE FLUJOS ── */}
+                <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".08em", marginBottom:10 }}>
+                  Flujos de caja detallados — {flows.length} pagos
+                </div>
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
+                    <thead>
+                      <tr style={{ background:t.alt }}>
+                        {["#","Fecha pago","Días","Renta","Amortización","Total flujo","Acumulado","Rec. %"].map((h,i) => (
+                          <th key={h} style={{ padding:"8px 12px", textAlign:i<3?"left":"right", fontSize:8, fontWeight:700,
+                            color:t.mu, letterSpacing:".08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {flows.map((f, i) => {
+                        acum += f.totalUSD;
+                        const recPct = montoNum > 0 ? acum / montoNum * 100 : 0;
+                        const isAmort = f.amortUSD > 0;
+                        return (
+                          <tr key={i} style={{
+                            background: isAmort ? t.goBg : (i%2===0 ? t.srf : t.alt),
+                            borderBottom:`1px solid ${t.brd}`,
+                          }}>
+                            <td style={{ padding:"8px 12px", fontSize:10, color:t.fa }}>{i+1}</td>
+                            <td style={{ padding:"8px 12px", fontSize:11, fontWeight:600, color:t.tx, whiteSpace:"nowrap" }}>{fmtD(f.date)}</td>
+                            <td style={{ padding:"8px 12px", fontSize:10, color:t.mu }}>{f.days}d</td>
+                            <td style={{ padding:"8px 12px", fontSize:11, color:t.bl, textAlign:"right", fontWeight: f.cpnUSD>0?500:400 }}>
+                              {f.cpnUSD > 0 ? `$${fmt2(f.cpnUSD)}` : <span style={{color:t.fa}}>—</span>}
+                            </td>
+                            <td style={{ padding:"8px 12px", fontSize:11, color:t.go, textAlign:"right", fontWeight: isAmort?700:400 }}>
+                              {isAmort ? `$${fmt2(f.amortUSD)}` : <span style={{color:t.fa}}>—</span>}
+                            </td>
+                            <td style={{ padding:"8px 12px", fontSize:12, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                              ${fmt2(f.totalUSD)}
+                            </td>
+                            <td style={{ padding:"8px 12px", fontSize:11, color:t.tx, textAlign:"right" }}>
+                              ${fmt2(acum)}
+                            </td>
+                            <td style={{ padding:"8px 12px", textAlign:"right" }}>
+                              <span style={{
+                                fontFamily:FB, fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:8,
+                                background: recPct >= 100 ? t.grBg : recPct >= 50 ? t.goBg : t.rdBg,
+                                color:      recPct >= 100 ? t.gr    : recPct >= 50 ? t.go    : t.rd,
+                              }}>{recPct.toFixed(1)}%</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {/* Totales */}
+                      <tr style={{ background:t.alt, borderTop:`2px solid ${t.brd}` }}>
+                        <td colSpan={3} style={{ padding:"10px 12px", fontFamily:FB, fontSize:10, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".06em" }}>TOTAL</td>
+                        <td style={{ padding:"10px 12px", fontSize:12, fontWeight:700, color:t.bl, textAlign:"right" }}>
+                          ${fmt2(flows.reduce((a,f)=>a+f.cpnUSD,0))}
+                        </td>
+                        <td style={{ padding:"10px 12px", fontSize:12, fontWeight:700, color:t.go, textAlign:"right" }}>
+                          ${fmt2(flows.reduce((a,f)=>a+f.amortUSD,0))}
+                        </td>
+                        <td style={{ padding:"10px 12px", fontSize:13, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                          ${fmt2(totalCobros)}
+                        </td>
+                        <td colSpan={2} style={{ padding:"10px 12px", fontSize:12, fontWeight:700, color:gananciaNeta>=0?t.gr:t.rd, textAlign:"right" }}>
+                          {gananciaNeta>=0?"+":""}${fmt2(gananciaNeta)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:14, lineHeight:1.6 }}>
+                  Flujos sobre VN comprado · TIR anualizada por bisección numérica · Precio con comisión incluida · Filas doradas = amortización de capital.
+                  Schedules basados en prospectos de restructuración 2020. No constituye asesoramiento de inversión.
+                </p>
+              </>
+            )}
+
+            {flows.length === 0 && montoNum > 0 && (
+              <div style={{ textAlign:"center", padding:"20px", fontFamily:FB, fontSize:12, color:t.fa }}>
+                Sin flujos futuros disponibles para este bono.
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InstrumentosView({ t }) {
   const [sub, setSub] = useState("lecap");
   const [bondPrices,  setBondPrices]  = useState({});
@@ -2687,6 +3125,12 @@ function InstrumentosView({ t }) {
           <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5 }}>
             * TIR calculada por bisección sobre flujos reales. No constituye recomendación de inversión.
           </p>
+
+          {/* ══════════════════════════════════════════════════
+              CALCULADORA SOBERANOS USD
+          ══════════════════════════════════════════════════ */}
+          <SoberanosCalc t={t} bondPrices={bondPrices} />
+
         </div>
       )}
 

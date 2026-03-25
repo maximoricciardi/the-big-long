@@ -3474,67 +3474,88 @@ function NoticiasView({ t }) {
   const [expandida, setExpandida] = useState(null);
   const [seccion, setSeccion]     = useState("todas");
 
-  // ── Google News RSS via allorigins CORS proxy ─────────────────
+  // ── Google News RSS — triple proxy fallback ──────────────────
   const [liveNews,    setLiveNews]    = useState([]);
   const [liveStatus,  setLiveStatus]  = useState("loading");
   const [liveUpdated, setLiveUpdated] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    const fetchNews = async () => {
-      try {
-        const queries = [
-          "mercado+argentino+bonos+acciones",
-          "economia+argentina+dolar+inflacion",
-          "BCRA+reservas+argentina+finanzas",
-        ];
-        const seen = new Set();
-        const results = [];
 
-        for (const q of queries) {
-          const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=es-419&gl=AR&ceid=AR:es`;
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-          const r = await fetch(proxyUrl);
+    // Proxy chain — si falla uno, intenta el siguiente
+    const proxies = [
+      (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+      (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    ];
+
+    const fetchWithFallback = async (url) => {
+      for (const makeProxy of proxies) {
+        try {
+          const r = await fetch(makeProxy(url), { signal: AbortSignal.timeout(6000) });
+          if (!r.ok) continue;
           const json = await r.json();
-          if (!json?.contents) continue;
+          // allorigins wraps in {contents:...}, corsproxy devuelve el XML directamente
+          const text = typeof json === "string" ? json : json?.contents || JSON.stringify(json);
+          if (text && text.includes("<item>")) return text;
+          // codetabs puede devolver el XML como string directo
+          if (text && text.length > 100) return text;
+        } catch {}
+      }
+      return null;
+    };
 
-          // Parse RSS XML
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(json.contents, "text/xml");
-          const items = Array.from(xml.querySelectorAll("item"));
+    const parseRSS = (xmlText) => {
+      try {
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(xmlText, "text/xml");
+        return Array.from(xml.querySelectorAll("item")).map(item => {
+          const link  = item.querySelector("link")?.textContent?.trim() || "";
+          const title = item.querySelector("title")?.textContent?.trim() || "";
+          const pub   = item.querySelector("pubDate")?.textContent?.trim() || "";
+          const src   = item.querySelector("source")?.textContent?.trim() || "";
+          const d     = new Date(pub);
+          return { link, title, src, fecha: d, fechaStr: isNaN(d) ? "" :
+            d.toLocaleString("es-AR", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) };
+        }).filter(i => i.link && i.title);
+      } catch { return []; }
+    };
 
-          for (const item of items) {
-            const link  = item.querySelector("link")?.textContent?.trim() || "";
-            const title = item.querySelector("title")?.textContent?.trim() || "";
-            const pub   = item.querySelector("pubDate")?.textContent?.trim() || "";
-            const src   = item.querySelector("source")?.textContent?.trim() || "";
-            if (!link || !title || seen.has(link)) continue;
-            seen.add(link);
-            const d = new Date(pub);
-            results.push({
-              id: link,
-              titulo: title,
-              fuente: src || new URL(link).hostname.replace("www.","").replace(".com.ar","").replace(".com",""),
-              link,
-              fechaObj: d,
-              fecha: isNaN(d) ? "" : d.toLocaleString("es-AR", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}),
-            });
-          }
+    const fetchNews = async () => {
+      const queries = [
+        "mercado+argentino+bonos+acciones+finanzas",
+        "economia+argentina+dolar+inflacion+BCRA",
+      ];
+      const seen = new Set();
+      const results = [];
+
+      for (const q of queries) {
+        const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=es-419&gl=AR&ceid=AR:es`;
+        const xml = await fetchWithFallback(rssUrl);
+        if (!xml) continue;
+        for (const item of parseRSS(xml)) {
+          if (seen.has(item.link)) continue;
+          seen.add(item.link);
+          const host = (() => { try { return new URL(item.link).hostname.replace("www.","").replace(".com.ar","").replace(".com",""); } catch { return item.src || ""; } })();
+          results.push({ id: item.link, titulo: item.title, fuente: item.src || host, link: item.link, fechaObj: item.fecha, fecha: item.fechaStr });
         }
+      }
 
-        results.sort((a,b) => b.fechaObj - a.fechaObj);
-        if (!cancelled) {
+      results.sort((a,b) => b.fechaObj - a.fechaObj);
+
+      if (!cancelled) {
+        if (results.length > 0) {
           setLiveNews(results.slice(0, 24));
-          setLiveStatus(results.length > 0 ? "ok" : "empty");
+          setLiveStatus("ok");
           setLiveUpdated(new Date());
+        } else {
+          setLiveStatus("error");
         }
-      } catch {
-        if (!cancelled) setLiveStatus("error");
       }
     };
 
     fetchNews();
-    const id = setInterval(fetchNews, 2 * 60 * 1000);
+    const id = setInterval(fetchNews, 3 * 60 * 1000);
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
@@ -3559,7 +3580,7 @@ function NoticiasView({ t }) {
       <div style={{ display:"flex", gap:4, marginBottom:20, background:t.alt, padding:4, borderRadius:12, width:"fit-content" }}>
         {[
           { id:"live",     label:"En vivo",         icon:"🔴" },
-          { id:"analisis", label:"Análisis",  icon:"📋" },
+          { id:"analisis", label:"Seleccionadas", icon:"📌" },
         ].map(tb => (
           <button key={tb.id} onClick={()=>setTab2(tb.id)} style={{
             padding:"8px 20px", borderRadius:9, fontFamily:FB, fontSize:12, fontWeight:600,

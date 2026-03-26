@@ -2805,7 +2805,6 @@ function ETPsPanel({ t }) {
               Informe mensual Febrero 2026 · Balanz Capital S.A.U. · Los rendimientos pasados no garantizan rendimientos futuros. Inversión mínima 1.000 VNs. Domicilio Irlanda. Custodio StoneX. Agente de cálculo: LynX Markets. Trustee: TMF Group. Auditor: BDO. Agente emisor y de pago: BNY Mellon. No constituye asesoramiento de inversión.
             </p>
           </div>
-        </div>
     </div>
   );
 }

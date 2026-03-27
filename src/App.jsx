@@ -1345,6 +1345,46 @@ function EarningsCard({ t }) {
    NVDA $180.25 · AAPL $249.94 · VIST $57.00 · MELI $2,079
    Scores/Research: "Café con la Mesa" — Daily IR (19 MAR 2026)
 ════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════
+   TRADINGVIEW URL HELPERS
+════════════════════════════════════════════════════════════════ */
+const TV_NASDAQ = new Set(["NVDA","AMD","AAPL","MSFT","AMZN","META","GOOGL","TSLA","NFLX","ADBE","ORCL","INTC","AVGO","QCOM","ARM","ASML","COST","COIN","MSTR","PLTR","MELI","NIO","NBIS"]);
+const TV_AMEX   = new Set(["SPY","QQQ","XLE","XLF","XLK","XLV","GLD","SLV","EWZ","SMH"]);
+function tvUrl(ticker) {
+  if (ticker === "MERV")      return "https://www.tradingview.com/chart/?symbol=BYMA:MERV";
+  if (TV_AMEX.has(ticker))   return `https://www.tradingview.com/chart/?symbol=AMEX:${ticker}`;
+  if (TV_NASDAQ.has(ticker)) return `https://www.tradingview.com/chart/?symbol=NASDAQ:${ticker}`;
+  return `https://www.tradingview.com/chart/?symbol=NYSE:${ticker}`;
+}
+function tvBondUrl(ticker) { return `https://www.tradingview.com/chart/?symbol=BYMA:${ticker}`; }
+
+/* ════════════════════════════════════════════════════════════════
+   ONs — OBLIGACIONES NEGOCIABLES · DATA912 tickers
+════════════════════════════════════════════════════════════════ */
+const ONS_LEY_ARG = [
+  { emisor:"YPF",         tickers:["YFCJD","YFCLD","YFCND","YFCOD"] },
+  { emisor:"Pampa",       tickers:["IRCPD","IRCOD","IRCND","IRCLD"] },
+  { emisor:"TGS",         tickers:["TLCPD","TLCMD","TLCOD","TLCQD"] },
+  { emisor:"Vista Energy",tickers:["VSCPD","VSCOD","VSCVD","VSCTD","VSCWD"] },
+  { emisor:"Tecpetrol",   tickers:["TTC8D","TTC9D","TTCAD","TTCBD"] },
+  { emisor:"CGC",         tickers:["CS47D","CS48D","CS49D","CS50D","CS51D"] },
+  { emisor:"Aeropuertos", tickers:["AERBD"] },
+  { emisor:"Genneia",     tickers:["GN47D","GN48D","GN49D"] },
+  { emisor:"MSU Energy",  tickers:["MSSFD","MSSED","MSSGD"] },
+  { emisor:"Loma Negra",  tickers:["LMS8D","LMS9D","LMS7D"] },
+  { emisor:"Pan American",tickers:["BYCHD","BYCVD","BYCWD","BYCXD"] },
+];
+const ONS_LEY_NY = [
+  { emisor:"YPF",         tickers:["YM38D","YM39D","YM40D","YM41D","YM42D","YM34D","YM35D","YM37D"] },
+  { emisor:"Pan American",tickers:["BF37D","BF38O","BF40D","BF41D"] },
+  { emisor:"Pampa",       tickers:["CP36D","CP37D","CP38D","CP40D"] },
+  { emisor:"IRSA",        tickers:["IRCFC","IRCFD"] },
+  { emisor:"Telecom",     tickers:["NPCAD","NPCBD","NPCCD"] },
+  { emisor:"Cresud",      tickers:["CRCJD"] },
+  { emisor:"Mastellone",  tickers:["MR39D","MR40O"] },
+];
+
 const EQUITIES = [
   // ── ARGENTINA — ADRs NYSE/NASDAQ · Google Finance 19 MAR ─────
   {t:"MERV", e:"Índice Merval (BYMA)",       p:2380000, mkt:"ARG",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"MUY FUERTE",sc:null, s1:null,  m1:null,  a1:null,   ytd:null, cur:"ARS"},
@@ -1817,6 +1857,7 @@ function EquityScreener({ t }) {
 
                 <Th label="Momentum" col="mom" tip="Impulso de precio" center />
                 <Th label="Analistas" col="an" tip="Consenso Wall St." center />
+                <th style={{ padding:"6px 8px", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, width:36 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -1951,6 +1992,17 @@ function EquityScreener({ t }) {
                     <td style={{ padding:"7px 10px", textAlign:"center" }}>
                       {e.an ? <Badge c={e.an==="BUY"?"green":"gold"} sm t={t}>{e.an}</Badge>
                             : <span style={{ color:t.fa }}>—</span>}
+                    </td>
+
+                    {/* TradingView */}
+                    <td style={{ padding:"7px 6px", textAlign:"center" }}>
+                      <a href={tvUrl(e.t)} target="_blank" rel="noreferrer"
+                        style={{ width:26, height:26, borderRadius:6, display:"inline-flex", alignItems:"center", justifyContent:"center",
+                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", textDecoration:"none" }}
+                        onMouseEnter={ev=>{ev.currentTarget.style.background=t.goBg;ev.currentTarget.style.borderColor=t.go;ev.currentTarget.style.color=t.go;}}
+                        onMouseLeave={ev=>{ev.currentTarget.style.background=t.alt;ev.currentTarget.style.borderColor=t.brd;ev.currentTarget.style.color=t.mu;}}>
+                        <LineChart size={13} />
+                      </a>
                     </td>
 
                   </tr>
@@ -2347,6 +2399,157 @@ function calcSovTIR(priceWithCom, flows) {
     if (hi-lo<1e-9) break;
   }
   return (lo+hi)/2;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SVG YIELD CURVE — SOBERANOS USD
+   X = Duration modificada · Y = TIR (%)
+   Gold = Ley ARG · Blue = Ley NY
+════════════════════════════════════════════════════════════════ */
+function SovYieldCurve({ t, bondPrices }) {
+  const [hover, setHover] = useState(null);
+  const W=640, H=280, pad={t:30,r:30,b:48,l:52};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+
+  // Build data points
+  const pts = SOBERANOS.map(s => {
+    const liveRaw = (bondPrices[s.t] || bondPrices[s.t.replace("D","")]||{}).price||null;
+    const m = calcBondMetrics(s, liveRaw);
+    const tir = m.newTIR !== null ? m.newTIR : parseFloat(String(s.tir).replace(",",".").replace("%",""));
+    if (!tir || isNaN(tir) || tir<=0) return null;
+    return { ticker:s.t, dur:s.dur, tir, ley:s.ley, price:m.price, isLive:m.isLive };
+  }).filter(Boolean);
+
+  if (pts.length < 3) return null;
+
+  const durs = pts.map(p=>p.dur), tirs = pts.map(p=>p.tir);
+  const dMin=Math.floor(Math.min(...durs)*0.8), dMax=Math.ceil(Math.max(...durs)*1.1);
+  const tMin=Math.floor(Math.min(...tirs)*0.9), tMax=Math.ceil(Math.max(...tirs)*1.05);
+
+  const sx = d => pad.l + ((d-dMin)/(dMax-dMin))*iW;
+  const sy = v => pad.t + (1-(v-tMin)/(tMax-tMin))*iH;
+
+  const argPts = pts.filter(p=>p.ley==="ARG").sort((a,b)=>a.dur-b.dur);
+  const nyPts  = pts.filter(p=>p.ley==="NY").sort((a,b)=>a.dur-b.dur);
+  const line = arr => arr.map((p,i)=>`${i===0?"M":"L"}${sx(p.dur).toFixed(1)},${sy(p.tir).toFixed(1)}`).join(" ");
+
+  // Grid lines
+  const yTicks = [];
+  for (let v=Math.ceil(tMin); v<=Math.floor(tMax); v++) yTicks.push(v);
+  const xTicks = [];
+  for (let d=Math.ceil(dMin); d<=Math.floor(dMax); d++) xTicks.push(d);
+
+  return (
+    <Card t={t} style={{ marginBottom:16 }}>
+      <div style={{ padding:"16px 20px 8px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:8 }}>
+          <span style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>Curva de Rendimiento — Soberanos USD</span>
+          <span style={{ fontSize:9, fontFamily:FB, color:t.go, background:t.goBg, padding:"2px 8px", borderRadius:8 }}>Ley ARG</span>
+          <span style={{ fontSize:9, fontFamily:FB, color:t.bl, background:t.blBg, padding:"2px 8px", borderRadius:8 }}>Ley NY</span>
+        </div>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", maxHeight:280, fontFamily:FB }}>
+          {/* Grid */}
+          {yTicks.map(v=><g key={`y${v}`}><line x1={pad.l} y1={sy(v)} x2={W-pad.r} y2={sy(v)} stroke={t.brd} strokeDasharray="3,3" strokeWidth={0.5}/><text x={pad.l-6} y={sy(v)+3} textAnchor="end" fontSize={9} fill={t.fa}>{v}%</text></g>)}
+          {xTicks.map(d=><g key={`x${d}`}><line x1={sx(d)} y1={pad.t} x2={sx(d)} y2={H-pad.b} stroke={t.brd} strokeDasharray="3,3" strokeWidth={0.5}/><text x={sx(d)} y={H-pad.b+14} textAnchor="middle" fontSize={9} fill={t.fa}>{d}a</text></g>)}
+          {/* Axis labels */}
+          <text x={W/2} y={H-4} textAnchor="middle" fontSize={10} fill={t.mu}>Duration Modificada (años)</text>
+          <text x={12} y={H/2} textAnchor="middle" fontSize={10} fill={t.mu} transform={`rotate(-90,12,${H/2})`}>TIR (%)</text>
+          {/* Trend lines */}
+          {argPts.length>1 && <path d={line(argPts)} fill="none" stroke={t.go} strokeWidth={1.5} strokeDasharray="6,4" opacity={0.6}/>}
+          {nyPts.length>1 && <path d={line(nyPts)} fill="none" stroke={t.bl} strokeWidth={1.5} strokeDasharray="6,4" opacity={0.6}/>}
+          {/* Points */}
+          {pts.map((p,i) => {
+            const col = p.ley==="ARG"?t.go:t.bl;
+            const isH = hover===i;
+            return (
+              <g key={i} onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)} style={{cursor:"pointer"}}>
+                <circle cx={sx(p.dur)} cy={sy(p.tir)} r={isH?6:4} fill={col} stroke="#fff" strokeWidth={1.5} opacity={isH?1:0.85}/>
+                <text x={sx(p.dur)} y={sy(p.tir)-8} textAnchor="middle" fontSize={8} fontWeight={700} fill={col}>{p.ticker.replace("D","")}</text>
+                {isH && (
+                  <g>
+                    <rect x={sx(p.dur)+10} y={sy(p.tir)-38} width={130} height={48} rx={6} fill={t.srf} stroke={t.brd} strokeWidth={1}/>
+                    <text x={sx(p.dur)+16} y={sy(p.tir)-23} fontSize={9} fontWeight={700} fill={t.tx}>{p.ticker} · Ley {p.ley}</text>
+                    <text x={sx(p.dur)+16} y={sy(p.tir)-11} fontSize={9} fill={t.mu}>TIR: {p.tir.toFixed(2)}% · Dur: {p.dur.toFixed(2)}</text>
+                    <text x={sx(p.dur)+16} y={sy(p.tir)+1} fontSize={9} fill={p.isLive?t.gr:t.fa}>{p.isLive?"Precio live":"Precio base"}: ${p.price.toFixed(2)}</text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </Card>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SVG YIELD CURVE — RENTA FIJA ARS (LECAPs / BONCAPs / DL)
+   X = Días al vencimiento · Y = TNA (%)
+   Gold = LECAPs (S) · Blue = BONCAPs (T) · Purple = DL (X)
+   Accepts pre-computed points from InstrumentosView
+════════════════════════════════════════════════════════════════ */
+function LecapYieldCurve({ t, points }) {
+  const [hover, setHover] = useState(null);
+  if (!points || points.length < 3) return null;
+
+  const W=640, H=260, pad={t:30,r:30,b:48,l:52};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+
+  const dias = points.map(p=>p.dias), tnas = points.map(p=>p.tna);
+  const dMin=0, dMax=Math.ceil(Math.max(...dias)*1.1);
+  const tMin=Math.floor(Math.min(...tnas)*0.95), tMax=Math.ceil(Math.max(...tnas)*1.05);
+
+  const sx = d => pad.l + ((d-dMin)/(dMax-dMin))*iW;
+  const sy = v => pad.t + (1-(v-tMin)/(tMax-tMin))*iH;
+
+  const typeColor = { S:t.go, T:t.bl, X:t.pu };
+  const typeLabel = { S:"LECAP", T:"BONCAP", X:"Dual/DL" };
+
+  const byType = {};
+  points.forEach(p => { const k=p.tipo; if(!byType[k]) byType[k]=[]; byType[k].push(p); });
+  Object.values(byType).forEach(arr => arr.sort((a,b)=>a.dias-b.dias));
+  const line = arr => arr.map((p,i)=>`${i===0?"M":"L"}${sx(p.dias).toFixed(1)},${sy(p.tna).toFixed(1)}`).join(" ");
+
+  const yTicks = [];
+  for (let v=Math.ceil(tMin); v<=Math.floor(tMax); v+=2) yTicks.push(v);
+  const xTicks = [30,60,90,120,150,180,240,300,365].filter(d=>d<=dMax);
+
+  return (
+    <Card t={t} style={{ marginTop:16, marginBottom:16 }}>
+      <div style={{ padding:"16px 20px 8px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:8, flexWrap:"wrap" }}>
+          <span style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>Curva de Tasas — Renta Fija ARS</span>
+          {Object.entries(typeLabel).map(([k,l])=>(
+            <span key={k} style={{ fontSize:9, fontFamily:FB, color:typeColor[k], background:typeColor[k]+"15", padding:"2px 8px", borderRadius:8 }}>{l}</span>
+          ))}
+        </div>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", maxHeight:260, fontFamily:FB }}>
+          {yTicks.map(v=><g key={`y${v}`}><line x1={pad.l} y1={sy(v)} x2={W-pad.r} y2={sy(v)} stroke={t.brd} strokeDasharray="3,3" strokeWidth={0.5}/><text x={pad.l-6} y={sy(v)+3} textAnchor="end" fontSize={9} fill={t.fa}>{v}%</text></g>)}
+          {xTicks.map(d=><g key={`x${d}`}><line x1={sx(d)} y1={pad.t} x2={sx(d)} y2={H-pad.b} stroke={t.brd} strokeDasharray="3,3" strokeWidth={0.5}/><text x={sx(d)} y={H-pad.b+14} textAnchor="middle" fontSize={9} fill={t.fa}>{d}d</text></g>)}
+          <text x={W/2} y={H-4} textAnchor="middle" fontSize={10} fill={t.mu}>Días al vencimiento</text>
+          <text x={12} y={H/2} textAnchor="middle" fontSize={10} fill={t.mu} transform={`rotate(-90,12,${H/2})`}>TNA (%)</text>
+          {Object.entries(byType).map(([k,arr])=>arr.length>1 && <path key={k} d={line(arr)} fill="none" stroke={typeColor[k]} strokeWidth={1.5} strokeDasharray="6,4" opacity={0.5}/>)}
+          {points.map((p,i) => {
+            const col = typeColor[p.tipo]||t.go;
+            const isH = hover===i;
+            return (
+              <g key={i} onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)} style={{cursor:"pointer"}}>
+                <circle cx={sx(p.dias)} cy={sy(p.tna)} r={isH?6:4} fill={col} stroke="#fff" strokeWidth={1.5} opacity={isH?1:0.85}/>
+                <text x={sx(p.dias)} y={sy(p.tna)-8} textAnchor="middle" fontSize={7} fontWeight={700} fill={col}>{p.ticker}</text>
+                {isH && (
+                  <g>
+                    <rect x={Math.min(sx(p.dias)+10,W-150)} y={sy(p.tna)-38} width={140} height={40} rx={6} fill={t.srf} stroke={t.brd} strokeWidth={1}/>
+                    <text x={Math.min(sx(p.dias)+16,W-144)} y={sy(p.tna)-23} fontSize={9} fontWeight={700} fill={t.tx}>{p.ticker} · {typeLabel[p.tipo]}</text>
+                    <text x={Math.min(sx(p.dias)+16,W-144)} y={sy(p.tna)-10} fontSize={9} fill={t.mu}>TNA: {p.tna.toFixed(2)}% · {p.dias}d · ${p.price?.toFixed(2)||"—"}</text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </Card>
+  );
 }
 
 function SoberanosCalc({ t, bondPrices }) {
@@ -2809,6 +3012,282 @@ function ETPsPanel({ t }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════
+   CALENDARIO DE VENCIMIENTOS Y PAGOS — 18 meses
+   Fuentes: BOND_SCHEDULES (soberanos) + LECAP (ARS)
+════════════════════════════════════════════════════════════════ */
+function CalendarioPanel({ t }) {
+  const [calFilter, setCalFilter] = useState("Todos");
+  const filterOpts = ["Soberanos USD","Renta Fija ARS","Todos"];
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 18*30*86400000);
+
+  const sovEvents = [];
+  SOBERANOS.forEach(s => {
+    const flows = BOND_SCHEDULES[s.t] || [];
+    flows.forEach(f => {
+      const d = new Date(f.date);
+      if (d <= now || d > horizon) return;
+      const isAmort = f.amort > 0, isCpn = f.cpn > 0;
+      if (!isAmort && !isCpn) return;
+      const monto = ((f.cpn + f.amort) / 100 * 1000).toFixed(2);
+      const tipo = isAmort && isCpn ? "Renta + Amort." : isAmort ? "Amortización" : "Renta";
+      sovEvents.push({ date:d, ticker:s.t, tipo, monto, cat:"Soberanos USD", ley:s.ley });
+    });
+  });
+
+  const lecapEvents = LECAP.flatMap(g => {
+    const parts = g.vto.split("/");
+    if (parts.length !== 3) return [];
+    const [dd, mm, yy] = parts.map(Number);
+    const d = new Date(yy, mm-1, dd);
+    if (d <= now || d > horizon) return [];
+    return g.rows.map(r => ({
+      date:d, ticker:r.t, tipo:"Vencimiento", monto:"Capital + cupón", cat:"Renta Fija ARS", ley:"ARG"
+    }));
+  });
+
+  let allEvents = [...sovEvents, ...lecapEvents].sort((a,b)=>a.date-b.date);
+  if (calFilter !== "Todos") allEvents = allEvents.filter(e=>e.cat===calFilter);
+
+  const byMonth = {};
+  allEvents.forEach(e => {
+    const key = `${e.date.getFullYear()}-${String(e.date.getMonth()+1).padStart(2,"0")}`;
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(e);
+  });
+  const months = Object.keys(byMonth).sort();
+  const monthName = k => {
+    const [y,m] = k.split("-");
+    return new Date(+y, +m-1, 1).toLocaleDateString("es-AR",{month:"long",year:"numeric"});
+  };
+
+  return (
+    <div className="fade-up">
+      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
+        {filterOpts.map(f=>(
+          <button key={f} onClick={()=>setCalFilter(f)} style={{
+            padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, cursor:"pointer",
+            border:`1.5px solid ${calFilter===f?t.go:t.brd}`,
+            background:calFilter===f?t.go+"18":"transparent",
+            color:calFilter===f?t.go:t.mu, fontWeight:calFilter===f?700:400,
+          }}>{f}</button>
+        ))}
+        <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, color:t.fa }}>{allEvents.length} eventos próximos · 18 meses</span>
+      </div>
+
+      {months.length === 0 && (
+        <Card t={t}><div style={{ padding:40, textAlign:"center", fontFamily:FB, fontSize:13, color:t.mu }}>No hay eventos para el filtro seleccionado.</div></Card>
+      )}
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:12 }}>
+        {months.map(k => (
+          <Card key={k} t={t}>
+            <div style={{ padding:"14px 18px" }}>
+              <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, textTransform:"capitalize", marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
+                <Clock size={14} color={t.go} /> {monthName(k)}
+                <span style={{ fontFamily:FB, fontSize:9, color:t.fa, fontWeight:400 }}>({byMonth[k].length})</span>
+              </div>
+              {byMonth[k].map((ev,i) => {
+                const typeColor = ev.tipo.includes("Amort")?t.go:ev.tipo==="Vencimiento"?t.gr:t.bl;
+                return (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", borderBottom:i<byMonth[k].length-1?`1px solid ${t.brd}44`:"none" }}>
+                    <span style={{ fontFamily:FB, fontSize:10, color:t.fa, minWidth:42 }}>
+                      {ev.date.toLocaleDateString("es-AR",{day:"2-digit",month:"short"}).replace(".","").toUpperCase()}
+                    </span>
+                    <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, color:ev.ley==="NY"?t.bl:t.go, background:(ev.ley==="NY"?t.bl:t.go)+"15", padding:"1px 6px", borderRadius:4 }}>{ev.ticker}</span>
+                    <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:typeColor }}>{ev.tipo}</span>
+                    <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, fontWeight:700, color:t.tx }}>
+                      {typeof ev.monto === "string" && ev.monto.startsWith("Capital") ? ev.monto : `$${ev.monto}`}
+                    </span>
+                    {typeof ev.monto !== "string" || !ev.monto.startsWith("Capital") ? <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>/ $1000 VN</span> : null}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12 }}>
+        Fuente: BOND_SCHEDULES (flujos reales soberanos) + LECAPs (vencimientos). Montos por cada $1.000 VN invertidos. No constituye asesoramiento.
+      </p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ONs PANEL — Obligaciones Negociables con DATA912 live
+   PIN locked · Fetch arg_corp · Agrupadas por ley y emisor
+════════════════════════════════════════════════════════════════ */
+function ONsPanel({ t }) {
+  const [pin, setPin] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+  const [error, setError] = useState(false);
+  const [corpPrices, setCorpPrices] = useState({});
+  const [status, setStatus] = useState("loading");
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const tryUnlock = () => {
+    if (pin === "1243") { setUnlocked(true); setError(false); }
+    else { setError(true); setPin(""); setTimeout(()=>setError(false), 1800); }
+  };
+
+  useEffect(() => {
+    if (!unlocked) return;
+    const load = async () => {
+      try {
+        const r = await fetch("https://data912.com/live/arg_corp", { headers:{"Accept":"application/json"} });
+        const json = await r.json();
+        const map = {};
+        if (Array.isArray(json)) {
+          json.forEach(d => { if (d.symbol && d.c) map[d.symbol] = { price:d.c, pct:d.pct_change||0 }; });
+        }
+        setCorpPrices(map);
+        setStatus(Object.keys(map).length > 0 ? "ok" : "empty");
+        setLastUpdate(new Date());
+      } catch { setStatus("error"); }
+    };
+    load();
+    const id = setInterval(load, 300000);
+    return () => clearInterval(id);
+  }, [unlocked]);
+
+  if (!unlocked) {
+    return (
+      <div className="fade-up" style={{ maxWidth:400, margin:"60px auto", textAlign:"center" }}>
+        <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+          <Lock size={28} color={t.go} />
+        </div>
+        <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>Obligaciones Negociables</h3>
+        <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, marginBottom:24 }}>
+          Panel de ONs corporativos con precios en vivo. Acceso exclusivo.
+        </p>
+        <input type="password" placeholder="PIN" value={pin} onChange={e=>{setPin(e.target.value);setError(false);}}
+          onKeyDown={e=>e.key==="Enter"&&tryUnlock()} autoFocus
+          style={{ width:"100%", padding:"12px 16px", borderRadius:12, fontFamily:FB, fontSize:14,
+            border:`1.5px solid ${error?t.rd:t.brd}`, background:t.srf, color:t.tx, outline:"none",
+            letterSpacing:".1em", textAlign:"center", marginBottom:12 }} />
+        {error && <p style={{ fontFamily:FB, fontSize:11, color:t.rd, marginBottom:8 }}>PIN incorrecto.</p>}
+        <button onClick={tryUnlock} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none",
+          background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:14, cursor:"pointer" }}>Acceder</button>
+      </div>
+    );
+  }
+
+  // Helper: render a table of ONs for a ley group
+  const renderGroup = (label, data, color) => {
+    const allTickers = data.flatMap(g => g.tickers.map(tk => ({ tk, emisor:g.emisor })));
+    const filtered = search.trim()
+      ? allTickers.filter(x => x.tk.toLowerCase().includes(search.toLowerCase()) || x.emisor.toLowerCase().includes(search.toLowerCase()))
+      : allTickers;
+    return (
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
+          {label} — {filtered.length} instrumentos
+        </div>
+        <Card t={t}>
+          <div style={{ overflowX:"auto", maxHeight:"50vh", overflowY:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:12 }}>
+              <thead>
+                <tr>
+                  {["Ticker","Emisor","Precio","Var. día","Chart"].map((h,i)=>(
+                    <th key={h} style={{ padding:"9px 12px", textAlign:i>=2?"right":"left", fontSize:9, fontWeight:700,
+                      color:t.mu, letterSpacing:".07em", borderBottom:`2px solid ${t.brd}`, background:t.alt,
+                      position:"sticky", top:0, zIndex:5 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(({tk, emisor}, i) => {
+                  const live = corpPrices[tk];
+                  const isUSD = tk.endsWith("D");
+                  return (
+                    <tr key={i} style={{ borderBottom:`1px solid ${t.brd}44`, transition:"background .1s" }}
+                      onMouseEnter={e=>e.currentTarget.style.background=t.alt}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <td style={{ padding:"7px 12px" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:4,
+                            background:color+"18", color, border:`1px solid ${color}33` }}>{tk}</span>
+                          {live && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block",boxShadow:"0 0 4px #22c55e"}} title="Live"/>}
+                        </div>
+                      </td>
+                      <td style={{ padding:"7px 12px", fontSize:11, color:t.tx, fontWeight:500 }}>{emisor}</td>
+                      <td style={{ padding:"7px 12px", textAlign:"right", fontWeight:700, color:live?t.tx:t.fa }}>
+                        {live ? (isUSD ? `$${live.price.toFixed(2)}` : `$${(live.price/1000).toFixed(1)}k`) : "—"}
+                      </td>
+                      <td style={{ padding:"7px 12px", textAlign:"right" }}>
+                        {live ? <span style={{ fontWeight:600, color:live.pct>=0?t.gr:t.rd }}>{live.pct>=0?"+":""}{live.pct.toFixed(2)}%</span> : <span style={{color:t.fa}}>—</span>}
+                      </td>
+                      <td style={{ padding:"7px 12px", textAlign:"right" }}>
+                        <a href={tvBondUrl(tk)} target="_blank" rel="noreferrer"
+                          style={{ width:26, height:26, borderRadius:6, display:"inline-flex", alignItems:"center", justifyContent:"center",
+                            background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s" }}
+                          onMouseEnter={e=>{e.currentTarget.style.background=t.goBg;e.currentTarget.style.borderColor=t.go;e.currentTarget.style.color=t.go;}}
+                          onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
+                          <LineChart size={13} />
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fade-up">
+      {/* Header */}
+      <div style={{
+        background:"linear-gradient(135deg, #0A1E3D 0%, #14355A 50%, #1A4270 100%)",
+        borderRadius:16, padding:"24px 28px", marginBottom:20,
+        border:"1px solid rgba(255,255,255,.08)",
+      }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <div style={{ fontFamily:FH, fontSize:11, fontWeight:700, color:"rgba(255,255,255,.4)", letterSpacing:".15em", textTransform:"uppercase", marginBottom:4 }}>MERCADO SECUNDARIO</div>
+            <h2 style={{ fontFamily:FD, fontSize:24, fontWeight:700, color:"#fff", margin:0 }}>
+              Obligaciones <span style={{ color:"#4A90D9" }}>Negociables</span>
+            </h2>
+          </div>
+          <div style={{
+            borderRadius:8, padding:"6px 12px", fontFamily:FB, fontSize:10,
+            background:status==="ok"?"rgba(34,197,94,.15)":"rgba(255,255,255,.06)",
+            color:status==="ok"?"#22c55e":"rgba(255,255,255,.5)",
+            display:"flex", alignItems:"center", gap:6, border:"1px solid rgba(255,255,255,.1)",
+          }}>
+            <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
+              background:status==="ok"?"#22c55e":status==="error"?"#ef4444":"#94a3b8",
+              boxShadow:status==="ok"?"0 0 6px #22c55e":"none"}}/>
+            {status==="ok" ? `${Object.keys(corpPrices).length} precios · DATA912` : status==="error" ? "Sin datos" : "Cargando..."}
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{ position:"relative", marginBottom:16, maxWidth:240 }}>
+        <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker o emisor..."
+          style={{ fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10, width:"100%",
+            border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+      </div>
+
+      {renderGroup("LEY ARGENTINA", ONS_LEY_ARG, t.go)}
+      {renderGroup("LEY NUEVA YORK", ONS_LEY_NY, t.bl)}
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5 }}>
+        Precios de DATA912 · Refresh cada 5 min · No constituye asesoramiento · Consultá con tu asesor antes de operar.
+      </p>
+    </div>
+  );
+}
+
 function InstrumentosView({ t }) {
   const [sub, setSub] = useState("lecap");
   const [bondPrices,  setBondPrices]  = useState({});
@@ -3003,13 +3482,14 @@ function InstrumentosView({ t }) {
   };
 
   const SUBTABS = [
-    {id:"lecap",   label:"Renta Fija ARS",    Icon:ClipboardList},
-    {id:"soberano",label:"Soberanos USD",      Icon:Globe},
-    {id:"corp",    label:"Corporativos (ONs)", Icon:Building2},
-    {id:"pf",      label:"Plazos Fijos",       Icon:Landmark},
-    {id:"fondos",  label:"Fondos Balanz",      Icon:Wallet},
-    {id:"etps",    label:"ETPs Balanz",        Icon:Package},
-    {id:"rv",      label:"Research Desk",      Icon:LineChart},
+    {id:"lecap",      label:"Renta Fija ARS",    Icon:ClipboardList},
+    {id:"soberano",   label:"Soberanos USD",      Icon:Globe},
+    {id:"calendario", label:"Calendario",         Icon:Clock},
+    {id:"corp",       label:"Corporativos (ONs)", Icon:Building2},
+    {id:"pf",         label:"Plazos Fijos",       Icon:Landmark},
+    {id:"fondos",     label:"Fondos Balanz",      Icon:Wallet},
+    {id:"etps",       label:"ETPs Balanz",        Icon:Package},
+    {id:"rv",         label:"Research Desk",      Icon:LineChart},
   ];
 
   return (
@@ -3226,6 +3706,18 @@ function InstrumentosView({ t }) {
               * No constituye asesoramiento. TC base referencia: $1.399,60 al 19-MAR-2026.
             </div>
           </Card>
+
+          {/* Yield Curve ARS */}
+          {(() => {
+            const curvePoints = LECAP.flatMap(g => g.rows.map(r => {
+              const m = calcLECAPMetrics(r, g);
+              if (!m || m.diasRest <= 0 || m.tna <= 0) return null;
+              const tipo = r.t.startsWith("T") ? "T" : r.t.startsWith("X") ? "X" : "S";
+              return { ticker:r.t, dias:m.diasRest, tna:m.tna, tipo, price:m.pLive };
+            })).filter(Boolean);
+            return <LecapYieldCurve t={t} points={curvePoints} />;
+          })()}
+
         </div>
       )}
 
@@ -3262,7 +3754,7 @@ function InstrumentosView({ t }) {
                 <div style={{ overflowX:"auto" }}>
                   <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
                     <thead><tr>
-                      {["Ticker","Vto","Precio","Var. día","TIR","Curr. Yield","Duración","Pago","Paridad","Var. 1W"].map((h,i) => (
+                      {["Ticker","Vto","Precio","Var. día","TIR","Curr. Yield","Duración","Pago","Paridad","Var. 1W",""].map((h,i) => (
                         <Th2 key={h} right={i>=2&&i<=8}>{h}</Th2>
                       ))}
                     </tr></thead>
@@ -3296,6 +3788,15 @@ function InstrumentosView({ t }) {
                             <Td2 color={t.mu}>{s.pago}</Td2>
                             <Td2 right color={t.mu}>{m.newPar !== null ? `${m.newPar.toFixed(2)}%` : s.par}</Td2>
                             <Td2 right color={s.var1w.startsWith("-")?t.rd:s.var1w.startsWith("+")?t.gr:t.mu}>{s.var1w}</Td2>
+                            <Td2>
+                              <a href={tvBondUrl(s.t)} target="_blank" rel="noreferrer"
+                                style={{ width:26, height:26, borderRadius:6, display:"inline-flex", alignItems:"center", justifyContent:"center",
+                                  background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s" }}
+                                onMouseEnter={e=>{e.currentTarget.style.background=grp.color+"15";e.currentTarget.style.borderColor=grp.color;e.currentTarget.style.color=grp.color;}}
+                                onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
+                                <LineChart size={13} />
+                              </a>
+                            </Td2>
                           </tr>
                         );
                       })}
@@ -3312,40 +3813,23 @@ function InstrumentosView({ t }) {
           {/* ══════════════════════════════════════════════════
               CALCULADORA SOBERANOS USD
           ══════════════════════════════════════════════════ */}
+          {/* Yield Curve */}
+          <SovYieldCurve t={t} bondPrices={bondPrices} />
+
+          {/* Calculadora */}
           <SoberanosCalc t={t} bondPrices={bondPrices} />
 
         </div>
       )}
 
+      {/* ── CALENDARIO DE VENCIMIENTOS Y PAGOS ── */}
+      {sub === "calendario" && <CalendarioPanel t={t} />}
+
       {/* ── PLAZOS FIJOS — ArgentinaDatos API ── */}
       {sub === "pf" && <PlazosFijosPanel t={t} />}
 
-      {/* ── BONOS CORPORATIVOS (ONs) — PRÓXIMAMENTE ── */}
-      {sub === "corp" && (
-        <div className="fade-up">
-          <Card t={t}>
-            <div style={{ padding:"40px 30px", textAlign:"center" }}>
-              <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                <Building2 size={28} color={t.go} />
-              </div>
-              <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>Bonos Corporativos (ONs) — Próximamente</h3>
-              <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, maxWidth:520, margin:"0 auto 20px" }}>
-                Estamos armando la interfaz de <strong>Obligaciones Negociables</strong> con datos de emisión, TIR, duration, calificación crediticia y comparación entre emisores.
-                Esta sección va a incluir ONs en pesos y en dólares de los principales emisores del mercado argentino.
-              </p>
-              <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap", marginBottom:20 }}>
-                {["ONs Hard Dollar","ONs Dollar Linked","ONs Tasa Fija ARS","ONs Badlar/TAMAR"].map((tag,i) => (
-                  <span key={i} style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.go, background:t.goBg, border:`1px solid ${t.go}33`, padding:"4px 12px", borderRadius:20 }}>{tag}</span>
-                ))}
-              </div>
-              <p style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
-                <AlertTriangle size={12} style={{verticalAlign:"middle",marginRight:4}} />
-                Si necesitás información sobre ONs ahora, contactá a Máximo directamente.
-              </p>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* ── BONOS CORPORATIVOS (ONs) — DATA912 LIVE ── */}
+      {sub === "corp" && <ONsPanel t={t} />}
 
       {/* ── FONDOS BALANZ ── */}
       {sub === "fondos" && (

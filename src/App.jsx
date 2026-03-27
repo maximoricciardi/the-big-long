@@ -1366,111 +1366,111 @@ function tvBondUrl(ticker) { return `https://www.tradingview.com/chart/?symbol=B
    Datos: Precio, TIR, Cupón, Duration, Calificación, Vto, Frecuencia
 ════════════════════════════════════════════════════════════════ */
 const ONS_ARG_DATA = [
-,  {t:"YMCVD",em:"YPF",p:102.5,tir:-5.83,cup:6.0,vto:"26/05/2026",dur:0.17,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:63}
-  {t:"NBS1D",em:"Balanz",p:100.5,tir:5.97,cup:5.0,vto:"06/06/2026",dur:0.2,freq:"Cuatrimestral",tipo:"Bullet",cal:"A",proxCpn:72}
-  {t:"RC2CD",em:"Arcor",p:104.5,tir:2.62,cup:5.9,vto:"06/10/2026",dur:0.52,freq:"Semestral",tipo:"Bullet",cal:"A1+",proxCpn:11}
-  {t:"DNC3D",em:"Edenor",p:105.4,tir:6.58,cup:9.75,vto:"22/11/2026",dur:0.64,freq:"Semestral",tipo:"Bullet",cal:"A",proxCpn:57}
-  {t:"YM41D",em:"YPF",p:103.0,tir:3.83,cup:6.0,vto:"08/01/2027",dur:0.77,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:13}
-  {t:"ZZC1D",em:"Camuzzi",p:102.75,tir:5.72,cup:7.95,vto:"21/02/2027",dur:0.9,freq:"Semestral",tipo:"Bullet",cal:"AA-",proxCpn:148}
-  {t:"IRCJD",em:"IRSA",p:103.0,tir:4.28,cup:7.0,vto:"28/02/2027",dur:0.92,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:155}
-  {t:"LMS8D",em:"Aluar",p:102.6,tir:2.23,cup:6.25,vto:"21/03/2027",dur:0.61,freq:"Trimestral",tipo:"Sinkable",cal:"AAA",proxCpn:87}
-  {t:"VSCWD",em:"Vista Energy",p:102.55,tir:4.73,cup:6.0,vto:"15/04/2027",dur:1.03,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:20}
-  {t:"PN42D",em:"Pan American Energy",p:104.35,tir:4.38,cup:6.0,vto:"17/04/2027",dur:1.03,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:22}
-  {t:"OTS2D",em:"Oil Tanking",p:102.7,tir:5.66,cup:7.0,vto:"24/04/2027",dur:1.05,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:29}
-  {t:"YM37D",em:"YPF",p:104.25,tir:3.98,cup:7.0,vto:"07/05/2027",dur:1.07,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:42}
-  {t:"RCCRD",em:"Arcor",p:105.25,tir:4.29,cup:6.75,vto:"09/05/2027",dur:1.09,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:44}
-  {t:"CIC9D",em:"CNH Industrial",p:105.0,tir:6.37,cup:8.25,vto:"21/05/2027",dur:1.11,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:56}
-  {t:"HJCID",em:"John Deere",p:104.3,tir:5.93,cup:7.5,vto:"27/05/2027",dur:1.11,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:62}
-  {t:"MCC2D",em:"PECOM",p:102.65,tir:7.36,cup:7.5,vto:"02/06/2027",dur:1.14,freq:"Semestral",tipo:"Bullet",cal:"AA-",proxCpn:68}
-  {t:"PFC2D",em:"Profertil",p:104.2,tir:5.08,cup:7.25,vto:"14/07/2027",dur:1.26,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:110}
-  {t:"YM38D",em:"YPF",p:105.0,tir:4.69,cup:7.5,vto:"22/07/2027",dur:1.25,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:27}
-  {t:"MIC4D",em:"Mirgor",p:101.0,tir:8.75,cup:8.25,vto:"29/07/2027",dur:1.28,freq:"Trimestral",tipo:"Bullet",cal:"A+",proxCpn:34}
-  {t:"PN38D",em:"Pan American Energy",p:106.0,tir:2.63,cup:6.5,vto:"11/08/2027",dur:1.33,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:138}
-  {t:"SBC1D",em:"Scania Credit",p:88.7,tir:5.62,cup:8.75,vto:"05/09/2027",dur:0.82,freq:"Trimestral",tipo:"Sinkable",cal:"AA",proxCpn:71}
-  {t:"TTCBD",em:"Tecpetrol",p:105.45,tir:4.82,cup:6.5,vto:"16/10/2027",dur:1.48,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:21}
-  {t:"RUCED",em:"MSU Energy",p:100.45,tir:8.09,cup:7.5,vto:"30/10/2027",dur:1.41,freq:"Trimestral",tipo:"Sinkable",cal:"A",proxCpn:35}
-  {t:"TLCOD",em:"Telecom",p:105.1,tir:5.93,cup:7.0,vto:"28/11/2028",dur:2.47,freq:"Semestral",tipo:"Bullet",cal:"AA+",proxCpn:63}
-  {t:"PLC3D",em:"Pluspetrol",p:105.1,tir:5.29,cup:7.25,vto:"30/04/2028",dur:1.99,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:126}
-  {t:"CRCJD",em:"Celulosa",p:17.6,tir:377.0,cup:9.25,vto:"16/05/2028",dur:1.8,freq:"Trimestral",tipo:"Sinkable",cal:"D",proxCpn:51}
-  {t:"OLC5D",em:"Oleoductos del Valle",p:107.05,tir:5.64,cup:7.89,vto:"12/06/2028",dur:2.06,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:78}
-  {t:"CICAD",em:"CNH Industrial",p:103.1,tir:7.83,cup:8.0,vto:"03/06/2028",dur:2.03,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:69}
-  {t:"DNC5D",em:"Edenor",p:105.8,tir:7.52,cup:9.5,vto:"05/08/2028",dur:2.14,freq:"Semestral",tipo:"Bullet",cal:"A",proxCpn:132}
-  {t:"YM40D",em:"YPF",p:105.85,tir:5.26,cup:7.5,vto:"28/08/2028",dur:2.26,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:63}
-  {t:"LMS7D",em:"Aluar",p:95.5,tir:4.97,cup:7.0,vto:"12/10/2028",dur:1.24,freq:"Trimestral",tipo:"Sinkable",cal:"AAA",proxCpn:17}
-  {t:"PECGD",em:"Petrolera Aconcagua",p:62.76,tir:36.83,cup:9.0,vto:"28/10/2028",dur:2.17,freq:"Semestral",tipo:"Bullet",cal:"BBB",proxCpn:33}
-  {t:"PN37D",em:"Pan American Energy",p:105.15,tir:5.26,cup:6.25,vto:"13/11/2028",dur:2.44,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:48}
-  {t:"SBC2D",em:"Scania Credit",p:102.5,tir:6.92,cup:7.49,vto:"16/01/2029",dur:1.48,freq:"Trimestral",tipo:"Sinkable",cal:"AA",proxCpn:112}
-  {t:"LOC6D",em:"Loma Negra",p:103.1,tir:5.81,cup:6.5,vto:"23/01/2029",dur:2.64,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:119}
-  {t:"HJCKD",em:"John Deere",p:102.5,tir:7.47,cup:7.75,vto:"16/01/2029",dur:2.57,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:112}
-  {t:"CICBD",em:"CNH Industrial",p:100.5,tir:7.82,cup:7.5,vto:"09/02/2029",dur:2.65,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:136}
-  {t:"LUC5D",em:"Luz de Tres Picos",p:100.2,tir:8.33,cup:8.0,vto:"26/02/2029",dur:2.68,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:153}
-  {t:"PLC6D",em:"Pluspetrol",p:102.5,tir:5.82,cup:6.5,vto:"27/02/2029",dur:2.74,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:246}
-  {t:"YM42D",em:"YPF",p:105.5,tir:5.85,cup:7.0,vto:"02/03/2029",dur:2.68,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:68}
-  {t:"VSCPD",em:"Vista Energy",p:108.35,tir:5.68,cup:8.0,vto:"03/05/2029",dur:2.16,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:38}
-  {t:"OLC6D",em:"Oleoductos del Valle",p:106.65,tir:6.07,cup:7.5,vto:"05/06/2029",dur:2.88,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:71}
-  {t:"NPCCD",em:"Central Puerto",p:106.35,tir:6.22,cup:8.0,vto:"25/08/2029",dur:3.08,freq:"Semestral",tipo:"Bullet",cal:"AA+",proxCpn:152}
-  {t:"PN41D",em:"Pan American Energy",p:106.25,tir:5.73,cup:7.5,vto:"27/08/2029",dur:3.11,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:154}
-  {t:"PN35D",em:"Pan American Energy",p:103.85,tir:5.85,cup:7.0,vto:"27/09/2029",dur:3.06,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:185}
-  {t:"IRCOD",em:"IRSA",p:105.05,tir:6.15,cup:7.25,vto:"23/10/2029",dur:3.22,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:119}
-  {t:"TTC9D",em:"Tecpetrol",p:106.5,tir:5.74,cup:6.8,vto:"24/10/2029",dur:3.14,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:29}
-  {t:"OT42D",em:"Oil Tanking",p:107.65,tir:6.32,cup:8.0,vto:"17/01/2030",dur:3.33,freq:"trimestral",tipo:"Bullet",cal:"AA",proxCpn:22}
-  {t:"PLC2D",em:"Pluspetrol",p:107.9,tir:6.17,cup:7.5,vto:"27/01/2030",dur:3.36,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:32}
-  {t:"OLC7D",em:"Oleoductos del Valle",p:103.95,tir:6.02,cup:6.9,vto:"23/02/2030",dur:3.52,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:150}
-  {t:"YM39D",em:"YPF",p:111.15,tir:6.27,cup:8.75,vto:"22/07/2030",dur:3.64,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:118}
-  {t:"PQCSD",em:"Petroquimica Cdro Riv",p:103.0,tir:7.6,cup:8.0,vto:"17/02/2031",dur:4.16,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:144}
-  {t:"VSCRD",em:"Vista Energy",p:109.6,tir:6.19,cup:7.65,vto:"10/10/2031",dur:4.46,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:15}
+  {t:"YMCVD",em:"YPF",p:102.5,tir:-5.83,cup:6.0,vto:"26/05/2026",dur:0.17,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:63},
+  {t:"NBS1D",em:"Balanz",p:100.5,tir:5.97,cup:5.0,vto:"06/06/2026",dur:0.2,freq:"Cuatrimestral",tipo:"Bullet",cal:"A",proxCpn:72},
+  {t:"RC2CD",em:"Arcor",p:104.5,tir:2.62,cup:5.9,vto:"06/10/2026",dur:0.52,freq:"Semestral",tipo:"Bullet",cal:"A1+",proxCpn:11},
+  {t:"DNC3D",em:"Edenor",p:105.4,tir:6.58,cup:9.75,vto:"22/11/2026",dur:0.64,freq:"Semestral",tipo:"Bullet",cal:"A",proxCpn:57},
+  {t:"YM41D",em:"YPF",p:103.0,tir:3.83,cup:6.0,vto:"08/01/2027",dur:0.77,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:13},
+  {t:"ZZC1D",em:"Camuzzi",p:102.75,tir:5.72,cup:7.95,vto:"21/02/2027",dur:0.9,freq:"Semestral",tipo:"Bullet",cal:"AA-",proxCpn:148},
+  {t:"IRCJD",em:"IRSA",p:103.0,tir:4.28,cup:7.0,vto:"28/02/2027",dur:0.92,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:155},
+  {t:"LMS8D",em:"Aluar",p:102.6,tir:2.23,cup:6.25,vto:"21/03/2027",dur:0.61,freq:"Trimestral",tipo:"Sinkable",cal:"AAA",proxCpn:87},
+  {t:"VSCWD",em:"Vista Energy",p:102.55,tir:4.73,cup:6.0,vto:"15/04/2027",dur:1.03,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:20},
+  {t:"PN42D",em:"Pan American Energy",p:104.35,tir:4.38,cup:6.0,vto:"17/04/2027",dur:1.03,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:22},
+  {t:"OTS2D",em:"Oil Tanking",p:102.7,tir:5.66,cup:7.0,vto:"24/04/2027",dur:1.05,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:29},
+  {t:"YM37D",em:"YPF",p:104.25,tir:3.98,cup:7.0,vto:"07/05/2027",dur:1.07,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:42},
+  {t:"RCCRD",em:"Arcor",p:105.25,tir:4.29,cup:6.75,vto:"09/05/2027",dur:1.09,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:44},
+  {t:"CIC9D",em:"CNH Industrial",p:105.0,tir:6.37,cup:8.25,vto:"21/05/2027",dur:1.11,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:56},
+  {t:"HJCID",em:"John Deere",p:104.3,tir:5.93,cup:7.5,vto:"27/05/2027",dur:1.11,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:62},
+  {t:"MCC2D",em:"PECOM",p:102.65,tir:7.36,cup:7.5,vto:"02/06/2027",dur:1.14,freq:"Semestral",tipo:"Bullet",cal:"AA-",proxCpn:68},
+  {t:"PFC2D",em:"Profertil",p:104.2,tir:5.08,cup:7.25,vto:"14/07/2027",dur:1.26,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:110},
+  {t:"YM38D",em:"YPF",p:105.0,tir:4.69,cup:7.5,vto:"22/07/2027",dur:1.25,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:27},
+  {t:"MIC4D",em:"Mirgor",p:101.0,tir:8.75,cup:8.25,vto:"29/07/2027",dur:1.28,freq:"Trimestral",tipo:"Bullet",cal:"A+",proxCpn:34},
+  {t:"PN38D",em:"Pan American Energy",p:106.0,tir:2.63,cup:6.5,vto:"11/08/2027",dur:1.33,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:138},
+  {t:"SBC1D",em:"Scania Credit",p:88.7,tir:5.62,cup:8.75,vto:"05/09/2027",dur:0.82,freq:"Trimestral",tipo:"Sinkable",cal:"AA",proxCpn:71},
+  {t:"TTCBD",em:"Tecpetrol",p:105.45,tir:4.82,cup:6.5,vto:"16/10/2027",dur:1.48,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:21},
+  {t:"RUCED",em:"MSU Energy",p:100.45,tir:8.09,cup:7.5,vto:"30/10/2027",dur:1.41,freq:"Trimestral",tipo:"Sinkable",cal:"A",proxCpn:35},
+  {t:"TLCOD",em:"Telecom",p:105.1,tir:5.93,cup:7.0,vto:"28/11/2028",dur:2.47,freq:"Semestral",tipo:"Bullet",cal:"AA+",proxCpn:63},
+  {t:"PLC3D",em:"Pluspetrol",p:105.1,tir:5.29,cup:7.25,vto:"30/04/2028",dur:1.99,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:126},
+  {t:"CRCJD",em:"Celulosa",p:17.6,tir:377.0,cup:9.25,vto:"16/05/2028",dur:1.8,freq:"Trimestral",tipo:"Sinkable",cal:"D",proxCpn:51},
+  {t:"OLC5D",em:"Oleoductos del Valle",p:107.05,tir:5.64,cup:7.89,vto:"12/06/2028",dur:2.06,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:78},
+  {t:"CICAD",em:"CNH Industrial",p:103.1,tir:7.83,cup:8.0,vto:"03/06/2028",dur:2.03,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:69},
+  {t:"DNC5D",em:"Edenor",p:105.8,tir:7.52,cup:9.5,vto:"05/08/2028",dur:2.14,freq:"Semestral",tipo:"Bullet",cal:"A",proxCpn:132},
+  {t:"YM40D",em:"YPF",p:105.85,tir:5.26,cup:7.5,vto:"28/08/2028",dur:2.26,freq:"Trimestral",tipo:"Bullet",cal:"AAA",proxCpn:63},
+  {t:"LMS7D",em:"Aluar",p:95.5,tir:4.97,cup:7.0,vto:"12/10/2028",dur:1.24,freq:"Trimestral",tipo:"Sinkable",cal:"AAA",proxCpn:17},
+  {t:"PECGD",em:"Petrolera Aconcagua",p:62.76,tir:36.83,cup:9.0,vto:"28/10/2028",dur:2.17,freq:"Semestral",tipo:"Bullet",cal:"BBB",proxCpn:33},
+  {t:"PN37D",em:"Pan American Energy",p:105.15,tir:5.26,cup:6.25,vto:"13/11/2028",dur:2.44,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:48},
+  {t:"SBC2D",em:"Scania Credit",p:102.5,tir:6.92,cup:7.49,vto:"16/01/2029",dur:1.48,freq:"Trimestral",tipo:"Sinkable",cal:"AA",proxCpn:112},
+  {t:"LOC6D",em:"Loma Negra",p:103.1,tir:5.81,cup:6.5,vto:"23/01/2029",dur:2.64,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:119},
+  {t:"HJCKD",em:"John Deere",p:102.5,tir:7.47,cup:7.75,vto:"16/01/2029",dur:2.57,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:112},
+  {t:"CICBD",em:"CNH Industrial",p:100.5,tir:7.82,cup:7.5,vto:"09/02/2029",dur:2.65,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:136},
+  {t:"LUC5D",em:"Luz de Tres Picos",p:100.2,tir:8.33,cup:8.0,vto:"26/02/2029",dur:2.68,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:153},
+  {t:"PLC6D",em:"Pluspetrol",p:102.5,tir:5.82,cup:6.5,vto:"27/02/2029",dur:2.74,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:246},
+  {t:"YM42D",em:"YPF",p:105.5,tir:5.85,cup:7.0,vto:"02/03/2029",dur:2.68,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:68},
+  {t:"VSCPD",em:"Vista Energy",p:108.35,tir:5.68,cup:8.0,vto:"03/05/2029",dur:2.16,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:38},
+  {t:"OLC6D",em:"Oleoductos del Valle",p:106.65,tir:6.07,cup:7.5,vto:"05/06/2029",dur:2.88,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:71},
+  {t:"NPCCD",em:"Central Puerto",p:106.35,tir:6.22,cup:8.0,vto:"25/08/2029",dur:3.08,freq:"Semestral",tipo:"Bullet",cal:"AA+",proxCpn:152},
+  {t:"PN41D",em:"Pan American Energy",p:106.25,tir:5.73,cup:7.5,vto:"27/08/2029",dur:3.11,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:154},
+  {t:"PN35D",em:"Pan American Energy",p:103.85,tir:5.85,cup:7.0,vto:"27/09/2029",dur:3.06,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:185},
+  {t:"IRCOD",em:"IRSA",p:105.05,tir:6.15,cup:7.25,vto:"23/10/2029",dur:3.22,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:119},
+  {t:"TTC9D",em:"Tecpetrol",p:106.5,tir:5.74,cup:6.8,vto:"24/10/2029",dur:3.14,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:29},
+  {t:"OT42D",em:"Oil Tanking",p:107.65,tir:6.32,cup:8.0,vto:"17/01/2030",dur:3.33,freq:"trimestral",tipo:"Bullet",cal:"AA",proxCpn:22},
+  {t:"PLC2D",em:"Pluspetrol",p:107.9,tir:6.17,cup:7.5,vto:"27/01/2030",dur:3.36,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:32},
+  {t:"OLC7D",em:"Oleoductos del Valle",p:103.95,tir:6.02,cup:6.9,vto:"23/02/2030",dur:3.52,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:150},
+  {t:"YM39D",em:"YPF",p:111.15,tir:6.27,cup:8.75,vto:"22/07/2030",dur:3.64,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:118},
+  {t:"PQCSD",em:"Petroquimica Cdro Riv",p:103.0,tir:7.6,cup:8.0,vto:"17/02/2031",dur:4.16,freq:"Semestral",tipo:"Bullet",cal:"AA",proxCpn:144},
+  {t:"VSCRD",em:"Vista Energy",p:109.6,tir:6.19,cup:7.65,vto:"10/10/2031",dur:4.46,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:15},
   {t:"PN36D",em:"Pan American Energy",p:109.35,tir:5.92,cup:7.25,vto:"13/11/2031",dur:4.6,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:48}
 ];
 
 const ONS_NY_DATA = [
-,  {t:"MTCGD",em:"Mastellone",p:105.8,tir:-1.19,cup:10.95,vto:"30/06/2026",dur:0.25,freq:"Trimestral",tipo:"Bullet",cal:"A",proxCpn:4}
-  {t:"PNDCD",em:"Pan American Energy",p:65.9,tir:-1.1,cup:9.13,vto:"30/04/2027",dur:0.57,freq:"Semestral",tipo:"Sinkable",cal:"A1",proxCpn:35}
-  {t:"YCAMD",em:"YPF",p:105.5,tir:3.67,cup:6.95,vto:"21/07/2027",dur:1.27,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:117}
-  {t:"IRCFD",em:"IRSA",p:69.41,tir:5.45,cup:8.75,vto:"22/06/2028",dur:1.33,freq:"Semestral",tipo:"Sinkable",cal:"AA",proxCpn:88}
-  {t:"CAC5D",em:"Capex",p:65.75,tir:5.99,cup:9.25,vto:"25/08/2028",dur:1.33,freq:"Semestral",tipo:"Sinkable",cal:"AA",proxCpn:152}
-  {t:"BYCHD",em:"Banco Galicia",p:109.1,tir:5.47,cup:7.75,vto:"10/10/2028",dur:2.28,freq:"Semestral",tipo:"Bullet",cal:"A1",proxCpn:15}
-  {t:"BACGD",em:"Banco Macro",p:107.7,tir:6.14,cup:8.0,vto:"23/06/2029",dur:2.87,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:89}
-  {t:"YMCID",em:"YPF",p:108.35,tir:5.27,cup:9.0,vto:"30/06/2029",dur:1.62,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:96}
-  {t:"DNC7D",em:"Edenor",p:108.75,tir:8.39,cup:9.75,vto:"24/10/2030",dur:2.97,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:29}
-  {t:"RUCDD",em:"MSU Energy",p:106.95,tir:8.77,cup:9.75,vto:"05/12/2030",dur:3.76,freq:"Semestral",tipo:"Sinkable",cal:"CCC+",proxCpn:71}
-  {t:"TLCMD",em:"Telecom",p:111.0,tir:7.1,cup:9.5,vto:"18/07/2031",dur:3.59,freq:"Semestral",tipo:"Sinkable",cal:"AA+",proxCpn:114}
-  {t:"TSC3D",em:"TGS",p:111.7,tir:6.31,cup:8.5,vto:"24/07/2031",dur:4.36,freq:"Semestral",tipo:"Bullet",cal:"B2",proxCpn:120}
-  {t:"TTCDD",em:"Tecpetrol",p:108.0,tir:6.45,cup:7.63,vto:"30/11/2030",dur:3.92,freq:"Semestral",tipo:"Bullet",cal:"B1/BB",proxCpn:38}
-  {t:"BACHD",em:"Banco Macro",p:106.95,tir:6.71,cup:8.0,vto:"28/01/2031",dur:4.13,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:124}
-  {t:"PLC5D",em:"Pluspetrol",p:109.1,tir:6.78,cup:8.13,vto:"18/05/2031",dur:4.2,freq:"Semestral",tipo:"Bullet",cal:"B1/BB",proxCpn:53}
-  {t:"ARC1D",em:"Aeropuertos 2000",p:107.65,tir:5.91,cup:8.5,vto:"01/08/2031",dur:2.87,freq:"Trimestral",tipo:"Sinkable",cal:"B-",proxCpn:36}
-  {t:"MGCMD",em:"Pampa Energía",p:108.5,tir:6.27,cup:7.95,vto:"10/09/2031",dur:4.54,freq:"Semestral",tipo:"Bullet",cal:"AA+/B-",proxCpn:168}
-  {t:"YMCXD",em:"YPF",p:108.55,tir:6.85,cup:8.75,vto:"11/09/2031",dur:4.05,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:169}
-  {t:"PNXCD",em:"Pan American Energy",p:114.15,tir:6.11,cup:8.5,vto:"30/04/2032",dur:4.77,freq:"Semestral",tipo:"Sinkable",cal:"B1",proxCpn:35}
-  {t:"YFCJD",em:"YPF LUZ",p:108.9,tir:6.8,cup:7.88,vto:"16/10/2032",dur:4.45,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:21}
-  {t:"PLC4D",em:"Pluspetrol",p:110.6,tir:7.03,cup:8.5,vto:"30/05/2032",dur:4.83,freq:"Semestral",tipo:"Bullet",cal:"B1",proxCpn:65}
-  {t:"TTCAD",em:"Tecpetrol",p:108.0,tir:6.33,cup:7.63,vto:"22/01/2033",dur:5.4,freq:"Semestral",tipo:"Sinkable",cal:"B1",proxCpn:118}
-  {t:"YMCJD",em:"YPF",p:105.1,tir:6.76,cup:7.0,vto:"30/09/2033",dur:4.81,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:4}
-  {t:"TLCPD",em:"Telecom",p:111.75,tir:7.71,cup:9.25,vto:"28/05/2033",dur:5.02,freq:"Semestral",tipo:"Sinkable",cal:"B2",proxCpn:63}
-  {t:"VSCVD",em:"VIsta Energy",p:111.6,tir:6.79,cup:8.5,vto:"10/06/2033",dur:4.86,freq:"Semestral",tipo:"Sinkable",cal:"B2",proxCpn:76}
-  {t:"GN49D",em:"Genneia",p:107.55,tir:6.9,cup:7.75,vto:"02/12/2033",dur:5.28,freq:"Semestral",tipo:"Sinkable",cal:"AA+/B2",proxCpn:68}
-  {t:"YM34D",em:"YPF",p:107.9,tir:7.2,cup:8.25,vto:"17/01/2034",dur:5.33,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:113}
-  {t:"MGCOD",em:"Pampa Energía",p:110.0,tir:6.79,cup:7.88,vto:"16/12/2034",dur:6.39,freq:"Semestral",tipo:"Bullet",cal:"B-",proxCpn:82}
-  {t:"IRCPD",em:"IRSA",p:109.5,tir:7.19,cup:8.0,vto:"31/03/2035",dur:6.37,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:5}
-  {t:"TSC4D",em:"TGS",p:108.0,tir:7.11,cup:7.75,vto:"20/11/2035",dur:6.91,freq:"Semestral",tipo:"Bullet",cal:"B2",proxCpn:55}
-  {t:"VSCTD",em:"VIsta Energy",p:109.8,tir:6.57,cup:7.63,vto:"10/12/2035",dur:6.39,freq:"Semestral",tipo:"Bullet",cal:"B2",proxCpn:76}
-  {t:"TLCTD",em:"Telecom",p:107.2,tir:7.78,cup:8.5,vto:"20/01/2036",dur:6.53,freq:"Semestral",tipo:"Sinkable",cal:"B2",proxCpn:116}
-  {t:"PN43D",em:"Pan American Energy",p:106.75,tir:7.13,cup:7.75,vto:"15/01/2037",dur:7.42,freq:"Semestral",tipo:"Sinkable",cal:"B1",proxCpn:55}
+  {t:"MTCGD",em:"Mastellone",p:105.8,tir:-1.19,cup:10.95,vto:"30/06/2026",dur:0.25,freq:"Trimestral",tipo:"Bullet",cal:"A",proxCpn:4},
+  {t:"PNDCD",em:"Pan American Energy",p:65.9,tir:-1.1,cup:9.13,vto:"30/04/2027",dur:0.57,freq:"Semestral",tipo:"Sinkable",cal:"A1",proxCpn:35},
+  {t:"YCAMD",em:"YPF",p:105.5,tir:3.67,cup:6.95,vto:"21/07/2027",dur:1.27,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:117},
+  {t:"IRCFD",em:"IRSA",p:69.41,tir:5.45,cup:8.75,vto:"22/06/2028",dur:1.33,freq:"Semestral",tipo:"Sinkable",cal:"AA",proxCpn:88},
+  {t:"CAC5D",em:"Capex",p:65.75,tir:5.99,cup:9.25,vto:"25/08/2028",dur:1.33,freq:"Semestral",tipo:"Sinkable",cal:"AA",proxCpn:152},
+  {t:"BYCHD",em:"Banco Galicia",p:109.1,tir:5.47,cup:7.75,vto:"10/10/2028",dur:2.28,freq:"Semestral",tipo:"Bullet",cal:"A1",proxCpn:15},
+  {t:"BACGD",em:"Banco Macro",p:107.7,tir:6.14,cup:8.0,vto:"23/06/2029",dur:2.87,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:89},
+  {t:"YMCID",em:"YPF",p:108.35,tir:5.27,cup:9.0,vto:"30/06/2029",dur:1.62,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:96},
+  {t:"DNC7D",em:"Edenor",p:108.75,tir:8.39,cup:9.75,vto:"24/10/2030",dur:2.97,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:29},
+  {t:"RUCDD",em:"MSU Energy",p:106.95,tir:8.77,cup:9.75,vto:"05/12/2030",dur:3.76,freq:"Semestral",tipo:"Sinkable",cal:"CCC+",proxCpn:71},
+  {t:"TLCMD",em:"Telecom",p:111.0,tir:7.1,cup:9.5,vto:"18/07/2031",dur:3.59,freq:"Semestral",tipo:"Sinkable",cal:"AA+",proxCpn:114},
+  {t:"TSC3D",em:"TGS",p:111.7,tir:6.31,cup:8.5,vto:"24/07/2031",dur:4.36,freq:"Semestral",tipo:"Bullet",cal:"B2",proxCpn:120},
+  {t:"TTCDD",em:"Tecpetrol",p:108.0,tir:6.45,cup:7.63,vto:"30/11/2030",dur:3.92,freq:"Semestral",tipo:"Bullet",cal:"B1/BB",proxCpn:38},
+  {t:"BACHD",em:"Banco Macro",p:106.95,tir:6.71,cup:8.0,vto:"28/01/2031",dur:4.13,freq:"Semestral",tipo:"Bullet",cal:"AAA",proxCpn:124},
+  {t:"PLC5D",em:"Pluspetrol",p:109.1,tir:6.78,cup:8.13,vto:"18/05/2031",dur:4.2,freq:"Semestral",tipo:"Bullet",cal:"B1/BB",proxCpn:53},
+  {t:"ARC1D",em:"Aeropuertos 2000",p:107.65,tir:5.91,cup:8.5,vto:"01/08/2031",dur:2.87,freq:"Trimestral",tipo:"Sinkable",cal:"B-",proxCpn:36},
+  {t:"MGCMD",em:"Pampa Energía",p:108.5,tir:6.27,cup:7.95,vto:"10/09/2031",dur:4.54,freq:"Semestral",tipo:"Bullet",cal:"AA+/B-",proxCpn:168},
+  {t:"YMCXD",em:"YPF",p:108.55,tir:6.85,cup:8.75,vto:"11/09/2031",dur:4.05,freq:"Semestral",tipo:"Sinkable",cal:"AAA",proxCpn:169},
+  {t:"PNXCD",em:"Pan American Energy",p:114.15,tir:6.11,cup:8.5,vto:"30/04/2032",dur:4.77,freq:"Semestral",tipo:"Sinkable",cal:"B1",proxCpn:35},
+  {t:"YFCJD",em:"YPF LUZ",p:108.9,tir:6.8,cup:7.88,vto:"16/10/2032",dur:4.45,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:21},
+  {t:"PLC4D",em:"Pluspetrol",p:110.6,tir:7.03,cup:8.5,vto:"30/05/2032",dur:4.83,freq:"Semestral",tipo:"Bullet",cal:"B1",proxCpn:65},
+  {t:"TTCAD",em:"Tecpetrol",p:108.0,tir:6.33,cup:7.63,vto:"22/01/2033",dur:5.4,freq:"Semestral",tipo:"Sinkable",cal:"B1",proxCpn:118},
+  {t:"YMCJD",em:"YPF",p:105.1,tir:6.76,cup:7.0,vto:"30/09/2033",dur:4.81,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:4},
+  {t:"TLCPD",em:"Telecom",p:111.75,tir:7.71,cup:9.25,vto:"28/05/2033",dur:5.02,freq:"Semestral",tipo:"Sinkable",cal:"B2",proxCpn:63},
+  {t:"VSCVD",em:"VIsta Energy",p:111.6,tir:6.79,cup:8.5,vto:"10/06/2033",dur:4.86,freq:"Semestral",tipo:"Sinkable",cal:"B2",proxCpn:76},
+  {t:"GN49D",em:"Genneia",p:107.55,tir:6.9,cup:7.75,vto:"02/12/2033",dur:5.28,freq:"Semestral",tipo:"Sinkable",cal:"AA+/B2",proxCpn:68},
+  {t:"YM34D",em:"YPF",p:107.9,tir:7.2,cup:8.25,vto:"17/01/2034",dur:5.33,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:113},
+  {t:"MGCOD",em:"Pampa Energía",p:110.0,tir:6.79,cup:7.88,vto:"16/12/2034",dur:6.39,freq:"Semestral",tipo:"Bullet",cal:"B-",proxCpn:82},
+  {t:"IRCPD",em:"IRSA",p:109.5,tir:7.19,cup:8.0,vto:"31/03/2035",dur:6.37,freq:"Semestral",tipo:"Sinkable",cal:"B-",proxCpn:5},
+  {t:"TSC4D",em:"TGS",p:108.0,tir:7.11,cup:7.75,vto:"20/11/2035",dur:6.91,freq:"Semestral",tipo:"Bullet",cal:"B2",proxCpn:55},
+  {t:"VSCTD",em:"VIsta Energy",p:109.8,tir:6.57,cup:7.63,vto:"10/12/2035",dur:6.39,freq:"Semestral",tipo:"Bullet",cal:"B2",proxCpn:76},
+  {t:"TLCTD",em:"Telecom",p:107.2,tir:7.78,cup:8.5,vto:"20/01/2036",dur:6.53,freq:"Semestral",tipo:"Sinkable",cal:"B2",proxCpn:116},
+  {t:"PN43D",em:"Pan American Energy",p:106.75,tir:7.13,cup:7.75,vto:"15/01/2037",dur:7.42,freq:"Semestral",tipo:"Sinkable",cal:"B1",proxCpn:55},
   {t:"MGCRD",em:"Pampa Energía",p:107.6,tir:7.27,cup:7.75,vto:"14/11/2037",dur:7.67,freq:"Semestral",tipo:"Bullet",cal:"B-",proxCpn:49}
 ];
 
 const ON_COUPON_CALENDAR = [
-,  {month:1,label:"Enero",tickers:["TLCMO","TSC3O","TTCAO","YM34O","TLCTO","PN43O","YM41O","VSCWO","PFC2O","YM38O","LMS7O","SBC2O","HJCKO","OT42O","PLC2O","YM390","BACHO","MIC4O","RUCEO"]}
-  {month:2,label:"Febrero",tickers:["CAC5O","ARC1O","NBS1O","ZZC1O","IRCJO","YM37O","PN38O","DNC5O","YM40O","NPCCO","PN41O","PQCSO","OLC7O","CICBO","PLC6O","LUC5O"]}
-  {month:3,label:"Marzo",tickers:["MTCGO","MGCMO","YMCXO","YMCJO","IRCPO","LMS8O","SBC1O","PN35O","TLCUO"]}
-  {month:4,label:"Abril",tickers:["PNDCO","BYCHO","DNC7O","PNXCO","YFCJO","RC2CO","YM41O","VSCWO","PN42O","OTS2O","YM38O","TTCBO","TLCOO","PLC3O","LMS7O","SBC2O","IRCOO","TTC9O","OT42O","VSCRO","MIC4O","RUCEO"]}
-  {month:5,label:"Mayo",tickers:["TTCDO","PLC5O","ARC1O","PLC4O","TLCPO","TSC4O","MGCRO","DNC3O","YM37O","RCCRO","CIC9O","HJCIO","YM40O","PN36O"]}
-  {month:6,label:"Junio",tickers:["MTCGO","IRCFO","BACGO","YMCIO","RUCDO","VSCVO","GN49O","MGCOO","VSCTO","NBS1O","LMS8O","MCC2O","SBC1O","OLC5O","CICAO","OLC6O"]}
-  {month:7,label:"Julio",tickers:["TLCMO","TSC3O","TTCAO","YM34O","TLCTO","PN43O","YM41O","VSCWO","PFC2O","YM38O","LMS7O","SBC2O","HJCKO","OT42O","PLC2O","YM390","BACHO","MIC4O","RUCEO"]}
-  {month:8,label:"Agosto",tickers:["CAC5O","ARC1O","ZZC1O","IRCJO","YM37O","PN38O","DNC5O","YM40O","NPCCO","PN41O","PQCSO","OLC7O","CICBO","PLC6O","LUC5O"]}
-  {month:9,label:"Septiembre",tickers:["MTCGO","MGCMO","YMCXO","YMCJO","IRCPO","LMS8O","SBC1O","PN35O","TLCUO"]}
-  {month:10,label:"Octubre",tickers:["PNDCO","BYCHO","DNC7O","PNXCO","YFCJO","YM41O","NBS1O","RC2CO","VSCWO","PN42O","OTS2O","YM38O","TTCBO","TLCOO","PLC3O","LMS7O","SBC2O","IRCOO","TTC9O","OT42O","VSCRO","MIC4O","RUCEO"]}
-  {month:11,label:"Noviembre",tickers:["TTCDO","PLC5O","ARC1O","PLC4O","TLCPO","TSC4O","MGCRO","DNC3O","YM37O","RCCRO","CIC9O","HJCIO","YM40O","PN36O"]}
+  {month:1,label:"Enero",tickers:["TLCMO","TSC3O","TTCAO","YM34O","TLCTO","PN43O","YM41O","VSCWO","PFC2O","YM38O","LMS7O","SBC2O","HJCKO","OT42O","PLC2O","YM390","BACHO","MIC4O","RUCEO"]},
+  {month:2,label:"Febrero",tickers:["CAC5O","ARC1O","NBS1O","ZZC1O","IRCJO","YM37O","PN38O","DNC5O","YM40O","NPCCO","PN41O","PQCSO","OLC7O","CICBO","PLC6O","LUC5O"]},
+  {month:3,label:"Marzo",tickers:["MTCGO","MGCMO","YMCXO","YMCJO","IRCPO","LMS8O","SBC1O","PN35O","TLCUO"]},
+  {month:4,label:"Abril",tickers:["PNDCO","BYCHO","DNC7O","PNXCO","YFCJO","RC2CO","YM41O","VSCWO","PN42O","OTS2O","YM38O","TTCBO","TLCOO","PLC3O","LMS7O","SBC2O","IRCOO","TTC9O","OT42O","VSCRO","MIC4O","RUCEO"]},
+  {month:5,label:"Mayo",tickers:["TTCDO","PLC5O","ARC1O","PLC4O","TLCPO","TSC4O","MGCRO","DNC3O","YM37O","RCCRO","CIC9O","HJCIO","YM40O","PN36O"]},
+  {month:6,label:"Junio",tickers:["MTCGO","IRCFO","BACGO","YMCIO","RUCDO","VSCVO","GN49O","MGCOO","VSCTO","NBS1O","LMS8O","MCC2O","SBC1O","OLC5O","CICAO","OLC6O"]},
+  {month:7,label:"Julio",tickers:["TLCMO","TSC3O","TTCAO","YM34O","TLCTO","PN43O","YM41O","VSCWO","PFC2O","YM38O","LMS7O","SBC2O","HJCKO","OT42O","PLC2O","YM390","BACHO","MIC4O","RUCEO"]},
+  {month:8,label:"Agosto",tickers:["CAC5O","ARC1O","ZZC1O","IRCJO","YM37O","PN38O","DNC5O","YM40O","NPCCO","PN41O","PQCSO","OLC7O","CICBO","PLC6O","LUC5O"]},
+  {month:9,label:"Septiembre",tickers:["MTCGO","MGCMO","YMCXO","YMCJO","IRCPO","LMS8O","SBC1O","PN35O","TLCUO"]},
+  {month:10,label:"Octubre",tickers:["PNDCO","BYCHO","DNC7O","PNXCO","YFCJO","YM41O","NBS1O","RC2CO","VSCWO","PN42O","OTS2O","YM38O","TTCBO","TLCOO","PLC3O","LMS7O","SBC2O","IRCOO","TTC9O","OT42O","VSCRO","MIC4O","RUCEO"]},
+  {month:11,label:"Noviembre",tickers:["TTCDO","PLC5O","ARC1O","PLC4O","TLCPO","TSC4O","MGCRO","DNC3O","YM37O","RCCRO","CIC9O","HJCIO","YM40O","PN36O"]},
   {month:12,label:"Diciembre",tickers:["MTCGO","IRCFO","BACGO","YMCIO","RUCDO","VSCVO","GN49O","MGCOO","VSCTO","LMS8O","MCC2O","SBC1O","OLC5O","CICAO","OLC6O"]}
 ];
 

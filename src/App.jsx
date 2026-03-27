@@ -123,6 +123,134 @@ function useWindowSize() {
 ════════════════════════════════════════════════════════════════ */
 const SUMMARIES = [
   {
+    id:"s27", date:"27 MAR 2026", label:"CIERRE DE MERCADO",
+    kpis:[
+      {k:"SPOT ARS/USD",    v:"$1.368",       b:"mín. oct.",     bc:"green"},
+      {k:"BCRA COMPRAS",    v:"USD 57M",      b:"acum. USD 4B",  bc:"green"},
+      {k:"TASAS TEM",       v:"2,1–2,3%",     b:"mínimos",       bc:"blue"},
+      {k:"ABSORCIÓN BCRA",  v:"$3,4B",        b:"repo",          bc:"blue"},
+      {k:"GLOBALES",        v:"-0,4%",         b:"vs EM",         bc:"gold"},
+      {k:"EMAE ENERO",      v:"+1,9% i.a.",   b:"máximo",        bc:"green"},
+    ],
+    dato:"📊 <b>Datos del día:</b> Balance cambiario (BCRA) y balanza de pagos (INDEC) — claves para leer el estado real de las reservas y los flujos externos.",
+    cards:[
+      { cat:"DEUDA · LICITACIÓN USD", icon:"🏛️", title:"Test clave: AO27 y AO28 en el mercado",
+        ac:"#1D4ED8",
+        rows:[{l:"AO27 oferta",v:"hasta USD 150M (ampliable)"},{l:"AO28 oferta",v:"hasta USD 150M (ampliable)"},{l:"Expectativa tasa AO28",v:"< 9% TNA",b:"blue"}],
+        note:"La clave está en el <b>bid-to-cover y la demanda real</b>. El resultado del AO28 dará señales sobre el costo de financiamiento en dólares post-2027.",
+      },
+      { cat:"TASAS · LICITACIÓN PESOS", icon:"💵", title:"Licitación en pesos muy cómoda, sin instrumentos cortos",
+        ac:"#16A34A",
+        rows:[{l:"Instrumentos cortos (<100d)",v:"ninguno ofrecido"},{l:"TEM de referencia",v:"2,1–2,3%"},{l:"Absorción BCRA (repo)",v:"$3,4B"}],
+        note:"El Gobierno está <b>cómodo con tasas bajas</b>. La ausencia de instrumentos cortos confirma que no necesita atraer liquidez de corto plazo.",
+      },
+      { cat:"FX · RESERVAS", icon:"💱", title:"Peso en mínimos desde octubre — BCRA acumula a ritmo récord",
+        ac:"#16A34A",
+        rows:[{l:"Spot ARS/USD",v:"$1.368",b:"green"},{l:"Compra BCRA (día)",v:"USD 57M"},{l:"Acumulado 2026",v:"~USD 4.000M",b:"green"}],
+        note:"<b>Fuerte señal de acumulación de reservas.</b> El tipo de cambio firme y las compras sostenidas del BCRA son los datos más positivos de la semana.",
+      },
+      { cat:"SISTEMA FINANCIERO", icon:"🏦", title:"BCRA no renovaría el esquema de encajes con bonos",
+        ac:"#7C3AED",rows:[],
+        note:"El BCRA no renovaría el esquema que permitía integrar encajes con bonos del Tesoro, <b>cambiando las condiciones de liquidez</b> del sistema bancario. El impacto concreto dependerá del reemplazo que se implemente y los plazos de transición. <b>A seguir de cerca.</b>",
+      },
+      { cat:"MERCADOS · POLÍTICA", icon:"🌍", title:"Globales resilientes y ruido político sin impacto en mercado",
+        ac:"#B45309",
+        rows:[{l:"Globales (día)",v:"-0,4%",b:"gold"},{l:"Riesgo país",v:"comprimiendo"},{l:"Aprobación Milei (AtlasIntel)",v:"36,4%"},{l:"Aprobación Milei (UTDT)",v:"~46%"}],
+        note:"Las encuestas muestran divergencia metodológica. <b>Sin impacto claro en mercado</b> por ahora — los activos siguen respondiendo a fundamentos.",
+      },
+      { cat:"ACTIVIDAD ECONÓMICA", icon:"📊", title:"EMAE marca nuevo máximo en enero 2026",
+        ac:"#16A34A",
+        rows:[{l:"EMAE enero (mensual)",v:"+0,4%",b:"green"},{l:"EMAE enero (interanual)",v:"+1,9%",b:"green"},{l:"Nivel",v:"nuevo máximo histórico"},{l:"Arrastre estadístico 2026",v:"+2,4%"}],
+      },
+    ],
+  },
+  {
+    id:"s26", date:"26 MAR 2026", label:"CIERRE DE MERCADO",
+    kpis:[
+      {k:"AO28 LICITACIÓN", v:"~9% TNA",      b:"hoy",           bc:"blue"},
+      {k:"BCRA COMPRAS",    v:"USD 146M",      b:"USD 450M/3d",   bc:"green"},
+      {k:"SPOT ARS/USD",    v:"-0,9%",         b:"firme",         bc:"green"},
+      {k:"GLOBALES",        v:"+0,7%",         b:"rebote",        bc:"green"},
+      {k:"RIESGO PAÍS",     v:"<600 pb",       b:"comprime",      bc:"green"},
+      {k:"TASAS TEM",       v:"~2,2–2,3%",    b:"mínimos",       bc:"blue"},
+    ],
+    dato:"📊 <b>Dato del día:</b> Se publica el EMAE de enero — actividad económica, tras el rebote de diciembre.",
+    cards:[
+      { cat:"DEUDA · LICITACIÓN USD", icon:"🏛️", title:"Nueva prueba en dólares: AO28 y reapertura AO27",
+        ac:"#1D4ED8",
+        rows:[{l:"AO28 — tipo",v:"Bullet · cupón 6%"},{l:"AO28 — tasa esperada",v:"~9% TNA o menos",b:"blue"},{l:"AO27 — tasa",v:"~5,1% TNA"}],
+        note:"<b>Foco del mercado:</b> demanda efectiva y tasa de corte. El AO28 es la primera prueba real de financiamiento más allá del mandato actual.",
+      },
+      { cat:"TASAS · LICITACIÓN PESOS", icon:"💵", title:"Licitación en pesos muy cómoda — sin presión",
+        ac:"#16A34A",
+        rows:[{l:"Instrumentos",v:"Lecap 108d, Boncer, TAMAR"},{l:"Otros",v:"USD linked + canje TZX26"},{l:"Absorción BCRA",v:"~$2,7B (repo)"},{l:"TEM referencia",v:"2,2–2,3%"}],
+        note:"Con liquidez alta y tasas en mínimos, el Gobierno <b>no necesita convalidar tasas altas</b>.",
+      },
+      { cat:"FX · RESERVAS", icon:"💱", title:"Dólar firme — acumulación de reservas a ritmo récord",
+        ac:"#16A34A",
+        rows:[{l:"Variación spot",v:"-0,9%",b:"green"},{l:"Compra BCRA (día)",v:"USD 146M"},{l:"Acumulado 3 ruedas",v:"USD 450M",b:"green"}],
+        note:"Se <b>acelera la acumulación de reservas</b>. Uno de los datos más positivos de la semana.",
+      },
+      { cat:"BONOS · MERCADOS", icon:"🌐", title:"Globales suben 0,7% y riesgo país vuelve a <600 pb",
+        ac:"#16A34A",
+        rows:[{l:"Globales (día)",v:"+0,7%",b:"green"},{l:"Riesgo país",v:"<600 pb",b:"green"},{l:"Merval",v:"firme"}],
+        note:"Mejora de activos en línea con un <b>mejor clima global</b>. El riesgo país perforando 600 pb es una señal positiva.",
+      },
+      { cat:"BCRA · INSTITUCIONAL", icon:"🏦", title:"Martín Vauthier nombrado director del BCRA",
+        ac:"#7C3AED",rows:[],
+        note:"Cambio en la conducción del Banco Central. Vauthier es economista de perfil técnico, <b>bien considerado en el mercado</b>.",
+      },
+      { cat:"ECONOMÍA REAL", icon:"⚠️", title:"Salarios privados caen en términos reales por 5° mes",
+        ac:"#DC2626",
+        rows:[{l:"Salarios reales privados",v:"caída",b:"red"},{l:"Consecutivo",v:"5° mes"}],
+        note:"El ajuste sigue presente en el bolsillo de los trabajadores, pese a la desaceleración inflacionaria. Señal de que la <b>recuperación del consumo es gradual</b>.",
+      },
+    ],
+  },
+  {
+    id:"s25", date:"25 MAR 2026", label:"CIERRE DE MERCADO",
+    kpis:[
+      {k:"RIESGO PAÍS",     v:">600 pts",     b:"presionado",    bc:"red"},
+      {k:"MERVAL USD",      v:"+2,5%",        b:"semana",        bc:"green"},
+      {k:"BCRA COMPRAS",    v:"USD 172M",     b:"fuerte",        bc:"green"},
+      {k:"DÓLAR MAYORISTA", v:"$1.390",       b:"mín. feb.",     bc:"green"},
+      {k:"TASAS TEM",       v:"2,2–2,3%",    b:"mínimos",       bc:"blue"},
+      {k:"PBI 2025",        v:"+4,4%",        b:"confirmado",    bc:"green"},
+    ],
+    cards:[
+      { cat:"BONOS · RIESGO PAÍS", icon:"🌐", title:"Bonos rebotan pero riesgo país sigue sobre 600 puntos",
+        ac:"#B45309",
+        rows:[{l:"Riesgo país",v:">600 pb",b:"red"},{l:"Tramos largos",v:"rendimiento dos dígitos"}],
+        note:"El conflicto en Medio Oriente y las <b>tasas altas globales</b> siguen limitando el upside de la deuda soberana en dólares.",
+      },
+      { cat:"RENTA VARIABLE", icon:"📈", title:"Merval acumula +2,5% en dólares en la semana",
+        ac:"#16A34A",
+        rows:[{l:"Merval USD (semana)",v:"+2,5%",b:"green"}],
+        note:"La bolsa local se <b>desacopla del contexto global</b>. El petróleo alto favorece el desempeño de las energéticas y da soporte al índice.",
+      },
+      { cat:"TASAS · LICITACIÓN", icon:"💵", title:"Licitación del Tesoro hoy con tasas en mínimos",
+        ac:"#1D4ED8",
+        rows:[{l:"TEM referencia",v:"2,2–2,3%"},{l:"Liquidez del sistema",v:"alta"}],
+        note:"El mercado lee las condiciones de hoy como <b>señal de tasa</b>. Con alta liquidez, no se esperan concesiones.",
+      },
+      { cat:"FX · RESERVAS", icon:"💱", title:"BCRA compra USD 172M — dólar cae a mínimo desde febrero",
+        ac:"#16A34A",
+        rows:[{l:"Compra BCRA (día)",v:"USD 172M",b:"green"},{l:"Spot mayorista",v:"$1.390 (mín. feb.)"}],
+        note:"Compra fuerte y sostenida. El dólar sigue <b>bajo control</b> mientras el BCRA acumula reservas.",
+      },
+      { cat:"SISTEMA FINANCIERO", icon:"🏦", title:"Mora bancaria en máximos de dos décadas",
+        ac:"#DC2626",
+        rows:[{l:"Mora hogares",v:"10,6%",b:"red"},{l:"Referencia histórica",v:"máximo en 20 años"}],
+        note:"<b>Señal clara de estrés financiero</b> en los hogares. Refleja el impacto de tasas altas y ajuste del poder adquisitivo.",
+      },
+      { cat:"ACTIVIDAD ECONÓMICA", icon:"📊", title:"PBI 2025 creció 4,4% — desaceleración en Q4",
+        ac:"#16A34A",
+        rows:[{l:"Crecimiento PBI 2025",v:"+4,4%",b:"green"},{l:"Q4 2025",v:"desaceleración"}],
+        note:"El dato anual confirma la <b>recuperación económica de 2025</b>, aunque el cuarto trimestre mostró menor impulso. Base de comparación favorable para 2026.",
+      },
+    ],
+  },
+  {
     id:"s20", date:"20 MAR 2026", label:"CIERRE DE MERCADO",
     kpis:[
       {k:"DÓLAR OFICIAL",    v:"$1.394",      b:"estable",      bc:"blue"},
@@ -423,6 +551,7 @@ const DOLARLINKED = [
 const SOBERANOS = [
   // ley argentina
   {t:"AO27D",vto:"Oct 2027",p:"$102,20",tir:"4,90%", sprd:"—",    cy:"5,87%",dur:1.56,pago:"Mensual", ley:"ARG",par:"101,84%",var1d:"+0,25%",var1w:"+1,29%",neg:false},
+  {t:"AO28D",vto:"2028",    p:"$100,00",tir:"~9% TNA",sprd:"—",   cy:"6,00%",dur:1.80,pago:"Bullet",  ley:"ARG",par:"100,00%",var1d:"—",     var1w:"—",     neg:false, nuevo:true},
   {t:"AL29D",vto:"Jul 2029",p:"$61,99", tir:"8,38%", sprd:"-2,62%",cy:"1,21%",dur:1.69,pago:"Semestral",ley:"ARG",par:"77,34%", var1d:"-0,18%",var1w:"+1,46%",neg:true},
   {t:"AN29D",vto:"Nov 2029",p:"$94,14", tir:"9,15%", sprd:"—",    cy:"6,67%",dur:3.30,pago:"Semestral",ley:"ARG",par:"92,50%", var1d:"-0,12%",var1w:"+0,68%",neg:true},
   {t:"AL30D",vto:"Jul 2030",p:"$60,67", tir:"9,47%", sprd:"-2,41%",cy:"0,94%",dur:2.12,pago:"Semestral",ley:"ARG",par:"75,73%", var1d:"-0,61%",var1w:"+0,12%",neg:true},
@@ -2512,7 +2641,7 @@ function SovYieldCurve({ t, bondPrices }) {
   const W=700, H=320, pad={t:35,r:35,b:52,l:56};
   const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
 
-  const pts = SOBERANOS.map(s => {
+  const pts = SOBERANOS.filter(s=>!s.nuevo).map(s => {
     const liveRaw = (bondPrices[s.t] || bondPrices[s.t.replace("D","")]||{}).price||null;
     const m = calcBondMetrics(s, liveRaw);
     const tir = m.newTIR !== null ? m.newTIR : parseFloat(String(s.tir).replace(",",".").replace("%",""));
@@ -3327,25 +3456,17 @@ function CalendarioPanel({ t }) {
    PIN locked · Fetch arg_corp · Agrupadas por ley y emisor
 ════════════════════════════════════════════════════════════════ */
 function ONsPanel({ t }) {
-  const [pin, setPin] = useState("");
-  const [unlocked, setUnlocked] = useState(false);
-  const [error, setError] = useState(false);
   const [corpPrices, setCorpPrices] = useState({});
   const [status, setStatus] = useState("loading");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("dur");
   const [sortDir, setSortDir] = useState(1);
-  const [onSub, setOnSub] = useState("cotiz"); // cotiz | calc | sell
+  const [onSub, setOnSub] = useState("cotiz");
   const [calcTicker, setCalcTicker] = useState("");
   const [calcMonto, setCalcMonto] = useState(10000);
-
-  const tryUnlock = () => {
-    if (pin === "1243") { setUnlocked(true); setError(false); }
-    else { setError(true); setPin(""); setTimeout(()=>setError(false), 1800); }
-  };
+  const [calcCom, setCalcCom] = useState(0.5);
 
   useEffect(() => {
-    if (!unlocked) return;
     const load = async () => {
       try {
         const r = await fetch("https://data912.com/live/arg_corp", { headers:{"Accept":"application/json"} });
@@ -3359,29 +3480,7 @@ function ONsPanel({ t }) {
     load();
     const id = setInterval(load, 300000);
     return () => clearInterval(id);
-  }, [unlocked]);
-
-  if (!unlocked) {
-    return (
-      <div className="fade-up" style={{ maxWidth:400, margin:"60px auto", textAlign:"center" }}>
-        <div style={{ width:64, height:64, borderRadius:16, background:t.goBg, border:`1px solid ${t.go}33`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
-          <Lock size={28} color={t.go} />
-        </div>
-        <h3 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:8 }}>Obligaciones Negociables</h3>
-        <p style={{ fontFamily:FB, fontSize:13, color:t.mu, lineHeight:1.7, marginBottom:24 }}>
-          88 ONs Hard Dollar · Precios en vivo vía DATA912 · Acceso exclusivo.
-        </p>
-        <input type="password" placeholder="PIN" value={pin} onChange={e=>{setPin(e.target.value);setError(false);}}
-          onKeyDown={e=>e.key==="Enter"&&tryUnlock()} autoFocus
-          style={{ width:"100%", padding:"12px 16px", borderRadius:12, fontFamily:FB, fontSize:14,
-            border:`1.5px solid ${error?t.rd:t.brd}`, background:t.srf, color:t.tx, outline:"none",
-            letterSpacing:".1em", textAlign:"center", marginBottom:12 }} />
-        {error && <p style={{ fontFamily:FB, fontSize:11, color:t.rd, marginBottom:8 }}>PIN incorrecto.</p>}
-        <button onClick={tryUnlock} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none",
-          background:t.go, color:"#fff", fontFamily:FB, fontWeight:700, fontSize:14, cursor:"pointer" }}>Acceder</button>
-      </div>
-    );
-  }
+  }, []);
 
   const sort = (col) => { if (sortCol===col) setSortDir(d=>-d); else { setSortCol(col); setSortDir(1); } };
 
@@ -3567,7 +3666,9 @@ function ONsPanel({ t }) {
         }
         // Total recibido: cada punto de cf = $1 por lámina
         const totalRecibido = (totalCupones + 100) * laminas;
-        const ganancia = totalRecibido - capitalInvertido;
+        const comPct = parseFloat(String(calcCom).replace(",",".")) || 0;
+        const costoComision = capitalInvertido * (comPct / 100);
+        const ganancia = totalRecibido - capitalInvertido - costoComision;
         const retPct = capitalInvertido > 0 ? (ganancia / capitalInvertido * 100) : 0;
 
         return (
@@ -3587,6 +3688,11 @@ function ONsPanel({ t }) {
                 <input type="text" value={calcMonto.toLocaleString("es-AR")} onChange={e=>{const raw=e.target.value.replace(/\./g,"").replace(/[^0-9]/g,"");setCalcMonto(parseInt(raw)||0);}}
                   style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:FB, fontSize:14, fontWeight:600, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
               </div>
+              <div>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Comisión (%)</label>
+                <input type="text" value={calcCom} onChange={e=>setCalcCom(e.target.value)}
+                  style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:FB, fontSize:14, fontWeight:600, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+              </div>
             </div>
 
             {/* Info del instrumento */}
@@ -3602,9 +3708,10 @@ function ONsPanel({ t }) {
                 {l:"Cupón anual",v:`${cupAnual.toFixed(2)}%`,c:t.bl},
                 {l:"Láminas",v:`${laminas}`,c:t.tx},
                 {l:"Capital invertido",v:`$${capitalInvertido.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:t.tx},
+                {l:"Comisión",v:`-$${costoComision.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:t.rd},
                 {l:"Total a recibir",v:`$${totalRecibido.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:t.bl},
-                {l:"Ganancia est.",v:`$${ganancia.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:ganancia>=0?t.gr:t.rd},
-                {l:"Retorno %",v:`${retPct>=0?"+":""}${retPct.toFixed(1)}%`,c:retPct>=0?t.gr:t.rd},
+                {l:"Ganancia neta",v:`$${ganancia.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:ganancia>=0?t.gr:t.rd},
+                {l:"Retorno neto %",v:`${retPct>=0?"+":""}${retPct.toFixed(1)}%`,c:retPct>=0?t.gr:t.rd},
               ].map((c,i)=>(
                 <div key={i} style={{ background:t.alt, borderRadius:8, padding:"8px 12px", fontFamily:FB, borderLeft:`3px solid ${c.c}` }}>
                   <div style={{ fontSize:8, color:t.fa, textTransform:"uppercase", letterSpacing:".05em", marginBottom:2 }}>{c.l}</div>
@@ -3792,7 +3899,7 @@ function CEDEARsPanel({ t }) {
     }
     return true;
   }).map(c => {
-    const live = prices[c.t] || null;
+    const live = prices[c.t] || prices[c.t+"D"] || prices[c.t+".BA"] || null;
     return { ...c, price:live?.price||null, pct:live?.pct||null };
   }).sort((a,b) => {
     let av = a[sortCol], bv = b[sortCol];
@@ -3804,10 +3911,32 @@ function CEDEARsPanel({ t }) {
     return (av > bv ? 1 : -1) * sortDir;
   });
 
-  const matchCount = Object.keys(prices).filter(k => CEDEARS_LIST.some(c=>c.t===k)).length;
+  const matchCount = Object.keys(prices).filter(k => CEDEARS_LIST.some(c=>c.t===k || c.t+"D"===k)).length;
 
   return (
     <div className="fade-up">
+      {/* Header */}
+      <div style={{
+        background:`linear-gradient(135deg, ${t.go}08 0%, ${t.bl}08 100%)`,
+        border:`1px solid ${t.brd}`, borderRadius:14, padding:"18px 22px", marginBottom:16,
+        display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12,
+      }}>
+        <div>
+          <div style={{ fontFamily:FH, fontSize:17, fontWeight:700, color:t.tx, marginBottom:3, display:"flex", alignItems:"center", gap:8 }}>
+            <Globe size={18} color={t.go} /> CEDEARs · Mercado Argentino
+          </div>
+          <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>50 activos internacionales cotizando en BYMA · Precios en ARS · DATA912</div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",
+            background:status==="ok"?"#22c55e":"#94a3b8",
+            boxShadow:status==="ok"?"0 0 6px #22c55e":"none"}}/>
+          <span style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:status==="ok"?t.gr:t.fa }}>
+            {status==="ok" ? `${matchCount} precios live` : status==="error" ? "Sin datos" : "Cargando..."}
+          </span>
+        </div>
+      </div>
+
       <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
         <div style={{ position:"relative" }}>
           <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
@@ -3825,14 +3954,7 @@ function CEDEARsPanel({ t }) {
             }}>{s}</button>
           ))}
         </div>
-        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
-            background:status==="ok"?"#22c55e":"#94a3b8",
-            boxShadow:status==="ok"?"0 0 6px #22c55e":"none"}}/>
-          <span style={{ fontFamily:FB, fontSize:10, color:status==="ok"?t.gr:t.fa }}>
-            {status==="ok" ? `${matchCount} precios · DATA912` : status==="error" ? "Sin datos" : "Cargando..."}
-          </span>
-        </div>
+        <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, color:t.fa }}>{filtered.length} de {CEDEARS_LIST.length}</span>
       </div>
 
       <Card t={t}>
@@ -4388,6 +4510,7 @@ function InstrumentosView({ t }) {
                               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                                 <span style={{ fontFamily:"monospace", fontSize:11, background:grp.color+"22", color:grp.color, padding:"2px 8px", borderRadius:5, fontWeight:700 }}>{s.t}</span>
                                 {m.isLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}} title="Precio en vivo"/>}
+                                {s.nuevo && <span style={{fontSize:7,fontWeight:700,color:"#fff",background:t.bl,padding:"1px 5px",borderRadius:6}}>NUEVO</span>}
                               </div>
                             </Td2>
                             <Td2 bold>{s.vto}</Td2>
@@ -5591,6 +5714,46 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
         <NavCard Icon={Search}        tab="instrumentos" title="Instrumentos" desc="Screener de renta fija, soberanos y renta variable."         accent={t.gr} />
         <NavCard Icon={Newspaper}     tab="noticias"   title="Noticias"       desc="Las novedades del mercado que importan."                     accent={t.pu} />
       </div>
+
+      {/* ── TOP MOVERS — acciones destacadas en vivo ── */}
+      {(() => {
+        // Get top 2 gainers and top 2 losers from livePrices in EquityScreener cache
+        const cached = (() => { try { return JSON.parse(localStorage.getItem("tbl-live-prices")||"{}"); } catch { return {}; } })();
+        const withData = Object.entries(cached)
+          .filter(([,v]) => v && typeof v.changePct === "number" && v.price > 0)
+          .map(([ticker, v]) => ({ ticker, price:v.price, pct:v.changePct }));
+        if (withData.length < 4) return null;
+        const sorted = [...withData].sort((a,b) => b.pct - a.pct);
+        const top2 = sorted.slice(0, 2);
+        const bot2 = sorted.slice(-2).reverse();
+        const movers = [...top2, ...bot2];
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:8, marginTop:12 }}>
+            {movers.map((m,i) => {
+              const isUp = m.pct >= 0;
+              const col = isUp ? t.gr : t.rd;
+              const bg = isUp ? t.grBg : t.rdBg;
+              return (
+                <div key={i} style={{
+                  background:bg, border:`1px solid ${col}22`, borderRadius:12, padding:"12px 14px",
+                  borderLeft:`3px solid ${col}`,
+                }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                    <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:col }}>{m.ticker}</span>
+                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:"#fff", background:col, padding:"1px 6px", borderRadius:6 }}>
+                      {i < 2 ? "TOP ▲" : "TOP ▼"}
+                    </span>
+                  </div>
+                  <div style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx }}>${m.price.toFixed(2)}</div>
+                  <div style={{ fontFamily:FB, fontSize:12, fontWeight:700, color:col }}>
+                    {isUp?"+":""}{m.pct.toFixed(2)}%
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ── ANÁLISIS DESTACADO ───────────────────────────── */}
       <button onClick={()=>goResearch("informes")} style={{

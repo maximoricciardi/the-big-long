@@ -1090,7 +1090,7 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
           </Card>
 
           <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
-            Resultados trimestrales con análisis de ingresos, rentabilidad y guidance. Reportados por Máximo Ricciardi · Balanz Capital.
+            Resultados trimestrales con análisis de ingresos, rentabilidad y guidance. Reportados por Máximo Ricciardi.
           </p>
           <EarningsCard t={t} />
         </div>
@@ -1100,7 +1100,7 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
       {sub === "informes" && (
         <div>
           <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
-            Análisis fundamental de empresas con perspectiva de inversión. Research Desk · Balanz Capital.
+            Análisis fundamental de empresas con perspectiva de inversión. Research Desk.
           </p>
           <VISTInformeCard t={t} />
         </div>
@@ -1222,7 +1222,7 @@ function VISTInformeCard({ t }) {
           </div>
 
           <p style={{ fontFamily:FB, fontSize:10, color:t.fa, margin:0, lineHeight:1.5 }}>
-            * Análisis orientativo. No constituye recomendación de inversión. Consultar asesor antes de operar. · Máximo Ricciardi · Balanz Capital
+            * Análisis orientativo. No constituye recomendación de inversión. Consultar asesor antes de operar. · Máximo Ricciardi
           </p>
         </div>
       </Card>
@@ -1344,7 +1344,7 @@ function EarningsCard({ t }) {
    ARG ADRs: Google Finance (PAM/GGAL pages) live 19 MAR 2026
    US Mega-cap: Robinhood / TradingView / MacroTrends 19 MAR 2026
    NVDA $180.25 · AAPL $249.94 · VIST $57.00 · MELI $2,079
-   Scores/Research: "Café con la Mesa" — Daily IR (19 MAR 2026)
+   Scores/Research: Research Desk (19 MAR 2026)
 ════════════════════════════════════════════════════════════════ */
 
 /* ════════════════════════════════════════════════════════════════
@@ -1361,7 +1361,7 @@ function tvUrl(ticker) {
 function tvBondUrl(ticker) { return `https://www.tradingview.com/chart/?symbol=BYMA:${ticker}`; }
 
 /* ════════════════════════════════════════════════════════════════
-   ONs — OBLIGACIONES NEGOCIABLES · Café con la Mesa (26 MAR 2026)
+   ONs — OBLIGACIONES NEGOCIABLES · DATA912 tickers
    88 ONs: 54 Ley Argentina + 34 Ley Nueva York
    Datos: Precio, TIR, Cupón, Duration, Calificación, Vto, Frecuencia
 ════════════════════════════════════════════════════════════════ */
@@ -1605,7 +1605,18 @@ function EquityScreener({ t }) {
   const [viewMode, setViewMode] = useState("perf"); // "perf" | "fund"
 
   // ── Live data ─────────────────────────────────────────────────
-  const [livePrices,  setLivePrices]  = useState({});
+  // Load cached prices from localStorage for instant display
+  const [livePrices, setLivePrices] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("tbl-live-prices") || "{}"); } catch { return {}; }
+  });
+  // Persist prices to localStorage when updated
+  const updateLivePrice = (ticker, entry) => {
+    setLivePrices(prev => {
+      const next = { ...prev, [ticker]: entry };
+      try { localStorage.setItem("tbl-live-prices", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
   const [liveHistory, setLiveHistory] = useState({});
   const [liveStatus,  setLiveStatus]  = useState("loading");
   const [histStatus,  setHistStatus]  = useState("loading");
@@ -1626,7 +1637,7 @@ function EquityScreener({ t }) {
           if (d.c && d.c > 0) {
             const entry = { price: d.c, change: d.d, changePct: d.dp };
             livePricesRef.current = { ...livePricesRef.current, [tickers[i]]: entry };
-            setLivePrices(prev => ({ ...prev, [tickers[i]]: entry }));
+            updateLivePrice(tickers[i], entry);
             if (!firstHit) { firstHit = true; setLiveStatus("ok"); }
           }
         } catch {}
@@ -2108,7 +2119,7 @@ function EquityScreener({ t }) {
           display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8
         }}>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            Precios: Finnhub (en vivo) · Historial: Finnhub Weekly Candles · Scores: Research Desk Balanz
+            Precios: Finnhub (en vivo) · Historial: Finnhub Weekly Candles · Scores: Research Desk
           </span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
             {filtered.length} resultados · Ordenado por {sortCol} {sortDir === 1 ? "↑" : "↓"}
@@ -3476,7 +3487,7 @@ function ONsPanel({ t }) {
             <h2 style={{ fontFamily:FD, fontSize:24, fontWeight:700, color:"#fff", margin:0 }}>
               Obligaciones <span style={{ color:"#4A90D9" }}>Negociables</span>
             </h2>
-            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", marginTop:6 }}>Datos: Café con la Mesa · Daily IR · 26 MAR 2026</p>
+            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", marginTop:6 }}>Datos: mercado secundario · 26 MAR 2026</p>
           </div>
           <div style={{
             borderRadius:8, padding:"6px 12px", fontFamily:FB, fontSize:10,
@@ -3526,7 +3537,7 @@ function ONsPanel({ t }) {
       {onSub === "calc" && (() => {
         const allONs = [...ONS_ARG_DATA, ...ONS_NY_DATA].filter(o=>o.tir>0 && o.cup>0 && o.dur>0);
         const sel = allONs.find(o=>o.t===calcTicker) || allONs[0];
-        if (!sel) return <p style={{fontFamily:FB,color:t.mu}}>No hay ONs con datos suficientes para calcular.</p>;
+        if (!sel) return <p style={{fontFamily:FB,color:t.mu}}>No hay ONs con datos suficientes.</p>;
 
         const live = corpPrices[sel.t];
         const precio = live?.price || sel.p;
@@ -3534,35 +3545,42 @@ function ONsPanel({ t }) {
         const tir = sel.tir;
         const durYears = sel.dur;
         const montoNum = parseFloat(String(calcMonto).replace(/\./g,"")) || 0;
+
+        // 1 lámina = $100 VN, comprada al precio (que es por $100 VN)
         const laminas = montoNum > 0 ? Math.floor(montoNum / precio) : 0;
         const capitalInvertido = laminas * precio;
 
-        // Build simplified cashflow: semi-annual coupons + final principal
+        // Frecuencia de pagos
         const freqMult = sel.freq?.toLowerCase().includes("trim") ? 4 : 2;
-        const cupPorPago = cupAnual / freqMult;
-        const totalPagos = Math.round(durYears * freqMult);
+        const cupPorPago = cupAnual / freqMult; // % por período
+        const totalPagos = Math.max(1, Math.round(durYears * freqMult));
+
+        // Flujos: cada cupón = cupPorPago% de $100 VN = $cupPorPago por lámina
         const flows = [];
         let totalCupones = 0;
         for (let i=1; i<=totalPagos; i++) {
           const months = Math.round(i * 12 / freqMult);
           const isLast = i === totalPagos;
           const amort = isLast ? 100 : 0;
-          const cf = cupPorPago + amort;
           totalCupones += cupPorPago;
-          flows.push({ periodo:i, meses:months, cupon:cupPorPago, amort, cf });
+          flows.push({ periodo:i, meses:months, cupon:cupPorPago, amort, cf:cupPorPago+amort });
         }
-        const totalRecibido = (totalCupones + 100) * laminas / 100;
+        // Total recibido: cada punto de cf = $1 por lámina
+        const totalRecibido = (totalCupones + 100) * laminas;
         const ganancia = totalRecibido - capitalInvertido;
+        const retPct = capitalInvertido > 0 ? (ganancia / capitalInvertido * 100) : 0;
 
         return (
           <div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10, marginBottom:16 }}>
               <div>
-                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Instrumento</label>
-                <select value={sel.t} onChange={e=>setCalcTicker(e.target.value)}
-                  style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:FB, fontSize:12, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}>
-                  {allONs.map(o=><option key={o.t} value={o.t}>{o.t} — {o.em} — TIR {o.tir.toFixed(1)}% — {o.vto}</option>)}
-                </select>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Instrumento (buscar por ticker)</label>
+                <input list="on-list" value={calcTicker || sel.t} onChange={e=>setCalcTicker(e.target.value.toUpperCase())}
+                  placeholder="Escribí el ticker..."
+                  style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:"monospace", fontSize:13, fontWeight:700, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+                <datalist id="on-list">
+                  {allONs.map(o=><option key={o.t} value={o.t}>{o.em} — TIR {o.tir.toFixed(1)}%</option>)}
+                </datalist>
               </div>
               <div>
                 <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Monto a invertir (USD)</label>
@@ -3571,15 +3589,26 @@ function ONsPanel({ t }) {
               </div>
             </div>
 
+            {/* Info del instrumento */}
+            <div style={{ fontFamily:FB, fontSize:12, color:t.mu, marginBottom:12 }}>
+              <strong style={{color:t.tx}}>{sel.t}</strong> — {sel.em} · Vto: {sel.vto} · {sel.freq} · {sel.tipo} · Cal: {sel.cal}
+            </div>
+
             {/* KPIs */}
-            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
-              {[{l:"Precio",v:`$${precio.toFixed(2)}`,c:live?t.gr:t.mu},{l:"TIR",v:`${tir.toFixed(2)}%`,c:t.go},{l:"Cupón",v:`${cupAnual.toFixed(1)}%`,c:t.bl},
-                {l:"Duration",v:`${durYears.toFixed(1)}a`,c:t.mu},{l:"Láminas",v:laminas.toLocaleString("es-AR"),c:t.tx},{l:"Capital",v:`$${capitalInvertido.toFixed(0)}`,c:t.tx},
-                {l:"Ganancia est.",v:`$${ganancia.toFixed(0)}`,c:ganancia>=0?t.gr:t.rd}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:8, marginBottom:16 }}>
+              {[
+                {l:"Precio",v:`$${precio.toFixed(2)}`,c:live?t.gr:t.mu},
+                {l:"TIR",v:`${tir.toFixed(2)}%`,c:t.go},
+                {l:"Cupón anual",v:`${cupAnual.toFixed(2)}%`,c:t.bl},
+                {l:"Láminas",v:`${laminas}`,c:t.tx},
+                {l:"Capital invertido",v:`$${capitalInvertido.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:t.tx},
+                {l:"Total a recibir",v:`$${totalRecibido.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:t.bl},
+                {l:"Ganancia est.",v:`$${ganancia.toLocaleString("es-AR",{maximumFractionDigits:0})}`,c:ganancia>=0?t.gr:t.rd},
+                {l:"Retorno %",v:`${retPct>=0?"+":""}${retPct.toFixed(1)}%`,c:retPct>=0?t.gr:t.rd},
               ].map((c,i)=>(
-                <div key={i} style={{ background:t.alt, borderRadius:8, padding:"5px 12px", fontFamily:FB }}>
-                  <span style={{ fontSize:8, color:t.fa, textTransform:"uppercase", letterSpacing:".05em" }}>{c.l} </span>
-                  <span style={{ fontSize:12, fontWeight:700, color:c.c }}>{c.v}</span>
+                <div key={i} style={{ background:t.alt, borderRadius:8, padding:"8px 12px", fontFamily:FB, borderLeft:`3px solid ${c.c}` }}>
+                  <div style={{ fontSize:8, color:t.fa, textTransform:"uppercase", letterSpacing:".05em", marginBottom:2 }}>{c.l}</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:c.c }}>{c.v}</div>
                 </div>
               ))}
             </div>
@@ -3589,7 +3618,7 @@ function ONsPanel({ t }) {
               <div style={{ overflowX:"auto", maxHeight:"45vh", overflowY:"auto" }}>
                 <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:11 }}>
                   <thead><tr>
-                    {["#","Meses","Cupón (%)","Amort. (%)","Flujo total (%)","Flujo USD"].map((h,i)=>(
+                    {["#","Meses","Cupón (%)","Amort. (%)","Flujo (%)","Flujo USD"].map((h,i)=>(
                       <th key={h} style={{ padding:"8px 10px", textAlign:i>=2?"right":"center", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5 }}>{h}</th>
                     ))}
                   </tr></thead>
@@ -3601,20 +3630,24 @@ function ONsPanel({ t }) {
                         <td style={{ padding:"5px 10px", textAlign:"right", color:t.bl }}>{f.cupon.toFixed(2)}%</td>
                         <td style={{ padding:"5px 10px", textAlign:"right", color:f.amort>0?t.go:t.fa }}>{f.amort>0?`${f.amort}%`:"—"}</td>
                         <td style={{ padding:"5px 10px", textAlign:"right", fontWeight:600, color:t.tx }}>{f.cf.toFixed(2)}%</td>
-                        <td style={{ padding:"5px 10px", textAlign:"right", fontWeight:700, color:t.gr }}>${(f.cf * laminas / 100).toFixed(2)}</td>
+                        <td style={{ padding:"5px 10px", textAlign:"right", fontWeight:700, color:f.amort>0?t.go:t.bl }}>
+                          ${(f.cf * laminas).toLocaleString("es-AR",{maximumFractionDigits:2})}
+                        </td>
                       </tr>
                     ))}
                     <tr style={{ borderTop:`2px solid ${t.brd}`, background:t.alt }}>
-                      <td colSpan={4} style={{ padding:"8px 10px", fontWeight:700, color:t.tx }}>TOTAL</td>
-                      <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:700, color:t.tx }}>{(totalCupones+100).toFixed(2)}%</td>
-                      <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:700, color:t.gr }}>${totalRecibido.toFixed(2)}</td>
+                      <td colSpan={4} style={{ padding:"8px 10px", fontWeight:700, color:t.tx }}>TOTAL RECIBIDO</td>
+                      <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:700, color:t.tx }}>{(totalCupones+100).toFixed(1)}%</td>
+                      <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:700, color:t.gr }}>
+                        ${totalRecibido.toLocaleString("es-AR",{maximumFractionDigits:0})}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </Card>
             <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:8 }}>
-              * Flujo simplificado asumiendo pagos regulares ({sel.freq}) y amortización bullet al vencimiento. No considera sinkable schedules ni comisiones.
+              * 1 lámina = $100 VN · Pagos {sel.freq.toLowerCase()}s · {sel.tipo} · No incluye comisiones ni impuestos.
             </p>
           </div>
         );
@@ -3687,12 +3720,191 @@ function ONsPanel({ t }) {
       })()}
 
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5, marginTop:12 }}>
-        Fuente: Café con la Mesa · Daily IR (26/03/2026). Precios live overlay vía DATA912. No constituye asesoramiento.
+        Fuente: DATA912 live overlay. No constituye asesoramiento.
       </p>
     </div>
   );
 }
 
+
+/* ════════════════════════════════════════════════════════════════
+   CEDEARs PANEL — Top 50 · Precios live vía DATA912
+   /live/arg_cedears → { symbol, c, pct_change }
+════════════════════════════════════════════════════════════════ */
+const CEDEARS_LIST = [
+  {t:"AAPL",n:"Apple",s:"Tech"},{t:"MSFT",n:"Microsoft",s:"Tech"},{t:"GOOGL",n:"Alphabet",s:"Tech"},
+  {t:"AMZN",n:"Amazon",s:"Tech"},{t:"META",n:"Meta Platforms",s:"Tech"},{t:"NVDA",n:"NVIDIA",s:"Tech"},
+  {t:"TSLA",n:"Tesla",s:"Autos"},{t:"NFLX",n:"Netflix",s:"Media"},{t:"AMD",n:"AMD",s:"Semis"},
+  {t:"INTC",n:"Intel",s:"Semis"},{t:"AVGO",n:"Broadcom",s:"Semis"},{t:"ORCL",n:"Oracle",s:"Tech"},
+  {t:"ADBE",n:"Adobe",s:"Tech"},{t:"CRM",n:"Salesforce",s:"Tech"},{t:"QCOM",n:"Qualcomm",s:"Semis"},
+  {t:"JPM",n:"JPMorgan Chase",s:"Financiero"},{t:"BAC",n:"Bank of America",s:"Financiero"},
+  {t:"GS",n:"Goldman Sachs",s:"Financiero"},{t:"V",n:"Visa",s:"Financiero"},{t:"MA",n:"Mastercard",s:"Financiero"},
+  {t:"XOM",n:"ExxonMobil",s:"Energía"},{t:"CVX",n:"Chevron",s:"Energía"},
+  {t:"KO",n:"Coca-Cola",s:"Consumo"},{t:"PEP",n:"PepsiCo",s:"Consumo"},{t:"MCD",n:"McDonald's",s:"Consumo"},
+  {t:"WMT",n:"Walmart",s:"Consumo"},{t:"NKE",n:"Nike",s:"Consumo"},{t:"DIS",n:"Walt Disney",s:"Media"},
+  {t:"JNJ",n:"Johnson & Johnson",s:"Salud"},{t:"PFE",n:"Pfizer",s:"Salud"},{t:"ABBV",n:"AbbVie",s:"Salud"},
+  {t:"UNH",n:"UnitedHealth",s:"Salud"},{t:"COST",n:"Costco",s:"Consumo"},
+  {t:"MELI",n:"MercadoLibre",s:"Tech"},{t:"BABA",n:"Alibaba",s:"Tech"},{t:"NIO",n:"NIO",s:"Autos"},
+  {t:"PBR",n:"Petrobras",s:"Energía"},{t:"VALE",n:"Vale",s:"Materiales"},{t:"GLOB",n:"Globant",s:"Tech"},
+  {t:"COIN",n:"Coinbase",s:"Cripto"},{t:"MSTR",n:"Strategy (MicroStr.)",s:"Cripto"},
+  {t:"PLTR",n:"Palantir",s:"Tech"},{t:"ARM",n:"ARM Holdings",s:"Semis"},
+  {t:"SPY",n:"S&P 500 ETF",s:"ETF"},{t:"QQQ",n:"Nasdaq 100 ETF",s:"ETF"},
+  {t:"EWZ",n:"Brasil ETF",s:"ETF"},{t:"XLE",n:"Energy ETF",s:"ETF"},
+  {t:"GLD",n:"Gold ETF",s:"ETF"},{t:"DIA",n:"Dow Jones ETF",s:"ETF"},
+  {t:"ARKK",n:"ARK Innovation",s:"ETF"},{t:"ASML",n:"ASML Holding",s:"Semis"},
+];
+
+function CEDEARsPanel({ t }) {
+  const [prices, setPrices] = useState({});
+  const [status, setStatus] = useState("loading");
+  const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState("t");
+  const [sortDir, setSortDir] = useState(1);
+  const [fSector, setFSector] = useState("Todos");
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch("https://data912.com/live/arg_cedears", { headers:{"Accept":"application/json"} });
+        const json = await r.json();
+        const map = {};
+        if (Array.isArray(json)) json.forEach(d => {
+          if (d.symbol && d.c) map[d.symbol] = { price:d.c, pct:d.pct_change||0 };
+        });
+        setPrices(map);
+        setStatus(Object.keys(map).length > 0 ? "ok" : "empty");
+      } catch { setStatus("error"); }
+    };
+    load();
+    const id = setInterval(load, 120000); // 2 min
+    return () => clearInterval(id);
+  }, []);
+
+  const sort = (col) => { if(sortCol===col) setSortDir(d=>-d); else { setSortCol(col); setSortDir(1); } };
+
+  const sectors = ["Todos", ...new Set(CEDEARS_LIST.map(c=>c.s))];
+
+  const filtered = CEDEARS_LIST.filter(c => {
+    if (fSector !== "Todos" && c.s !== fSector) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return c.t.toLowerCase().includes(q) || c.n.toLowerCase().includes(q);
+    }
+    return true;
+  }).map(c => {
+    const live = prices[c.t] || null;
+    return { ...c, price:live?.price||null, pct:live?.pct||null };
+  }).sort((a,b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (sortCol === "price" || sortCol === "pct") {
+      av = av ?? -Infinity; bv = bv ?? -Infinity;
+    }
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return (av > bv ? 1 : -1) * sortDir;
+  });
+
+  const matchCount = Object.keys(prices).filter(k => CEDEARS_LIST.some(c=>c.t===k)).length;
+
+  return (
+    <div className="fade-up">
+      <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        <div style={{ position:"relative" }}>
+          <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker..."
+            style={{ fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10, width:170,
+              border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+        </div>
+        <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+          {sectors.map(s=>(
+            <button key={s} onClick={()=>setFSector(s)} style={{
+              padding:"5px 10px", borderRadius:7, fontFamily:FB, fontSize:10, cursor:"pointer",
+              border:`1.5px solid ${fSector===s?t.go:t.brd}`,
+              background:fSector===s?t.go+"15":"transparent",
+              color:fSector===s?t.go:t.mu, fontWeight:fSector===s?700:400,
+            }}>{s}</button>
+          ))}
+        </div>
+        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
+            background:status==="ok"?"#22c55e":"#94a3b8",
+            boxShadow:status==="ok"?"0 0 6px #22c55e":"none"}}/>
+          <span style={{ fontFamily:FB, fontSize:10, color:status==="ok"?t.gr:t.fa }}>
+            {status==="ok" ? `${matchCount} precios · DATA912` : status==="error" ? "Sin datos" : "Cargando..."}
+          </span>
+        </div>
+      </div>
+
+      <Card t={t}>
+        <div style={{ overflowX:"auto", maxHeight:"65vh", overflowY:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:11 }}>
+            <thead><tr>
+              {[
+                {h:"Ticker",col:"t",r:false},{h:"Empresa",col:"n",r:false},{h:"Sector",col:"s",r:false},
+                {h:"Precio ARS",col:"price",r:true},{h:"Var. día",col:"pct",r:true},{h:"",col:"_tv",r:false}
+              ].map(({h,col,r},i)=>(
+                <th key={i} onClick={()=>col!=="_tv"&&sort(col)} style={{
+                  padding:"8px 10px", textAlign:r?"right":"left", fontSize:9, fontWeight:700,
+                  color:sortCol===col?t.go:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`,
+                  background:t.alt, position:"sticky", top:0, zIndex:5, cursor:col!=="_tv"?"pointer":"default",
+                  whiteSpace:"nowrap"
+                }}>{h}{sortCol===col?(sortDir===1?" ↑":" ↓"):""}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {filtered.map((c,i) => {
+                const hasLive = c.price !== null;
+                return (
+                  <tr key={i} style={{ borderBottom:`1px solid ${t.brd}33`, transition:"background .1s" }}
+                    onMouseEnter={e=>e.currentTarget.style.background=t.alt}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <td style={{ padding:"6px 10px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                        <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 5px", borderRadius:4,
+                          background:t.go+"12", color:t.go, border:`1px solid ${t.go}33` }}>{c.t}</span>
+                        {hasLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block",boxShadow:"0 0 4px #22c55e"}}/>}
+                      </div>
+                    </td>
+                    <td style={{ padding:"6px 10px", fontSize:10, color:t.tx, fontWeight:500, maxWidth:140, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.n}</td>
+                    <td style={{ padding:"6px 10px" }}>
+                      <span style={{ fontSize:9, fontWeight:600, padding:"1px 6px", borderRadius:4,
+                        background:c.s==="Tech"?t.blBg:c.s==="Financiero"?t.goBg:c.s==="Energía"?t.grBg:c.s==="Salud"?t.rdBg:c.s==="ETF"?t.puBg:t.alt,
+                        color:c.s==="Tech"?t.bl:c.s==="Financiero"?t.go:c.s==="Energía"?t.gr:c.s==="Salud"?t.rd:c.s==="ETF"?t.pu:t.mu
+                      }}>{c.s}</span>
+                    </td>
+                    <td style={{ padding:"6px 10px", textAlign:"right", fontWeight:700, fontFamily:"monospace", color:hasLive?t.tx:t.fa }}>
+                      {hasLive ? `$${c.price.toLocaleString("es-AR",{maximumFractionDigits:0})}` : "—"}
+                    </td>
+                    <td style={{ padding:"6px 10px", textAlign:"right" }}>
+                      {c.pct !== null ? <span style={{ fontWeight:600, color:c.pct>=0?t.gr:t.rd }}>{c.pct>=0?"+":""}{c.pct.toFixed(2)}%</span> : <span style={{color:t.fa}}>—</span>}
+                    </td>
+                    <td style={{ padding:"6px 6px" }}>
+                      <a href={tvUrl(c.t)} target="_blank" rel="noreferrer"
+                        style={{ width:24, height:24, borderRadius:5, display:"inline-flex", alignItems:"center", justifyContent:"center",
+                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", textDecoration:"none" }}
+                        onMouseEnter={e=>{e.currentTarget.style.background=t.goBg;e.currentTarget.style.borderColor=t.go;e.currentTarget.style.color=t.go;}}
+                        onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
+                        <LineChart size={12} />
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ padding:"8px 14px", borderTop:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:6 }}>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            Precios en ARS · DATA912 live · Refresh cada 2 min
+          </span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            {filtered.length} de {CEDEARS_LIST.length} · Click columnas para ordenar
+          </span>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 function InstrumentosView({ t }) {
   const [sub, setSub] = useState("lecap");
@@ -3893,8 +4105,9 @@ function InstrumentosView({ t }) {
     {id:"calendario", label:"Calendario",         Icon:Clock},
     {id:"corp",       label:"Corporativos (ONs)", Icon:Building2},
     {id:"pf",         label:"Plazos Fijos",       Icon:Landmark},
-    {id:"fondos",     label:"Fondos Balanz",      Icon:Wallet},
+    {id:"fondos",     label:"FCIs",      Icon:Wallet},
     {id:"etps",       label:"ETPs Balanz",        Icon:Package},
+    {id:"cedears",    label:"CEDEARs",            Icon:Globe},
     {id:"rv",         label:"Research Desk",      Icon:LineChart},
   ];
 
@@ -4305,6 +4518,9 @@ function InstrumentosView({ t }) {
       {sub === "etps" && (
         <ETPsPanel t={t} />
       )}
+      {/* ── CEDEARs — DATA912 LIVE ── */}
+      {sub === "cedears" && <CEDEARsPanel t={t} />}
+
       {/* ── RESEARCH DESK — RENTA VARIABLE ── */}
       {sub === "rv" && <EquityScreener t={t} />}
 
@@ -6054,7 +6270,9 @@ export default function App() {
   const [riesgoPais, setRiesgoPais] = useState(null);
   const [fxError, setFxError] = useState(false);
   // ── Live market data (shared across ticker + components) ──
-  const [liveMarket, setLiveMarket] = useState({ spy:null, gold:null, brent:null, mervalARS:null });
+  const [liveMarket, setLiveMarket] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("tbl-live-market") || "null") || { spy:null, gold:null, brent:null, mervalARS:null }; } catch { return { spy:null, gold:null, brent:null, mervalARS:null }; }
+  });
   const winW = useWindowSize();
   const isMobile = winW < 640;
   const clock = useClock();
@@ -6148,7 +6366,11 @@ export default function App() {
         if (val > 0) updates.mervalARS = { value: val, changePct: d?.variacion ?? null };
       } catch {}
       if (!cancelled && Object.keys(updates).length > 0) {
-        setLiveMarket(prev => ({ ...prev, ...updates }));
+        setLiveMarket(prev => {
+          const next = { ...prev, ...updates };
+          try { localStorage.setItem("tbl-live-market", JSON.stringify(next)); } catch {}
+          return next;
+        });
       }
     };
     fetchMarket();

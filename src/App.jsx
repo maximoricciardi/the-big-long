@@ -384,7 +384,7 @@ const MICRON = {
 const LECAP = [
   {mes:"Abril",     vto:"17/04/2026", dias:29,  rows:[{t:"S17A6", pre:"$107,82",r:"2,14%", tna:"26,91%", tem:"2,21%", fxbe:"$1.452"}]},
   {mes:"Abril",     vto:"30/04/2026", dias:42,  rows:[{t:"S30A6", pre:"$123,83",r:"2,96%", tna:"25,69%", tem:"2,10%", fxbe:"$1.463"}]},
-  {mes:"Mayo",      vto:"15/05/2026", dias:57,  rows:[{t:"S15Y6", pre:"$119,50",r:"4,18%", tna:"26,76%", tem:"2,18%", fxbe:"$1.481"}]},
+  {mes:"Mayo",      vto:"15/05/2026", dias:57,  rows:[{t:"S15Y6", pre:"$100,00",r:"4,20%", tna:"26,90%", tem:"2,18%", fxbe:"$1.470"}]},
   {mes:"Mayo",      vto:"29/05/2026", dias:71,  rows:[{t:"S29Y6", pre:"$124,96",r:"5,67%", tna:"29,12%", tem:"2,36%", fxbe:"$1.502"}]},
   {mes:"Junio",     vto:"30/06/2026", dias:103, rows:[{t:"T30J6", pre:"$134,20",r:"7,97%", tna:"28,24%", tem:"2,26%", fxbe:"$1.535"}]},
   {mes:"Julio",     vto:"31/07/2026", dias:134, rows:[{t:"S31L6", pre:"$106,81",r:"10,18%",tna:"27,73%", tem:"2,19%", fxbe:"$1.566"}]},
@@ -3208,15 +3208,14 @@ function CalendarioPanel({ t }) {
     }));
   });
 
-  // ON coupon events from ON_COUPON_CALENDAR
+  // ON coupon events from ON_COUPON_CALENDAR — month-only, no specific day
   const onEvents = [];
   ON_COUPON_CALENDAR.forEach(m => {
-    // For current year and next, place ON coupon events mid-month
     [currentYear, currentYear+1].forEach(yr => {
-      const d = new Date(yr, m.month-1, 15);
-      if (d <= now || d > horizon) return;
+      const d = new Date(yr, m.month-1, 1); // first of month for sorting
+      if (d <= new Date(now.getFullYear(), now.getMonth(), 1) || d > horizon) return;
       m.tickers.forEach(tk => {
-        onEvents.push({ date:d, ticker:tk, tipo:"Cupón ON", monto:"—", cat:"Corporativos (ONs)", ley:"CORP" });
+        onEvents.push({ date:d, ticker:tk, tipo:"Cupón ON", monto:"—", cat:"Corporativos (ONs)", ley:"CORP", monthOnly:true });
       });
     });
   });
@@ -3254,33 +3253,55 @@ function CalendarioPanel({ t }) {
         <Card t={t}><div style={{ padding:40, textAlign:"center", fontFamily:FB, fontSize:13, color:t.mu }}>No hay eventos para el filtro seleccionado.</div></Card>
       )}
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:12 }}>
-        {months.map(k => (
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))", gap:12 }}>
+        {months.map(k => {
+          const events = byMonth[k];
+          const bondEvents = events.filter(e=>!e.monthOnly);
+          const onEvents2 = events.filter(e=>e.monthOnly);
+          return (
           <Card key={k} t={t}>
-            <div style={{ padding:"14px 18px" }}>
-              <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, textTransform:"capitalize", marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ padding:"16px 20px" }}>
+              <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, textTransform:"capitalize", marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
                 <Clock size={14} color={t.go} /> {monthName(k)}
-                <span style={{ fontFamily:FB, fontSize:9, color:t.fa, fontWeight:400 }}>({byMonth[k].length})</span>
+                <span style={{ fontFamily:FB, fontSize:9, color:t.fa, fontWeight:400, marginLeft:"auto" }}>{events.length} eventos</span>
               </div>
-              {byMonth[k].map((ev,i) => {
-                const typeColor = ev.tipo.includes("Amort")?t.go:ev.tipo==="Vencimiento"?t.gr:t.bl;
+
+              {/* Soberanos + LECAPs — individual rows with dates */}
+              {bondEvents.map((ev,i) => {
+                const typeColor = ev.tipo.includes("Amort")?t.go:ev.tipo==="Vencimiento"?t.gr:ev.tipo==="Renta"?t.bl:t.mu;
                 return (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", borderBottom:i<byMonth[k].length-1?`1px solid ${t.brd}44`:"none" }}>
-                    <span style={{ fontFamily:FB, fontSize:10, color:t.fa, minWidth:42 }}>
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", borderBottom:`1px solid ${t.brd}22` }}>
+                    <span style={{ fontFamily:FB, fontSize:10, color:t.fa, minWidth:40, flexShrink:0 }}>
                       {ev.date.toLocaleDateString("es-AR",{day:"2-digit",month:"short"}).replace(".","").toUpperCase()}
                     </span>
-                    <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, color:ev.ley==="NY"?t.bl:ev.ley==="CORP"?t.pu:t.go, background:(ev.ley==="NY"?t.bl:ev.ley==="CORP"?t.pu:t.go)+"15", padding:"1px 6px", borderRadius:4 }}>{ev.ticker}</span>
+                    <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, color:ev.ley==="NY"?t.bl:t.go, background:(ev.ley==="NY"?t.bl:t.go)+"12", padding:"1px 6px", borderRadius:4 }}>{ev.ticker}</span>
                     <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:typeColor }}>{ev.tipo}</span>
-                    <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, fontWeight:700, color:t.tx }}>
-                      {typeof ev.monto === "string" && ev.monto.startsWith("Capital") ? ev.monto : `$${ev.monto}`}
-                    </span>
-                    {typeof ev.monto !== "string" || !ev.monto.startsWith("Capital") ? <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>/ $1000 VN</span> : null}
+                    {ev.monto !== "—" && (
+                      <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, fontWeight:700, color:t.tx }}>
+                        {typeof ev.monto === "string" && ev.monto.startsWith("Capital") ? ev.monto : `$${ev.monto}`}
+                      </span>
+                    )}
                   </div>
                 );
               })}
+
+              {/* ONs — compact chip grid */}
+              {onEvents2.length > 0 && (
+                <div style={{ marginTop:bondEvents.length>0?10:0, padding:"10px 0 0", borderTop:bondEvents.length>0?`1px solid ${t.brd}44`:"none" }}>
+                  <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.pu, letterSpacing:".08em", textTransform:"uppercase", marginBottom:6 }}>
+                    CUPONES ONs · {onEvents2.length} pagos
+                  </div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                    {onEvents2.map((ev,i) => (
+                      <span key={i} style={{ fontFamily:"monospace", fontSize:8, fontWeight:600, color:t.pu, background:t.pu+"10", padding:"2px 5px", borderRadius:3, border:`1px solid ${t.pu}20` }}>{ev.ticker}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12 }}>
@@ -3303,6 +3324,9 @@ function ONsPanel({ t }) {
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("dur");
   const [sortDir, setSortDir] = useState(1);
+  const [onSub, setOnSub] = useState("cotiz"); // cotiz | calc | sell
+  const [calcTicker, setCalcTicker] = useState("");
+  const [calcMonto, setCalcMonto] = useState(10000);
 
   const tryUnlock = () => {
     if (pin === "1243") { setUnlocked(true); setError(false); }
@@ -3468,22 +3492,201 @@ function ONsPanel({ t }) {
         </div>
       </div>
 
-      <div style={{ display:"flex", gap:8, marginBottom:16, alignItems:"center", flexWrap:"wrap" }}>
-        <div style={{ position:"relative" }}>
-          <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker o emisor..."
-            style={{ fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10, width:200,
-              border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
-        </div>
-        <span style={{ fontFamily:FB, fontSize:10, color:t.fa, marginLeft:"auto" }}>
-          {ONS_ARG_DATA.length + ONS_NY_DATA.length} ONs · Click en columnas para ordenar
-        </span>
+      {/* Sub-tabs */}
+      <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
+        {[{id:"cotiz",label:"Cotizaciones",Icon:BarChart3},{id:"calc",label:"Calculadora",Icon:PieChart},{id:"sell",label:"Señales de Venta",Icon:AlertTriangle}].map(s=>(
+          <button key={s.id} onClick={()=>setOnSub(s.id)} style={{
+            padding:"7px 16px", borderRadius:8, fontFamily:FB, fontSize:11, fontWeight:600, cursor:"pointer",
+            border:`1.5px solid ${onSub===s.id?t.go:t.brd}`,
+            background:onSub===s.id?t.go+"15":"transparent",
+            color:onSub===s.id?t.go:t.mu,
+            display:"flex", alignItems:"center", gap:5,
+          }}><s.Icon size={13}/> {s.label}</button>
+        ))}
       </div>
 
-      {renderTable("LEY ARGENTINA · 54 ONs", ONS_ARG_DATA, t.go)}
-      {renderTable("LEY NUEVA YORK · 34 ONs", ONS_NY_DATA, t.bl)}
+      {/* ── TAB: Cotizaciones ── */}
+      {onSub === "cotiz" && (<>
+        <div style={{ display:"flex", gap:8, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+          <div style={{ position:"relative" }}>
+            <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker o emisor..."
+              style={{ fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10, width:200,
+                border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+          </div>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa, marginLeft:"auto" }}>
+            {ONS_ARG_DATA.length + ONS_NY_DATA.length} ONs · Click en columnas para ordenar
+          </span>
+        </div>
+        {renderTable("LEY ARGENTINA · 54 ONs", ONS_ARG_DATA, t.go)}
+        {renderTable("LEY NUEVA YORK · 34 ONs", ONS_NY_DATA, t.bl)}
+      </>)}
 
-      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5 }}>
+      {/* ── TAB: Calculadora de Flujos ── */}
+      {onSub === "calc" && (() => {
+        const allONs = [...ONS_ARG_DATA, ...ONS_NY_DATA].filter(o=>o.tir>0 && o.cup>0 && o.dur>0);
+        const sel = allONs.find(o=>o.t===calcTicker) || allONs[0];
+        if (!sel) return <p style={{fontFamily:FB,color:t.mu}}>No hay ONs con datos suficientes para calcular.</p>;
+
+        const live = corpPrices[sel.t];
+        const precio = live?.price || sel.p;
+        const cupAnual = sel.cup;
+        const tir = sel.tir;
+        const durYears = sel.dur;
+        const montoNum = parseFloat(String(calcMonto).replace(/\./g,"")) || 0;
+        const laminas = montoNum > 0 ? Math.floor(montoNum / precio) : 0;
+        const capitalInvertido = laminas * precio;
+
+        // Build simplified cashflow: semi-annual coupons + final principal
+        const freqMult = sel.freq?.toLowerCase().includes("trim") ? 4 : 2;
+        const cupPorPago = cupAnual / freqMult;
+        const totalPagos = Math.round(durYears * freqMult);
+        const flows = [];
+        let totalCupones = 0;
+        for (let i=1; i<=totalPagos; i++) {
+          const months = Math.round(i * 12 / freqMult);
+          const isLast = i === totalPagos;
+          const amort = isLast ? 100 : 0;
+          const cf = cupPorPago + amort;
+          totalCupones += cupPorPago;
+          flows.push({ periodo:i, meses:months, cupon:cupPorPago, amort, cf });
+        }
+        const totalRecibido = (totalCupones + 100) * laminas / 100;
+        const ganancia = totalRecibido - capitalInvertido;
+
+        return (
+          <div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10, marginBottom:16 }}>
+              <div>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Instrumento</label>
+                <select value={sel.t} onChange={e=>setCalcTicker(e.target.value)}
+                  style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:FB, fontSize:12, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}>
+                  {allONs.map(o=><option key={o.t} value={o.t}>{o.t} — {o.em} — TIR {o.tir.toFixed(1)}% — {o.vto}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Monto a invertir (USD)</label>
+                <input type="text" value={calcMonto.toLocaleString("es-AR")} onChange={e=>{const raw=e.target.value.replace(/\./g,"").replace(/[^0-9]/g,"");setCalcMonto(parseInt(raw)||0);}}
+                  style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:FB, fontSize:14, fontWeight:600, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+              </div>
+            </div>
+
+            {/* KPIs */}
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
+              {[{l:"Precio",v:`$${precio.toFixed(2)}`,c:live?t.gr:t.mu},{l:"TIR",v:`${tir.toFixed(2)}%`,c:t.go},{l:"Cupón",v:`${cupAnual.toFixed(1)}%`,c:t.bl},
+                {l:"Duration",v:`${durYears.toFixed(1)}a`,c:t.mu},{l:"Láminas",v:laminas.toLocaleString("es-AR"),c:t.tx},{l:"Capital",v:`$${capitalInvertido.toFixed(0)}`,c:t.tx},
+                {l:"Ganancia est.",v:`$${ganancia.toFixed(0)}`,c:ganancia>=0?t.gr:t.rd}
+              ].map((c,i)=>(
+                <div key={i} style={{ background:t.alt, borderRadius:8, padding:"5px 12px", fontFamily:FB }}>
+                  <span style={{ fontSize:8, color:t.fa, textTransform:"uppercase", letterSpacing:".05em" }}>{c.l} </span>
+                  <span style={{ fontSize:12, fontWeight:700, color:c.c }}>{c.v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Flow table */}
+            <Card t={t}>
+              <div style={{ overflowX:"auto", maxHeight:"45vh", overflowY:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:11 }}>
+                  <thead><tr>
+                    {["#","Meses","Cupón (%)","Amort. (%)","Flujo total (%)","Flujo USD"].map((h,i)=>(
+                      <th key={h} style={{ padding:"8px 10px", textAlign:i>=2?"right":"center", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5 }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {flows.map((f,i)=>(
+                      <tr key={i} style={{ borderBottom:`1px solid ${t.brd}33` }}>
+                        <td style={{ padding:"5px 10px", textAlign:"center", color:t.fa, fontSize:10 }}>{f.periodo}</td>
+                        <td style={{ padding:"5px 10px", textAlign:"center", color:t.mu }}>{f.meses}m</td>
+                        <td style={{ padding:"5px 10px", textAlign:"right", color:t.bl }}>{f.cupon.toFixed(2)}%</td>
+                        <td style={{ padding:"5px 10px", textAlign:"right", color:f.amort>0?t.go:t.fa }}>{f.amort>0?`${f.amort}%`:"—"}</td>
+                        <td style={{ padding:"5px 10px", textAlign:"right", fontWeight:600, color:t.tx }}>{f.cf.toFixed(2)}%</td>
+                        <td style={{ padding:"5px 10px", textAlign:"right", fontWeight:700, color:t.gr }}>${(f.cf * laminas / 100).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ borderTop:`2px solid ${t.brd}`, background:t.alt }}>
+                      <td colSpan={4} style={{ padding:"8px 10px", fontWeight:700, color:t.tx }}>TOTAL</td>
+                      <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:700, color:t.tx }}>{(totalCupones+100).toFixed(2)}%</td>
+                      <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:700, color:t.gr }}>${totalRecibido.toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+            <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:8 }}>
+              * Flujo simplificado asumiendo pagos regulares ({sel.freq}) y amortización bullet al vencimiento. No considera sinkable schedules ni comisiones.
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* ── TAB: Señales de Venta (TIR < 5.3%) ── */}
+      {onSub === "sell" && (() => {
+        const TIR_THRESHOLD = 5.3;
+        const allONs = [...ONS_ARG_DATA.map(o=>({...o,ley:"ARG"})), ...ONS_NY_DATA.map(o=>({...o,ley:"NY"}))];
+        const sellCandidates = allONs
+          .filter(o => o.tir !== null && o.tir > 0 && o.tir < TIR_THRESHOLD)
+          .sort((a,b) => a.tir - b.tir);
+
+        return (
+          <div>
+            <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}44`, borderRadius:10, padding:"14px 18px", fontFamily:FB, fontSize:12, color:t.rd, marginBottom:16, lineHeight:1.6, display:"flex", alignItems:"flex-start", gap:10 }}>
+              <AlertTriangle size={16} style={{flexShrink:0, marginTop:2}} />
+              <div>
+                <strong>Señales de venta:</strong> ONs con TIR menor a {TIR_THRESHOLD}% en tiempo real. Considerá rotar hacia instrumentos de mayor rendimiento. Esta lista se actualiza con los precios de mercado.
+              </div>
+            </div>
+
+            {sellCandidates.length === 0 ? (
+              <Card t={t}><div style={{ padding:40, textAlign:"center" }}>
+                <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.gr, marginBottom:8 }}>Sin señales de venta</div>
+                <p style={{ fontFamily:FB, fontSize:12, color:t.mu }}>Ninguna ON del universo cotiza debajo de {TIR_THRESHOLD}% de TIR actualmente.</p>
+              </div></Card>
+            ) : (
+              <Card t={t}>
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:11 }}>
+                    <thead><tr>
+                      {["Ticker","Emisor","TIR","Cupón","Precio","Duration","Vto","Ley","Acción"].map((h,i)=>(
+                        <th key={h} style={{ padding:"8px 10px", textAlign:i>=2&&i<=5?"right":"left", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`, background:t.alt }}>{h}</th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {sellCandidates.map((o,i) => {
+                        const live = corpPrices[o.t];
+                        return (
+                          <tr key={i} style={{ borderBottom:`1px solid ${t.brd}33`, background:t.rdBg+"44" }}>
+                            <td style={{ padding:"6px 10px" }}>
+                              <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 5px", borderRadius:4, background:t.rd+"15", color:t.rd, border:`1px solid ${t.rd}33` }}>{o.t}</span>
+                            </td>
+                            <td style={{ padding:"6px 10px", fontSize:10, color:t.tx }}>{o.em}</td>
+                            <td style={{ padding:"6px 10px", textAlign:"right", fontWeight:700, color:t.rd }}>{o.tir.toFixed(2)}%</td>
+                            <td style={{ padding:"6px 10px", textAlign:"right", color:t.mu }}>{o.cup?.toFixed(1)}%</td>
+                            <td style={{ padding:"6px 10px", textAlign:"right", fontWeight:600, color:live?t.tx:t.mu }}>${(live?.price||o.p).toFixed(2)}</td>
+                            <td style={{ padding:"6px 10px", textAlign:"right", color:t.mu }}>{o.dur?.toFixed(1)}a</td>
+                            <td style={{ padding:"6px 10px", fontSize:10, color:t.mu }}>{o.vto}</td>
+                            <td style={{ padding:"6px 10px" }}>
+                              <span style={{ fontSize:9, fontWeight:600, padding:"2px 6px", borderRadius:4, background:o.ley==="NY"?t.blBg:t.goBg, color:o.ley==="NY"?t.bl:t.go }}>{o.ley}</span>
+                            </td>
+                            <td style={{ padding:"6px 10px" }}>
+                              <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.rd, background:t.rdBg, padding:"3px 8px", borderRadius:6, border:`1px solid ${t.rd}33` }}>VENDER</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ padding:"10px 16px", borderTop:`1px solid ${t.brd}`, fontFamily:FB, fontSize:10, color:t.fa }}>
+                  {sellCandidates.length} ONs con TIR &lt; {TIR_THRESHOLD}% · Umbral configurable · No constituye asesoramiento
+                </div>
+              </Card>
+            )}
+          </div>
+        );
+      })()}
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5, marginTop:12 }}>
         Fuente: Café con la Mesa · Daily IR (26/03/2026). Precios live overlay vía DATA912. No constituye asesoramiento.
       </p>
     </div>
@@ -4510,35 +4713,34 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
           dot={!!riesgoPais}
         />
 
-        {/* Merval — pesos, ArgentinaDatos + USD calc */}
+        {/* Merval — pesos, ArgentinaDatos */}
         <LivePanel
-          label="Merval"
-          value={mervalARS ? mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0}) + " ARS" : null}
-          sub={mervalARS && dolar?.bolsa?.venta ? `≈ USD ${Math.round(mervalARS.value / dolar.bolsa.venta).toLocaleString("es-AR")} (via MEP)` : "BYMA · pesos"}
+          label="Merval (BYMA)"
+          value={mervalARS ? `$${mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0})}` : null}
+          sub="Índice en pesos · ArgentinaDatos"
           changePct={mervalARS?.changePct ?? null}
           color="green"
           dot={!!mervalARS}
         />
 
-        {/* Oro — XAU/USD spot via OANDA/Finnhub */}
+        {/* Oro — GLD ETF proxy */}
         <LivePanel
-          label="Oro spot (XAU/USD)"
+          label="Oro (GLD)"
           value={gold ? `USD ${gold.price.toFixed(2)}` : null}
-          sub="Precio spot oz · OANDA via Finnhub"
+          sub="Proxy ETF GLD · Tiempo real"
           changePct={gold?.changePct ?? null}
           color="gold"
           dot={!!gold}
         />
 
-        {/* Brent — BCO/USD precio real barril via OANDA/Finnhub */}
+        {/* Petróleo — BNO ETF proxy Brent */}
         <LivePanel
-          label="Brent (BCO/USD)"
+          label="Petróleo (BNO)"
           value={brent ? `USD ${brent.price.toFixed(2)}` : null}
-          sub="Precio barril · OANDA via Finnhub"
+          sub="Proxy ETF BNO · Tiempo real"
           changePct={brent?.changePct ?? null}
           color="gold"
           dot={!!brent}
-          
         />
 
         {/* LECAP mayor TNA ≤ 6 meses — dinámico */}
@@ -4642,7 +4844,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
       </Card>
 
       <p style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:16, lineHeight:1.6 }}>
-        Fuentes: <strong>dolarapi.com</strong> (FX — tiempo real) · <strong>ArgentinaDatos</strong> (Riesgo País EMBI JP Morgan) · <strong>Finnhub/OANDA</strong> (Oro XAU/USD · Brent BCO/USD · MERV — tiempo real)
+        Fuentes: <strong>dolarapi.com</strong> (FX — tiempo real) · <strong>ArgentinaDatos</strong> (Riesgo País · Merval ARS) · <strong>Finnhub</strong> (GLD · BNO · SPY — tiempo real)
       </p>
     </div>
   );
@@ -4692,20 +4894,24 @@ function NoticiasView({ t }) {
 
     const fetchNews = async () => {
       const queries = [
-        "mercado+argentino+bonos+acciones+finanzas",
-        "economia+argentina+dolar+inflacion+BCRA",
+        "Argentina+finanzas",
+        "dolar+hoy+Argentina",
+        "bonos+mercado+argentino",
+        "economia+Argentina+2026",
       ];
       const seen = new Set();
       const results = [];
 
       for (const q of queries) {
         try {
-          const r = await fetch(`/api/news?q=${q}`);
+          const r = await fetch(`/api/news?q=${encodeURIComponent(q)}`);
           if (!r.ok) continue;
-          const xml = await r.text();
-          for (const item of parseRSS(xml)) {
-            if (seen.has(item.link)) continue;
-            seen.add(item.link);
+          const txt = await r.text();
+          if (!txt || txt.length < 50) continue;
+          for (const item of parseRSS(txt)) {
+            const key = item.title.slice(0, 60);
+            if (seen.has(key)) continue;
+            seen.add(key);
             const host = (() => { try { return new URL(item.link).hostname.replace("www.","").replace(".com.ar","").replace(".com",""); } catch { return item.src || ""; } })();
             results.push({ id: item.link, titulo: item.title, fuente: item.src || host, link: item.link, fechaObj: item.fechaObj, fecha: item.fechaStr });
           }
@@ -5099,11 +5305,11 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
       {/* ── LIVE KPIs ────────────────────────────────────── */}
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:20 }}>
         <LiveChip
-          label="Merval USD"
-          value={mervalUSD ? `USD ${mervalUSD.value.toLocaleString("es-AR")}` : "—"}
-          sub="MERV ARS / MEP"
-          change={mervalUSD?.changePct ?? null}
-          loading={loading && !mervalUSD}
+          label="Merval"
+          value={mervalARS ? `$${mervalARS.value.toLocaleString("es-AR",{maximumFractionDigits:0})}` : "—"}
+          sub="BYMA · pesos"
+          change={mervalARS?.changePct ?? null}
+          loading={loading && !mervalARS}
         />
         <LiveChip
           label="SPY"
@@ -5923,32 +6129,23 @@ export default function App() {
         if (d.c > 0) updates.spy = { price: d.c, changePct: d.dp };
       } catch {}
       try {
-        // Oro — XAU/USD spot price via Finnhub OANDA feed (~USD/oz real)
-        const rg = await fetch(`${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol=OANDA:XAU_USD`);
+        // Oro — GLD ETF via Finnhub proxy (GLD ≈ 1/10 oz gold, multiply ~23.3 for XAU/USD approx)
+        const rg = await fetch(`${FINNHUB_PROXY}=GLD`);
         const dg = await rg.json();
         if (dg.c > 0) updates.gold = { price: dg.c, changePct: dg.dp };
       } catch {}
       try {
-        // Brent crude — precio real del barril vía Finnhub OANDA feed
-        const rb = await fetch(`${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol=OANDA:BCO_USD`);
+        // Brent crude — BNO ETF via Finnhub proxy
+        const rb = await fetch(`${FINNHUB_PROXY}=BNO`);
         const db = await rb.json();
         if (db.c > 0) updates.brent = { price: db.c, changePct: db.dp };
       } catch {}
       try {
-        // Merval ^MERV — Yahoo Finance (único endpoint que devuelve el índice BYMA real)
-        // Verificado 24/MAR/2026: regularMarketPrice=2,778,025 ARS
-        const r = await fetch(
-          "https://query1.finance.yahoo.com/v8/finance/chart/%5EMERV?range=1d&interval=1m",
-          { headers: { "User-Agent": "Mozilla/5.0" } }
-        );
+        // Merval — ArgentinaDatos (no CORS, no auth, real ARS price)
+        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
         const d = await r.json();
-        const meta = d?.chart?.result?.[0]?.meta;
-        if (meta?.regularMarketPrice > 0) {
-          const price = meta.regularMarketPrice;
-          const prev  = meta.chartPreviousClose || meta.regularMarketPrice;
-          const changePct = ((price / prev) - 1) * 100;
-          updates.mervalARS = { value: price, changePct };
-        }
+        const val = d?.valor || d?.ultimo || (Array.isArray(d) ? d[d.length-1]?.valor : null);
+        if (val > 0) updates.mervalARS = { value: val, changePct: d?.variacion ?? null };
       } catch {}
       if (!cancelled && Object.keys(updates).length > 0) {
         setLiveMarket(prev => ({ ...prev, ...updates }));
@@ -6029,14 +6226,14 @@ export default function App() {
     return { label, val, pctStr, pos: pct > 0, neg: pct < 0 };
   };
   const tickerData = [
-    dolar?.oficial?.venta     ? mkItem("USD Oficial",  `$${fmt2(dolar.oficial.venta)}`,    null)                                          : null,
-    dolar?.bolsa?.venta       ? mkItem("USD MEP",      `$${fmt2(dolar.bolsa.venta)}`,       null)                                          : null,
-    dolar?.blue?.venta        ? mkItem("USD Blue",     `$${fmt2(dolar.blue.venta)}`,         null)                                          : null,
-    dolar?.contadoconliqui?.venta ? mkItem("CCL",      `$${fmt2(dolar.contadoconliqui.venta)}`, null)                                       : null,
+    dolar?.oficial?.venta     ? mkItem("USD Oficial",  fmt2(dolar.oficial.venta),    null)                                          : null,
+    dolar?.bolsa?.venta       ? mkItem("USD MEP",      fmt2(dolar.bolsa.venta),       null)                                          : null,
+    dolar?.blue?.venta        ? mkItem("USD Blue",     fmt2(dolar.blue.venta),         null)                                          : null,
+    dolar?.contadoconliqui?.venta ? mkItem("CCL",      fmt2(dolar.contadoconliqui.venta), null)                                       : null,
     riesgoPais                ? mkItem("Riesgo País",  `${riesgoPais.valor} pb`,             null)                                          : null,
-    liveMarket.mervalARS      ? mkItem("Merval",       `${liveMarket.mervalARS.value.toLocaleString("es-AR",{maximumFractionDigits:0})} ARS`, liveMarket.mervalARS.changePct) : null,
+    liveMarket.mervalARS      ? mkItem("Merval",       `${liveMarket.mervalARS.value.toLocaleString("es-AR",{maximumFractionDigits:0})}`, liveMarket.mervalARS.changePct) : null,
     liveMarket.spy            ? mkItem("SPY",          `$${liveMarket.spy.price.toFixed(2)}`,  liveMarket.spy.changePct)                    : null,
-    liveMarket.gold           ? mkItem("Oro XAU/USD",  `$${liveMarket.gold.price.toFixed(0)}`, liveMarket.gold.changePct)                   : null,
+    liveMarket.gold           ? mkItem("Oro",          `$${liveMarket.gold.price.toFixed(0)}`, liveMarket.gold.changePct)                   : null,
     liveMarket.brent          ? mkItem("Brent",        `$${liveMarket.brent.price.toFixed(2)}`,liveMarket.brent.changePct)                  : null,
   ].filter(Boolean);
 

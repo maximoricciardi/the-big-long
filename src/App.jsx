@@ -6,7 +6,7 @@ import {
   Moon, Sun, MessageCircle, Lock, Send, Phone, Mail, X, ChevronDown,
   ExternalLink, Clock, RefreshCw, Eye, Target, Flame, CircleDot,
   Landmark, FileText, Mic, Gavel, Droplets, Info, Activity, Wallet,
-  PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp,
+  PieChart, BookOpen, Cpu, Heart, Factory, Wheat, HardHat, ChevronUp, ChevronRight,
   Menu
 } from "lucide-react";
 
@@ -75,6 +75,7 @@ function useFonts(dark) {
       @keyframes logoSpin{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.15)}100%{transform:rotate(360deg) scale(1)}}
       @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
       @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+      @keyframes pulse{0%,100%{opacity:1}50%{opacity:.85}}
       .fade-up{animation:fadeUp .45s ease both}
       .fade-up-1{animation-delay:.05s}.fade-up-2{animation-delay:.1s}.fade-up-3{animation-delay:.15s}.fade-up-4{animation-delay:.2s}
       button:focus-visible,a:focus-visible{outline:2px solid #B0782A;outline-offset:2px}
@@ -121,6 +122,11 @@ function useWindowSize() {
 /* ════════════════════════════════════════════════════════════════
    STATIC DATA
 ════════════════════════════════════════════════════════════════ */
+// Breaking News — set to null when no active alert
+// {text:"...", icon:"...", color:"red"|"gold"|"green", link:{tab,sub}} 
+const BREAKING_NEWS = null;
+// Example: { text:"Fallo YPF: la Cámara de Apelaciones de NY suspende la ejecución. Impacto positivo en ADR.", icon:"⚖️", color:"gold" }
+
 const SUMMARIES = [
   {
     id:"s27", date:"27 MAR 2026", label:"CIERRE DE MERCADO",
@@ -2068,7 +2074,7 @@ function EquityScreener({ t }) {
               <tr>
                 <Th label="#"       col="_rank" tip="Ranking" />
                 <Th label="Ticker"  col="t"     tip="Símbolo · Empresa · Mercado" />
-                <Th label="Precio"  col="p"     tip="Precio en vivo · Finnhub" right />
+                <Th label="Precio"  col="p"     tip="Precio en vivo" right />
                 <Th label="Hoy"     col="_1d"   tip="Variación del día %" right />
                 <Th label="Score"   col="sc"    tip="Score compuesto 0–100" right />
 
@@ -2251,7 +2257,7 @@ function EquityScreener({ t }) {
           display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8
         }}>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            Precios: Finnhub (en vivo) · Historial: Finnhub Weekly Candles · Scores: Research Desk
+            Precios y datos en vivo · Research Desk
           </span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
             {filtered.length} resultados · Ordenado por {sortCol} {sortDir === 1 ? "↑" : "↓"}
@@ -3351,18 +3357,30 @@ function CalendarioPanel({ t }) {
     }));
   });
 
-  // ON coupon events from ON_COUPON_CALENDAR — month-only, no specific day
+  // ON coupon events from ON_COUPON_CALENDAR — month-only, respects maturity
   const onEvents = [];
+  // Build a lookup of maturity dates from ON data (ticker ending D → vto date)
+  const onVtoMap = {};
+  [...ONS_ARG_DATA, ...ONS_NY_DATA].forEach(o => {
+    if (o.vto) {
+      // Parse dd/mm/yyyy
+      const [dd,mm,yy] = o.vto.split("/").map(Number);
+      if (yy) onVtoMap[o.t] = new Date(yy, mm-1, dd);
+    }
+  });
   ON_COUPON_CALENDAR.forEach(m => {
-    const onYears = [];
-    for (let y = currentYear; y <= 2037; y++) onYears.push(y);
-    onYears.forEach(yr => {
-      const d = new Date(yr, m.month-1, 1); // first of month for sorting
-      if (d <= new Date(now.getFullYear(), now.getMonth(), 1) || d > horizon) return;
+    for (let yr = currentYear; yr <= 2037; yr++) {
+      const d = new Date(yr, m.month-1, 1);
+      if (d <= new Date(now.getFullYear(), now.getMonth(), 1) || d > horizon) continue;
       m.tickers.forEach(tk => {
+        // Calendar tickers end in O, ON data tickers end in D
+        const dTicker = tk.replace(/O$/, "D");
+        const vto = onVtoMap[dTicker];
+        // Only generate events before the ON's maturity
+        if (vto && d > vto) return;
         onEvents.push({ date:d, ticker:tk, tipo:"Cupón ON", monto:"—", cat:"Corporativos (ONs)", ley:"CORP", monthOnly:true });
       });
-    });
+    }
   });
 
   let allEvents = [...sovEvents, ...lecapEvents, ...onEvents].sort((a,b)=>a.date-b.date);
@@ -3602,7 +3620,7 @@ function ONsPanel({ t }) {
             <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
               background:status==="ok"?"#22c55e":status==="error"?"#ef4444":"#94a3b8",
               boxShadow:status==="ok"?"0 0 6px #22c55e":"none"}}/>
-            {status==="ok" ? `${Object.keys(corpPrices).length} precios live · DATA912` : status==="error" ? "Sin datos live" : "Cargando..."}
+            {status==="ok" ? `${Object.keys(corpPrices).length} precios live` : status==="error" ? "Sin datos live" : "Cargando..."}
           </div>
         </div>
       </div>
@@ -3832,7 +3850,7 @@ function ONsPanel({ t }) {
       })()}
 
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.5, marginTop:12 }}>
-        Fuente: DATA912 live overlay. No constituye asesoramiento.
+        Fuente: datos en vivo. No constituye asesoramiento.
       </p>
     </div>
   );
@@ -3930,7 +3948,7 @@ function CEDEARsPanel({ t }) {
           <div style={{ fontFamily:FH, fontSize:17, fontWeight:700, color:t.tx, marginBottom:3, display:"flex", alignItems:"center", gap:8 }}>
             <Globe size={18} color={t.go} /> CEDEARs · Mercado Argentino
           </div>
-          <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>50 activos internacionales cotizando en BYMA · Precios en ARS · DATA912</div>
+          <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>50 activos internacionales cotizando en BYMA · Precios en ARS</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",
@@ -4022,7 +4040,7 @@ function CEDEARsPanel({ t }) {
         </div>
         <div style={{ padding:"8px 14px", borderTop:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:6 }}>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            Precios en ARS · DATA912 live · Refresh cada 2 min
+            Precios en ARS · Refresh automático
           </span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
             {filtered.length} de {CEDEARS_LIST.length} · Click columnas para ordenar
@@ -4292,7 +4310,7 @@ function InstrumentosView({ t }) {
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                             <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{r.t}</span>
                             {m.isLiveLECAP
-                              ? <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo · DATA912"/>
+                              ? <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo"/>
                               : <span style={{fontSize:8,color:t.fa,fontFamily:FB}} title="Precio teórico (BONCAP)">~</span>
                             }
                           </div>
@@ -4340,7 +4358,7 @@ function InstrumentosView({ t }) {
                         <Td2>
                           <div style={{display:"flex",alignItems:"center",gap:5}}>
                             <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span>
-                            {liveD && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo · DATA912"/>}
+                            {liveD && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo"/>}
                           </div>
                         </Td2>
                         <Td2 bold>{d.vto}</Td2>
@@ -4426,7 +4444,7 @@ function InstrumentosView({ t }) {
                         <Td2>
                           <div style={{display:"flex",alignItems:"center",gap:5}}>
                             <span style={{fontFamily:"monospace",fontSize:11,background:t.alt,padding:"2px 8px",borderRadius:5}}>{d.t}</span>
-                            {liveD && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo · DATA912"/>}
+                            {liveD && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e",display:"inline-block"}} title="Precio en vivo"/>}
                           </div>
                         </Td2>
                         <Td2 bold>{d.vto}</Td2>
@@ -4482,7 +4500,7 @@ function InstrumentosView({ t }) {
                 boxShadow:bondStatus==="ok"?"0 0 6px #22c55e":"none",
                 animation:bondStatus==="loading"?"blink 1s infinite":"none"}}/>
               {bondStatus==="loading" && "Actualizando bonos..."}
-              {bondStatus==="ok"      && "Precios en vivo · DATA912"}
+              {bondStatus==="ok"      && "Precios en vivo"}
               {bondStatus==="error"   && "Usando precios de cierre"}
             </div>
           </div>
@@ -4652,7 +4670,7 @@ function PlazosFijosPanel({ t }) {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, marginBottom:16 }}>
         <div>
           <p style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6 }}>
-            TNA para colocaciones online de $100.000 a 30 días. Fuente: BCRA vía ArgentinaDatos.
+            TNA para colocaciones online de $100.000 a 30 días.
           </p>
         </div>
         <div style={{
@@ -4810,7 +4828,7 @@ function PlazosFijosPanel({ t }) {
         </div>
         <div style={{ padding:"8px 14px", borderTop:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            Fuente: BCRA · ArgentinaDatos API · Colocaciones online $100K a 30 días
+            Fuente: BCRA · Colocaciones online $100K a 30 días
           </span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
             Refresh cada 10 min · No constituye asesoramiento
@@ -4957,7 +4975,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
             </span>
           ) : (
             <span style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
-              🔄 dolarapi.com · argentinadatos.com · Finnhub{dolar ? " · live" : ""}
+              🔄 Datos en vivo{dolar ? " · live" : ""}
             </span>
           )}
           <div style={{ width:7, height:7, borderRadius:"50%",
@@ -4984,7 +5002,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
         <LivePanel
           label="Merval (BYMA)"
           value={mervalARS ? `$${mervalARS.value.toLocaleString("es-AR", {maximumFractionDigits:0})}` : null}
-          sub="Índice en pesos · ArgentinaDatos"
+          sub="Índice en pesos · live"
           changePct={mervalARS?.changePct ?? null}
           color="green"
           dot={!!mervalARS}
@@ -5111,7 +5129,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
       </Card>
 
       <p style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:16, lineHeight:1.6 }}>
-        Fuentes: <strong>dolarapi.com</strong> (FX — tiempo real) · <strong>ArgentinaDatos</strong> (Riesgo País · Merval ARS) · <strong>Finnhub</strong> (GLD · BNO · SPY — tiempo real)
+        Datos en tiempo real · Múltiples fuentes
       </p>
 
       {/* ── NOTICIAS — fusionadas en Mercados ── */}
@@ -5528,10 +5546,22 @@ function FCIsPanel({ t }) {
 ════════════════════════════════════════════════════════════════ */
 function RentaVariableView({ t }) {
   const [sub, setSub] = useState("cedears");
+  const [chartTicker, setChartTicker] = useState("AAPL");
+  const [chartInput, setChartInput] = useState("AAPL");
   const SUBS = [
     {id:"cedears", label:"CEDEARs", Icon:Globe},
+    {id:"charts",  label:"Gráficos", Icon:Activity},
     {id:"rv",      label:"Research Desk", Icon:LineChart},
   ];
+
+  const loadChart = (tk) => {
+    const clean = tk.trim().toUpperCase();
+    if (clean) { setChartTicker(clean); setChartInput(clean); }
+  };
+
+  const tvTheme = t.bg === "#FFFFFF" || t.bg === "#F9FAFB" ? "light" : "dark";
+  const chartUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=${chartTicker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=${tvTheme==="dark"?"1C2030":"f1f3f6"}&studies=MASimple%7C20%7C0&theme=${tvTheme}&style=1&timezone=America%2FArgentina%2FBuenos_Aires&withdateranges=1&showpopupbutton=0&locale=es&allow_symbol_change=1&width=100%25&height=100%25`;
+
   return (
     <div className="fade-up">
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
@@ -5544,7 +5574,54 @@ function RentaVariableView({ t }) {
           }}><s.Icon size={14} strokeWidth={sub===s.id?2.5:1.5}/> {s.label}</button>
         ))}
       </div>
+
       {sub === "cedears" && <CEDEARsPanel t={t} />}
+
+      {sub === "charts" && (
+        <div className="fade-up">
+          {/* Ticker search */}
+          <div style={{ display:"flex", gap:8, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+            <div style={{ position:"relative", flex:1, maxWidth:300 }}>
+              <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+              <input
+                value={chartInput} onChange={e=>setChartInput(e.target.value.toUpperCase())}
+                onKeyDown={e=>e.key==="Enter"&&loadChart(chartInput)}
+                placeholder="Ticker (ej: AAPL, MSFT, GGAL)"
+                style={{ width:"100%", padding:"10px 10px 10px 32px", borderRadius:10, fontFamily:"monospace", fontSize:13, fontWeight:700, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}
+              />
+            </div>
+            <button onClick={()=>loadChart(chartInput)} style={{
+              padding:"10px 20px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:700,
+              background:t.go, color:"#fff", border:"none", cursor:"pointer",
+            }}>Buscar</button>
+            <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+              {["AAPL","MSFT","NVDA","TSLA","GGAL","YPF","VIST","MELI","SPY","BTC"].map(tk=>(
+                <button key={tk} onClick={()=>loadChart(tk)} style={{
+                  padding:"4px 10px", borderRadius:6, fontFamily:"monospace", fontSize:10, fontWeight:600,
+                  border:`1px solid ${chartTicker===tk?t.go:t.brd}`,
+                  background:chartTicker===tk?t.goBg:"transparent",
+                  color:chartTicker===tk?t.go:t.mu, cursor:"pointer",
+                }}>{tk}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:14, overflow:"hidden", height:520 }}>
+            <iframe
+              key={chartTicker+tvTheme}
+              src={chartUrl}
+              style={{ width:"100%", height:"100%", border:"none" }}
+              title={`Gráfico ${chartTicker}`}
+              allow="clipboard-write"
+            />
+          </div>
+          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:8, textAlign:"center" }}>
+            Gráficos interactivos · Podés agregar indicadores, cambiar temporalidad y hacer zoom
+          </p>
+        </div>
+      )}
+
       {sub === "rv" && <EquityScreener t={t} />}
       <WhatsAppCTA t={t} />
     </div>
@@ -5606,6 +5683,23 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
   return (
     <div className="fade-up" style={{ maxWidth:900, margin:"0 auto" }}>
 
+      {/* ── BREAKING NEWS ── */}
+      {BREAKING_NEWS && (
+        <div style={{
+          background:BREAKING_NEWS.color==="red"?"linear-gradient(135deg,#7f1d1d,#991b1b)":BREAKING_NEWS.color==="green"?"linear-gradient(135deg,#14532d,#166534)":"linear-gradient(135deg,#78350f,#92400e)",
+          borderRadius:12, padding:"14px 20px", marginBottom:12,
+          display:"flex", alignItems:"center", gap:12, cursor:"pointer",
+          animation:"pulse 2s ease-in-out infinite",
+        }} onClick={()=>BREAKING_NEWS.link?setTab(BREAKING_NEWS.link.tab):null}>
+          <span style={{ fontSize:20, flexShrink:0 }}>{BREAKING_NEWS.icon||"🔴"}</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".12em", color:"rgba(255,255,255,.5)", textTransform:"uppercase", marginBottom:2 }}>ALERTA · ALTO IMPACTO</div>
+            <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:"#fff", lineHeight:1.35 }}>{BREAKING_NEWS.text}</div>
+          </div>
+          <ChevronRight size={18} color="rgba(255,255,255,.5)" />
+        </div>
+      )}
+
       {/* ── COMPACT HERO ── */}
       <div style={{
         borderRadius:16, padding:isMobile?"28px 20px 24px":"36px 40px 32px",
@@ -5640,7 +5734,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
       {/* ── 4 KPIs · sin duplicación · todo live ── */}
       <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:10, marginBottom:16 }}>
         {[
-          { label:"Dólar MEP", value:mep?`$${Math.round(mep.venta).toLocaleString("es-AR")}`:"—", sub:"dolarapi · live", accent:t.bl },
+          { label:"Dólar MEP", value:mep?`$${Math.round(mep.venta).toLocaleString("es-AR")}`:"—", sub:"tiempo real", accent:t.bl },
           { label:"Riesgo País", value:rp?`${rp.toLocaleString("es-AR")} pb`:"—", sub:"EMBI+ JP Morgan", accent:rp?(rp<600?t.gr:t.rd):t.mu, color:rp?(rp<600?t.gr:t.rd):null },
           { label:"Merval", value:mervalARS?`$${(mervalARS.value/1000).toFixed(0)}K`:"—", sub:mervalARS?.changePct!=null?`${mervalARS.changePct>=0?"+":""}${mervalARS.changePct.toFixed(2)}% hoy`:"BYMA", accent:t.gr },
           { label:"Mejor LECAP", value:bestLec?bestLec.rows[0].tna:"—", sub:bestLec?`${bestLec.rows[0].t} · ${bestLec.dias}d`:"", accent:t.go },

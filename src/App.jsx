@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Home, ClipboardList, Newspaper, DollarSign, BarChart3, Search, Briefcase,
   TrendingUp, TrendingDown, Banknote, Building2, LineChart, ArrowLeftRight,
@@ -76,6 +76,10 @@ function useFonts(dark) {
       @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
       @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
       @keyframes pulse{0%,100%{opacity:1}50%{opacity:.85}}
+      @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+      .skeleton{background:linear-gradient(90deg,var(--sk1) 25%,var(--sk2) 50%,var(--sk1) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}
+      .mobile-bottom-nav{display:none}
+      @media(max-width:768px){.mobile-bottom-nav{display:flex!important}.desktop-tabs{display:none!important}}
       .fade-up{animation:fadeUp .45s ease both}
       .fade-up-1{animation-delay:.05s}.fade-up-2{animation-delay:.1s}.fade-up-3{animation-delay:.15s}.fade-up-4{animation-delay:.2s}
       button:focus-visible,a:focus-visible{outline:2px solid #B0782A;outline-offset:2px}
@@ -927,6 +931,47 @@ function Card({ children, t, style={} }) {
       boxShadow:t.sh, overflow:"hidden", ...style,
     }}>{children}</div>
   );
+}
+
+// ── Loading skeleton ────────────────────────────────
+function Skeleton({ w="100%", h=16, r=6, style={} }) {
+  return <div className="skeleton" style={{ width:w, height:h, borderRadius:r, "--sk1":"rgba(128,128,128,.08)", "--sk2":"rgba(128,128,128,.18)", ...style }} />;
+}
+
+// ── "Actualizado hace X min" ────────────────────────
+function LiveTimestamp({ ts, t }) {
+  const [,setTick] = useState(0);
+  useEffect(() => { const id = setInterval(()=>setTick(x=>x+1), 30000); return ()=>clearInterval(id); }, []);
+  if (!ts) return null;
+  const diff = Math.round((Date.now() - ts) / 60000);
+  const label = diff < 1 ? "ahora" : diff < 60 ? `hace ${diff} min` : `hace ${Math.floor(diff/60)}h`;
+  return <span style={{ fontFamily:FB, fontSize:9, color:t.fa, display:"inline-flex", alignItems:"center", gap:4 }}>
+    <span style={{width:5,height:5,borderRadius:"50%",background:diff<5?"#22c55e":"#94a3b8",display:"inline-block"}} />
+    Actualizado {label}
+  </span>;
+}
+
+// ── Error Boundary ──────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError:false, error:null }; }
+  static getDerivedStateFromError(error) { return { hasError:true, error }; }
+  render() {
+    if (this.state.hasError) {
+      const t = this.props.t || {};
+      return (
+        <div style={{ padding:40, textAlign:"center", fontFamily:"'IBM Plex Sans',sans-serif" }}>
+          <div style={{ fontSize:32, marginBottom:12 }}>⚠️</div>
+          <div style={{ fontSize:14, fontWeight:700, color:t.tx||"#333", marginBottom:8 }}>Error al cargar este panel</div>
+          <div style={{ fontSize:12, color:t.mu||"#888", marginBottom:16 }}>{this.state.error?.message || "Error desconocido"}</div>
+          <button onClick={()=>this.setState({hasError:false,error:null})} style={{
+            padding:"8px 20px", borderRadius:8, border:"1px solid #ddd", background:"transparent",
+            cursor:"pointer", fontSize:12, color:t.tx||"#333",
+          }}>Reintentar</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function StatRow({ label, value, badge, bc, t }) {
@@ -4971,17 +5016,17 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           {fxError ? (
             <span style={{ fontFamily:FB, fontSize:11, color:t.rd, background:t.rdBg, padding:"3px 10px", borderRadius:8 }}>
-              ⚠️ Sin conexión a la API — recargá la página
+              ⚠️ Sin conexión — recargá la página
             </span>
           ) : (
-            <span style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
-              🔄 Datos en vivo{dolar ? " · live" : ""}
+            <span style={{ fontFamily:FB, fontSize:11, color:dolar?t.gr:t.fa, display:"flex", alignItems:"center", gap:6 }}>
+              <span style={{ width:7, height:7, borderRadius:"50%",
+                background:dolar?t.gr:t.fa,
+                boxShadow:dolar?"0 0 5px "+t.gr:"none",
+                animation:(!dolar&&!fxError)?"blink 1s infinite":"none" }} />
+              {dolar?"Datos en vivo":"Conectando..."}
             </span>
           )}
-          <div style={{ width:7, height:7, borderRadius:"50%",
-            background: fxError ? t.rd : dolar ? t.gr : t.fa,
-            animation: (!dolar && !fxError) ? "blink 1s infinite" : "none"
-          }} />
         </div>
       </div>
 
@@ -5490,6 +5535,121 @@ const WhatsAppCTA = ({ t }) => (
   </a>
 );
 
+/* ════════════════════════════════════════════════════════════════
+   CUENTAS Y BILLETERAS — Tasas de cuentas remuneradas
+   Compara rendimientos YTD + TNAs vigentes
+════════════════════════════════════════════════════════════════ */
+const CUENTAS_DATA = [
+  { nombre:"Mercado Pago", tipo:"Billetera", tna:33.5, ytdEst:8.2, color:"#00BCFF", icon:"💳" },
+  { nombre:"Ualá", tipo:"Billetera", tna:34.0, ytdEst:8.3, color:"#7B2EFF", icon:"💳" },
+  { nombre:"Naranja X", tipo:"Billetera", tna:32.0, ytdEst:7.8, color:"#FF6B00", icon:"💳" },
+  { nombre:"Personal Pay", tipo:"Billetera", tna:31.0, ytdEst:7.5, color:"#00A3E0", icon:"💳" },
+  { nombre:"MODO", tipo:"Billetera", tna:30.0, ytdEst:7.3, color:"#6C5CE7", icon:"💳" },
+  { nombre:"Lemon", tipo:"Billetera", tna:25.0, ytdEst:6.1, color:"#4CD964", icon:"💳" },
+  { nombre:"Balanz Ahorro ARS", tipo:"FCI MM", tna:35.5, ytdEst:8.7, color:"#C4956A", icon:"🏦" },
+  { nombre:"Balanz Ahorro USD", tipo:"FCI MM", tna:2.5, ytdEst:0.6, color:"#4A90D9", icon:"🏦", usd:true },
+  { nombre:"Bull Money Market", tipo:"FCI MM", tna:36.0, ytdEst:8.8, color:"#16A34A", icon:"🏦" },
+  { nombre:"Plazo Fijo (prom.)", tipo:"Plazo Fijo", tna:null, ytdEst:null, color:"#94A3B8", icon:"🏦", fetchPF:true },
+];
+
+function CuentasPanel({ t }) {
+  const [pfTNA, setPfTNA] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo");
+        const d = await r.json();
+        if (Array.isArray(d) && d.length > 0) {
+          const avg = d.reduce((s,b)=>s+(b.tnaClientes||0),0) / d.length;
+          setPfTNA(avg);
+          setUpdatedAt(Date.now());
+        }
+      } catch {}
+    };
+    load();
+  }, []);
+
+  const cuentas = CUENTAS_DATA.map(c => {
+    if (c.fetchPF && pfTNA) return { ...c, tna:pfTNA, ytdEst:pfTNA/12*3 };
+    return c;
+  }).filter(c => c.tna !== null);
+
+  const arsCuentas = cuentas.filter(c=>!c.usd);
+  const maxTNA = Math.max(...arsCuentas.map(c=>c.tna), 1);
+  const maxYTD = Math.max(...arsCuentas.map(c=>c.ytdEst||0), 1);
+
+  return (
+    <div className="fade-up">
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+        <div>
+          <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Cuentas Remuneradas y Billeteras</h3>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Comparación de rendimientos · TNAs vigentes estimadas</p>
+        </div>
+        <LiveTimestamp ts={updatedAt} t={t} />
+      </div>
+
+      {/* ── TNA Comparison Chart (horizontal bars) ── */}
+      <Card t={t} style={{ marginBottom:16 }}>
+        <div style={{ padding:"18px 22px" }}>
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:14 }}>
+            TNA VIGENTE · COMPARACIÓN
+          </div>
+          {arsCuentas.sort((a,b)=>b.tna-a.tna).map((c,i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+              <span style={{ fontFamily:FB, fontSize:10, color:t.mu, minWidth:130, textAlign:"right", flexShrink:0 }}>{c.nombre}</span>
+              <div style={{ flex:1, height:22, background:t.alt, borderRadius:6, overflow:"hidden", position:"relative" }}>
+                <div style={{
+                  width:`${(c.tna/maxTNA*100).toFixed(1)}%`, height:"100%",
+                  background:`linear-gradient(90deg, ${c.color}88, ${c.color})`,
+                  borderRadius:6, transition:"width .5s ease",
+                  display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:8,
+                }}>
+                  <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:"#fff" }}>{c.tna.toFixed(1)}%</span>
+                </div>
+              </div>
+              <span style={{ fontFamily:FB, fontSize:9, color:t.fa, minWidth:50, flexShrink:0 }}>{c.tipo}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Cards grid ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:10 }}>
+        {cuentas.map((c,i) => (
+          <Card key={i} t={t}>
+            <div style={{ padding:"16px 18px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:c.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{c.icon}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>{c.nombre}</div>
+                  <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:c.color, background:c.color+"15", padding:"1px 7px", borderRadius:4 }}>{c.tipo}</span>
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:12 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>TNA</div>
+                  <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:c.color }}>{c.tna.toFixed(1)}%</div>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>Rend. YTD est.</div>
+                  <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.gr }}>+{(c.ytdEst||0).toFixed(1)}%</div>
+                </div>
+              </div>
+              {c.usd && <div style={{ fontFamily:FB, fontSize:9, color:t.bl, marginTop:6, background:t.blBg, padding:"3px 8px", borderRadius:5, width:"fit-content" }}>Denominado en USD</div>}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.6 }}>
+        * TNAs estimadas al cierre. Plazo Fijo promedio vía BCRA. Rendimientos YTD aproximados asumiendo capitalización mensual desde 01/01/2026. No constituye asesoramiento.
+      </p>
+    </div>
+  );
+}
+
 function FCIsPanel({ t }) {
   const cMapF = {blue:{ac:t.bl,bg:t.blBg},gold:{ac:t.go,bg:t.goBg},purple:{ac:t.pu,bg:t.puBg},green:{ac:t.gr,bg:t.grBg},red:{ac:t.rd,bg:t.rdBg}};
   return (
@@ -5644,7 +5804,7 @@ function RentaVariableView({ t, initialTicker, onTickerConsumed }) {
    PRODUCTOS VIEW — FCIs + ETPs Balanz
 ════════════════════════════════════════════════════════════════ */
 function ProductosView({ t }) {
-  const [sub, setSub] = useState("fondos");
+  const [sub, setSub] = useState("cuentas");
   const [pin, setPin] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState(false);
@@ -5653,8 +5813,9 @@ function ProductosView({ t }) {
     else { setError(true); setPin(""); setTimeout(()=>setError(false), 1800); }
   };
   const SUBS = [
-    {id:"fondos", label:"FCIs", Icon:Wallet},
-    {id:"etps",   label:"ETPs Balanz", Icon:Package},
+    {id:"cuentas", label:"Cuentas y Billeteras", Icon:Banknote},
+    {id:"fondos",  label:"FCIs", Icon:Wallet},
+    {id:"etps",    label:"ETPs Balanz", Icon:Package},
   ];
   return (
     <div className="fade-up">
@@ -5668,6 +5829,7 @@ function ProductosView({ t }) {
           }}><s.Icon size={14} strokeWidth={sub===s.id?2.5:1.5}/> {s.label}</button>
         ))}
       </div>
+      {sub === "cuentas" && <CuentasPanel t={t} />}
       {sub === "fondos" && <FCIsPanel t={t} />}
       {sub === "etps" && <ETPsPanel t={t} pin={pin} setPin={setPin} unlocked={unlocked} error={error} tryUnlock={tryUnlock} />}
       <WhatsAppCTA t={t} />
@@ -5753,7 +5915,10 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
         ].map((k,i)=>(
           <div key={i} style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`3px solid ${k.accent}`, borderRadius:14, padding:isMobile?"14px 12px":"18px 18px" }}>
             <div style={{ fontFamily:FB, fontSize:9, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:6 }}>{k.label}</div>
-            <div style={{ fontFamily:FH, fontSize:isMobile?20:26, fontWeight:700, color:k.color||t.tx, lineHeight:1 }}>{k.value}</div>
+            {k.value === "—"
+              ? <Skeleton w={isMobile?80:110} h={isMobile?20:26} style={{marginBottom:4}} />
+              : <div style={{ fontFamily:FH, fontSize:isMobile?20:26, fontWeight:700, color:k.color||t.tx, lineHeight:1 }}>{k.value}</div>
+            }
             {k.sub && <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4 }}>{k.sub}</div>}
           </div>
         ))}
@@ -6707,7 +6872,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily:FB, background:t.bg, minHeight:"100vh", color:t.tx, transition:"background .3s, color .3s",
-      paddingBottom: isMobile ? 20 : 0 }}>
+      paddingBottom: isMobile ? 72 : 0 }}>
 
       {/* ── HEADER ── */}
       <header style={{ background:t.hdr, borderBottom:`1px solid ${t.brd}`, position:"sticky", top:0, zIndex:100, boxShadow:t.sh }}>
@@ -6957,12 +7122,14 @@ export default function App() {
         )}
 
         {/* Tab content */}
+        <ErrorBoundary t={t} key={tab}>
         {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} goResearch={goResearch} isMobile={isMobile} clock={clock} liveMarket={liveMarket} />}
         {tab==="mercados" && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} liveMarket={liveMarket} t={t} />}
         {tab==="rentafija" && <InstrumentosView t={t} />}
         {tab==="rentavariable" && <RentaVariableView t={t} initialTicker={chartTickerGlobal} onTickerConsumed={()=>setChartTickerGlobal(null)} />}
         {tab==="productos" && <ProductosView t={t} />}
         {tab==="research" && <InformesView t={t} initialSub={researchSub} onSubChange={setResearchSub} />}
+        </ErrorBoundary>
       </main>
 
       {/* ── FOOTER ── */}
@@ -7012,6 +7179,32 @@ export default function App() {
 
       {/* ── AI CHAT WIDGET ── */}
       <AIChatWidget t={t} isMobile={isMobile} />
+
+      {/* ── MOBILE BOTTOM NAV ── */}
+      {isMobile && (
+        <div className="mobile-bottom-nav" style={{
+          position:"fixed", bottom:0, left:0, right:0, zIndex:200,
+          background:t.hdr, borderTop:`1px solid ${t.brd}`,
+          display:"flex", justifyContent:"space-around", alignItems:"center",
+          padding:"6px 0 env(safe-area-inset-bottom, 8px)",
+          backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+        }}>
+          {TABS.map(tb => {
+            const active = tab === tb.id;
+            return (
+              <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
+                background:"none", border:"none", cursor:"pointer",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+                padding:"4px 8px", color:active?t.go:t.mu, transition:"color .15s",
+                minWidth:0,
+              }}>
+                <tb.Icon size={18} strokeWidth={active?2.5:1.5} />
+                <span style={{ fontFamily:FB, fontSize:9, fontWeight:active?700:400 }}>{tb.label.split(" ")[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
     </div>
   );

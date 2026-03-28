@@ -5536,115 +5536,170 @@ const WhatsAppCTA = ({ t }) => (
 );
 
 /* ════════════════════════════════════════════════════════════════
-   CUENTAS Y BILLETERAS — Tasas de cuentas remuneradas
-   Compara rendimientos YTD + TNAs vigentes
+   CUENTAS Y BILLETERAS — ALL FCIs Money Market + Billeteras
+   100% live from CAFCI via ArgentinaDatos
 ════════════════════════════════════════════════════════════════ */
-const CUENTAS_DATA = [
-  { nombre:"Mercado Pago", tipo:"Billetera", tna:33.5, ytdEst:8.2, color:"#00BCFF", icon:"💳" },
-  { nombre:"Ualá", tipo:"Billetera", tna:34.0, ytdEst:8.3, color:"#7B2EFF", icon:"💳" },
-  { nombre:"Naranja X", tipo:"Billetera", tna:32.0, ytdEst:7.8, color:"#FF6B00", icon:"💳" },
-  { nombre:"Personal Pay", tipo:"Billetera", tna:31.0, ytdEst:7.5, color:"#00A3E0", icon:"💳" },
-  { nombre:"MODO", tipo:"Billetera", tna:30.0, ytdEst:7.3, color:"#6C5CE7", icon:"💳" },
-  { nombre:"Lemon", tipo:"Billetera", tna:25.0, ytdEst:6.1, color:"#4CD964", icon:"💳" },
-  { nombre:"Balanz Ahorro ARS", tipo:"FCI MM", tna:35.5, ytdEst:8.7, color:"#C4956A", icon:"🏦" },
-  { nombre:"Balanz Ahorro USD", tipo:"FCI MM", tna:2.5, ytdEst:0.6, color:"#4A90D9", icon:"🏦", usd:true },
-  { nombre:"Bull Money Market", tipo:"FCI MM", tna:36.0, ytdEst:8.8, color:"#16A34A", icon:"🏦" },
-  { nombre:"Plazo Fijo (prom.)", tipo:"Plazo Fijo", tna:null, ytdEst:null, color:"#94A3B8", icon:"🏦", fetchPF:true },
+const BILLETERAS_GARANTIZADAS = [
+  { nombre:"Carrefour Banco", slug:"carrefour-banco", tna:27.0, tipo:"Billetera", limite:"$4M", desde:"21/03/2026" },
+  { nombre:"Fiwind", slug:"fiwind", tna:23.0, tipo:"Billetera", limite:"$750K", desde:"19/03/2026" },
+  { nombre:"Ualá", slug:"uala", tna:23.0, tipo:"Billetera", limite:"$1M", desde:"12/02/2026" },
+  { nombre:"Naranja X", slug:"naranja-x", tna:21.0, tipo:"Billetera", limite:"$1M", desde:"19/03/2026" },
 ];
 
+const LOGO_BASE = "https://api.argentinadatos.com/static/logos/";
+
+const guessSlug = (fondo) => {
+  const map = {
+    "mercado fondo":"mercado-pago","balanz":"balanz","pellegrini":"pellegrini","fima":"galicia",
+    "allaria":"prex","premier":"supervielle","alpha":"icbc","adcap":"adcap","ieb":"ieb",
+    "sbs":"claro-pay","ualintec":"uala","delta":"fiwind","st zero":"letsbit",
+    "cocos":"cocos","taca taca":"taca-taca","lemon":"lemon","provincia":"cuenta-dni",
+    "bind":"bind","megainver":"megainver","toronto":"toronto-trust","gainvest":"gainvest",
+  };
+  const lower = fondo.toLowerCase();
+  for (const [key, slug] of Object.entries(map)) { if (lower.includes(key)) return slug; }
+  return null;
+};
+
 function CuentasPanel({ t }) {
+  const [entries, setEntries] = useState([]);
   const [pfTNA, setPfTNA] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [filter, setFilter] = useState("todos");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const load = async () => {
       try {
-        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo");
-        const d = await r.json();
-        if (Array.isArray(d) && d.length > 0) {
-          const avg = d.reduce((s,b)=>s+(b.tnaClientes||0),0) / d.length;
-          setPfTNA(avg);
-          setUpdatedAt(Date.now());
-        }
-      } catch {}
+        const [rU, rP, rPF] = await Promise.all([
+          fetch("https://api.argentinadatos.com/v1/finanzas/fci/mercadoDinero/ultimo").then(r=>r.json()).catch(()=>[]),
+          fetch("https://api.argentinadatos.com/v1/finanzas/fci/mercadoDinero/penultimo").then(r=>r.json()).catch(()=>[]),
+          fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo").then(r=>r.json()).catch(()=>[]),
+        ]);
+        const mapU = {}, mapMeta = {};
+        if (Array.isArray(rU)) rU.forEach(f => { if (f.fondo && f.vcp > 0) { mapU[f.fondo] = f.vcp; mapMeta[f.fondo] = { patrimonio:f.patrimonio, fecha:f.fecha }; } });
+        const mapP = {};
+        if (Array.isArray(rP)) rP.forEach(f => { if (f.fondo && f.vcp > 0) mapP[f.fondo] = f.vcp; });
+
+        const fciEntries = [];
+        Object.keys(mapU).forEach(fondo => {
+          const u = mapU[fondo], p = mapP[fondo];
+          if (!u || !p || p <= 0) return;
+          const tna = ((u / p - 1) * 365 * 100);
+          if (tna <= 0 || tna > 100) return;
+          const meta = mapMeta[fondo] || {};
+          const slug = guessSlug(fondo);
+          const patStr = meta.patrimonio ? (meta.patrimonio >= 1e9 ? `${(meta.patrimonio/1e9).toFixed(1)} B` : `${Math.round(meta.patrimonio/1e6)} mil M`) : null;
+          fciEntries.push({ nombre:fondo, tipo:"Money Market", tna, logo:slug?`${LOGO_BASE}${slug}.png`:null, patrimonio:patStr, fechas:meta.fecha||null, isFCI:true });
+        });
+
+        const billEntries = BILLETERAS_GARANTIZADAS.map(b => ({
+          nombre:b.nombre, tipo:"Billetera", tna:b.tna, logo:`${LOGO_BASE}${b.slug}.png`, limite:b.limite, desde:b.desde, isFCI:false,
+        }));
+
+        setEntries([...billEntries, ...fciEntries].sort((a,b) => b.tna - a.tna));
+        if (Array.isArray(rPF) && rPF.length > 0) setPfTNA(rPF.reduce((s,b)=>s+(b.tnaClientes||0),0) / rPF.length);
+        setUpdatedAt(Date.now());
+        setStatus("ok");
+      } catch { setStatus("error"); }
     };
     load();
   }, []);
 
-  const cuentas = CUENTAS_DATA.map(c => {
-    if (c.fetchPF && pfTNA) return { ...c, tna:pfTNA, ytdEst:pfTNA/12*3 };
-    return c;
-  }).filter(c => c.tna !== null);
-
-  const arsCuentas = cuentas.filter(c=>!c.usd);
-  const maxTNA = Math.max(...arsCuentas.map(c=>c.tna), 1);
-  const maxYTD = Math.max(...arsCuentas.map(c=>c.ytdEst||0), 1);
+  const filtered = entries.filter(e => {
+    if (filter === "billetera" && e.isFCI) return false;
+    if (filter === "fci" && !e.isFCI) return false;
+    if (search.trim()) { const q = search.toLowerCase(); return e.nombre.toLowerCase().includes(q); }
+    return true;
+  });
+  const maxTNA = entries.length > 0 ? Math.max(...entries.map(e=>e.tna)) : 30;
 
   return (
     <div className="fade-up">
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
         <div>
-          <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Cuentas Remuneradas y Billeteras</h3>
-          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Comparación de rendimientos · TNAs vigentes estimadas</p>
+          <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Billeteras y Fondos de Liquidez</h3>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>
+            {status==="ok" ? `${entries.length} opciones · TNA sobre variación de cuotaparte (CAFCI)` : "Cargando datos..."}
+          </p>
         </div>
-        <LiveTimestamp ts={updatedAt} t={t} />
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",background:status==="ok"?"#22c55e":"#94a3b8",boxShadow:status==="ok"?"0 0 5px #22c55e":"none"}}/>
+          <LiveTimestamp ts={updatedAt} t={t} />
+        </div>
       </div>
 
-      {/* ── TNA Comparison Chart (horizontal bars) ── */}
+      <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        {[{id:"todos",label:"Todos"},{id:"billetera",label:"Billeteras"},{id:"fci",label:"FCIs Money Market"}].map(f=>(
+          <button key={f.id} onClick={()=>setFilter(f.id)} style={{
+            padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, fontWeight:filter===f.id?700:400,
+            border:`1.5px solid ${filter===f.id?t.go:t.brd}`, background:filter===f.id?t.goBg:"transparent",
+            color:filter===f.id?t.go:t.mu, cursor:"pointer",
+          }}>{f.label}</button>
+        ))}
+        <div style={{ position:"relative", marginLeft:"auto" }}>
+          <Search size={13} style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..."
+            style={{ fontFamily:FB, fontSize:11, padding:"6px 8px 6px 26px", borderRadius:8, width:150,
+              border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+        </div>
+      </div>
+
       <Card t={t} style={{ marginBottom:16 }}>
-        <div style={{ padding:"18px 22px" }}>
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:14 }}>
-            TNA VIGENTE · COMPARACIÓN
-          </div>
-          {arsCuentas.sort((a,b)=>b.tna-a.tna).map((c,i) => (
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-              <span style={{ fontFamily:FB, fontSize:10, color:t.mu, minWidth:130, textAlign:"right", flexShrink:0 }}>{c.nombre}</span>
-              <div style={{ flex:1, height:22, background:t.alt, borderRadius:6, overflow:"hidden", position:"relative" }}>
-                <div style={{
-                  width:`${(c.tna/maxTNA*100).toFixed(1)}%`, height:"100%",
-                  background:`linear-gradient(90deg, ${c.color}88, ${c.color})`,
-                  borderRadius:6, transition:"width .5s ease",
-                  display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:8,
-                }}>
-                  <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:"#fff" }}>{c.tna.toFixed(1)}%</span>
+        <div style={{ padding:"16px 20px" }}>
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:12 }}>COMPARACIÓN DE RENDIMIENTOS</div>
+          <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginBottom:14 }}>TNA de billeteras y fondos de liquidez ordenados por rendimiento</div>
+          {status==="loading" && Array.from({length:8}).map((_,i) => <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><Skeleton w={28} h={28} r={6}/><Skeleton w="100%" h={22} r={6}/></div>)}
+          {filtered.slice(0,25).map((e,i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+              {e.logo ? <img src={e.logo} alt="" style={{width:28,height:28,borderRadius:6,objectFit:"contain",background:t.alt,flexShrink:0}} onError={ev=>{ev.target.style.display="none"}} />
+                : <div style={{width:28,height:28,borderRadius:6,background:t.alt,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FB,fontSize:8,color:t.fa,fontWeight:700}}>FCI</div>}
+              <div style={{ flex:1, height:24, background:t.alt, borderRadius:6, overflow:"hidden" }}>
+                <div style={{ width:`${Math.max((e.tna/maxTNA*100),5).toFixed(1)}%`, height:"100%",
+                  background:e.isFCI?`linear-gradient(90deg,#22c55e88,#22c55e)`:`linear-gradient(90deg,${t.go}88,${t.go})`,
+                  borderRadius:6, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:10 }}>
+                  <span style={{fontFamily:FB,fontSize:11,fontWeight:700,color:"#fff"}}>{e.tna.toFixed(2)}%</span>
                 </div>
               </div>
-              <span style={{ fontFamily:FB, fontSize:9, color:t.fa, minWidth:50, flexShrink:0 }}>{c.tipo}</span>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* ── Cards grid ── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:10 }}>
-        {cuentas.map((c,i) => (
+      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+        {filtered.map((e,i) => (
           <Card key={i} t={t}>
-            <div style={{ padding:"16px 18px" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                <div style={{ width:36, height:36, borderRadius:10, background:c.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{c.icon}</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>{c.nombre}</div>
-                  <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:c.color, background:c.color+"15", padding:"1px 7px", borderRadius:4 }}>{c.tipo}</span>
+            <div style={{ display:"flex", alignItems:"center", padding:"12px 16px", gap:12 }}>
+              {e.logo ? <img src={e.logo} alt="" style={{width:36,height:36,borderRadius:8,objectFit:"contain",background:t.alt,flexShrink:0}} onError={ev=>{ev.target.style.display="none"}} />
+                : <div style={{width:36,height:36,borderRadius:8,background:t.alt,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FB,fontSize:9,color:t.fa,fontWeight:700}}>FCI</div>}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.nombre}</div>
+                <div style={{ display:"flex", gap:6, marginTop:3, flexWrap:"wrap" }}>
+                  <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:e.isFCI?t.gr:t.go, background:e.isFCI?t.grBg:t.goBg, padding:"1px 7px", borderRadius:4 }}>{e.tipo}</span>
+                  {e.patrimonio && <span style={{fontFamily:FB,fontSize:9,color:t.mu}}>Patrimonio: {e.patrimonio}</span>}
+                  {e.limite && <span style={{fontFamily:FB,fontSize:9,color:t.rd,background:t.rdBg,padding:"1px 6px",borderRadius:4}}>Límite: {e.limite}</span>}
                 </div>
               </div>
-              <div style={{ display:"flex", gap:12 }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>TNA</div>
-                  <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:c.color }}>{c.tna.toFixed(1)}%</div>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>Rend. YTD est.</div>
-                  <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.gr }}>+{(c.ytdEst||0).toFixed(1)}%</div>
-                </div>
+              <div style={{ textAlign:"right", flexShrink:0 }}>
+                <div style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:t.gr }}>{e.tna.toFixed(2)}%</div>
+                <div style={{fontFamily:FB,fontSize:9,color:t.fa}}>TNA</div>
+                {e.desde && <div style={{fontFamily:FB,fontSize:8,color:t.fa}}>Vigente desde {e.desde}</div>}
               </div>
-              {c.usd && <div style={{ fontFamily:FB, fontSize:9, color:t.bl, marginTop:6, background:t.blBg, padding:"3px 8px", borderRadius:5, width:"fit-content" }}>Denominado en USD</div>}
             </div>
           </Card>
         ))}
       </div>
 
+      {pfTNA && (
+        <div style={{ marginTop:12, padding:"12px 16px", background:t.alt, borderRadius:10, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{fontFamily:FB,fontSize:12,color:t.mu}}>🏦 Plazo Fijo promedio (BCRA)</span>
+          <span style={{fontFamily:FH,fontSize:18,fontWeight:700,color:t.tx}}>{pfTNA.toFixed(1)}% TNA</span>
+        </div>
+      )}
+
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.6 }}>
-        * TNAs estimadas al cierre. Plazo Fijo promedio vía BCRA. Rendimientos YTD aproximados asumiendo capitalización mensual desde 01/01/2026. No constituye asesoramiento.
+        * FCIs: TNA calculada sobre variación diaria de cuotaparte vía CAFCI. Billeteras: tasa garantizada publicada. Las tasas cambian frecuentemente. No constituye asesoramiento.
       </p>
     </div>
   );

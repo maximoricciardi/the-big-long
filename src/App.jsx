@@ -2233,15 +2233,15 @@ function EquityScreener({ t }) {
                             : <span style={{ color:t.fa }}>—</span>}
                     </td>
 
-                    {/* TradingView */}
+                    {/* Chart */}
                     <td style={{ padding:"7px 6px", textAlign:"center" }}>
-                      <a href={tvUrl(e.t)} target="_blank" rel="noreferrer"
+                      <button onClick={()=>window.__goChart?.(e.t)}
                         style={{ width:26, height:26, borderRadius:6, display:"inline-flex", alignItems:"center", justifyContent:"center",
-                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", textDecoration:"none" }}
+                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", cursor:"pointer" }}
                         onMouseEnter={ev=>{ev.currentTarget.style.background=t.goBg;ev.currentTarget.style.borderColor=t.go;ev.currentTarget.style.color=t.go;}}
                         onMouseLeave={ev=>{ev.currentTarget.style.background=t.alt;ev.currentTarget.style.borderColor=t.brd;ev.currentTarget.style.color=t.mu;}}>
                         <LineChart size={13} />
-                      </a>
+                      </button>
                     </td>
 
                   </tr>
@@ -3578,13 +3578,13 @@ function ONsPanel({ t }) {
                       </td>
                       <td style={{ padding:"6px 10px", fontSize:9, color:t.fa }}>{o.tipo}</td>
                       <td style={{ padding:"6px 6px" }}>
-                        <a href={tvBondUrl(o.t)} target="_blank" rel="noreferrer"
+                        <button onClick={()=>window.__goChart?.("BYMA:"+o.t)}
                           style={{ width:24, height:24, borderRadius:5, display:"inline-flex", alignItems:"center", justifyContent:"center",
-                            background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", textDecoration:"none" }}
+                            background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", cursor:"pointer" }}
                           onMouseEnter={e=>{e.currentTarget.style.background=color+"15";e.currentTarget.style.borderColor=color;e.currentTarget.style.color=color;}}
                           onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
                           <LineChart size={12} />
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -4024,13 +4024,13 @@ function CEDEARsPanel({ t }) {
                       {c.pct !== null ? <span style={{ fontWeight:600, color:c.pct>=0?t.gr:t.rd }}>{c.pct>=0?"+":""}{c.pct.toFixed(2)}%</span> : <span style={{color:t.fa}}>—</span>}
                     </td>
                     <td style={{ padding:"6px 6px" }}>
-                      <a href={tvUrl(c.t)} target="_blank" rel="noreferrer"
+                      <button onClick={()=>window.__goChart?.(c.t)}
                         style={{ width:24, height:24, borderRadius:5, display:"inline-flex", alignItems:"center", justifyContent:"center",
-                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", textDecoration:"none" }}
+                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", cursor:"pointer" }}
                         onMouseEnter={e=>{e.currentTarget.style.background=t.goBg;e.currentTarget.style.borderColor=t.go;e.currentTarget.style.color=t.go;}}
                         onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
                         <LineChart size={12} />
-                      </a>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -4550,13 +4550,13 @@ function InstrumentosView({ t }) {
                             <Td2 right color={t.mu}>{m.newPar !== null ? `${m.newPar.toFixed(2)}%` : s.par}</Td2>
                             <Td2 right color={s.var1w.startsWith("-")?t.rd:s.var1w.startsWith("+")?t.gr:t.mu}>{s.var1w}</Td2>
                             <Td2>
-                              <a href={tvBondUrl(s.t)} target="_blank" rel="noreferrer"
+                              <button onClick={()=>window.__goChart?.("BYMA:"+s.t)}
                                 style={{ width:26, height:26, borderRadius:6, display:"inline-flex", alignItems:"center", justifyContent:"center",
-                                  background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s" }}
+                                  background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", cursor:"pointer" }}
                                 onMouseEnter={e=>{e.currentTarget.style.background=grp.color+"15";e.currentTarget.style.borderColor=grp.color;e.currentTarget.style.color=grp.color;}}
                                 onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
                                 <LineChart size={13} />
-                              </a>
+                              </button>
                             </Td2>
                           </tr>
                         );
@@ -5544,14 +5544,25 @@ function FCIsPanel({ t }) {
 /* ════════════════════════════════════════════════════════════════
    RENTA VARIABLE VIEW — CEDEARs + Research Desk
 ════════════════════════════════════════════════════════════════ */
-function RentaVariableView({ t }) {
-  const [sub, setSub] = useState("cedears");
-  const [chartTicker, setChartTicker] = useState("AAPL");
-  const [chartInput, setChartInput] = useState("AAPL");
+function RentaVariableView({ t, initialTicker, onTickerConsumed }) {
+  const [sub, setSub] = useState(initialTicker ? "charts" : "cedears");
+  const [chartTicker, setChartTicker] = useState(initialTicker || "AAPL");
+  const [chartInput, setChartInput] = useState(initialTicker || "AAPL");
+
+  // When a new ticker arrives from outside, switch to charts
+  useEffect(() => {
+    if (initialTicker) {
+      setChartTicker(initialTicker);
+      setChartInput(initialTicker);
+      setSub("charts");
+      onTickerConsumed?.();
+    }
+  }, [initialTicker]);
+
   const SUBS = [
     {id:"cedears", label:"CEDEARs", Icon:Globe},
     {id:"charts",  label:"Gráficos", Icon:Activity},
-    {id:"rv",      label:"Research Desk", Icon:LineChart},
+    {id:"rv",      label:"Análisis de Acciones", Icon:LineChart},
   ];
 
   const loadChart = (tk) => {
@@ -5617,7 +5628,8 @@ function RentaVariableView({ t }) {
             />
           </div>
           <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:8, textAlign:"center" }}>
-            Gráficos interactivos · Podés agregar indicadores, cambiar temporalidad y hacer zoom
+            Gráficos interactivos · Podés agregar indicadores, cambiar temporalidad y hacer zoom ·
+            <a href="https://www.tradingview.com" target="_blank" rel="noreferrer" style={{ color:t.bl, marginLeft:4, textDecoration:"none" }}>Powered by TradingView</a>
           </p>
         </div>
       )}
@@ -5678,7 +5690,7 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
   const cached = (() => { try { return JSON.parse(localStorage.getItem("tbl-live-prices")||"{}"); } catch { return {}; } })();
   const withData = Object.entries(cached).filter(([,v]) => v && typeof v.changePct === "number" && v.price > 0).map(([ticker, v]) => ({ ticker, price:v.price, pct:v.changePct }));
   const sorted = [...withData].sort((a,b) => b.pct - a.pct);
-  const topMovers = withData.length >= 4 ? [...sorted.slice(0,2), ...sorted.slice(-2).reverse()] : [];
+  const topMovers = withData.length >= 6 ? [...sorted.slice(0,3), ...sorted.slice(-3).reverse()] : [];
 
   return (
     <div className="fade-up" style={{ maxWidth:900, margin:"0 auto" }}>
@@ -5794,26 +5806,31 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
       </div>
 
       {/* ── TOP MOVERS ── */}
-      {topMovers.length >= 4 && (
+      {topMovers.length >= 6 && (
         <div style={{ marginBottom:16 }}>
           <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>
             ACCIONES DESTACADAS · EN VIVO
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:8 }}>
+          <div style={{ display:"grid", gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(6,1fr)", gap:8 }}>
             {topMovers.map((m,i) => {
               const isUp = m.pct >= 0;
               const col = isUp ? t.gr : t.rd;
               return (
-                <div key={i} style={{ background:t.srf, border:`1px solid ${t.brd}`, borderLeft:`3px solid ${col}`, borderRadius:12, padding:"12px 14px" }}>
+                <button key={i} onClick={()=>window.__goChart?.(m.ticker)} style={{
+                  background:t.srf, border:`1px solid ${t.brd}`, borderLeft:`3px solid ${col}`, borderRadius:12, padding:"12px 14px",
+                  textAlign:"left", cursor:"pointer", transition:"all .15s",
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.08)";}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
                     <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:col }}>{m.ticker}</span>
                     <span style={{ fontFamily:FB, fontSize:7, fontWeight:700, color:"#fff", background:col, padding:"1px 5px", borderRadius:5 }}>
-                      {i < 2 ? "▲ SUBE" : "▼ BAJA"}
+                      {i < 3 ? "▲" : "▼"}
                     </span>
                   </div>
-                  <div style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx }}>${m.price.toFixed(2)}</div>
-                  <div style={{ fontFamily:FB, fontSize:12, fontWeight:700, color:col }}>{isUp?"+":""}{m.pct.toFixed(2)}%</div>
-                </div>
+                  <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>${m.price.toFixed(2)}</div>
+                  <div style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:col }}>{isUp?"+":""}{m.pct.toFixed(2)}%</div>
+                </button>
               );
             })}
           </div>
@@ -6479,6 +6496,13 @@ function AIChatWidget({ t, isMobile }) {
 export default function App() {
   const [dark, setDark] = useState(false);
   const [tab, setTab] = useState("inicio");
+  const [chartTickerGlobal, setChartTickerGlobal] = useState(null);
+
+  // Global function: any component can call goChart("AAPL") to open chart tab
+  const goChart = useCallback((ticker) => {
+    setChartTickerGlobal(ticker);
+    setTab("rentavariable");
+  }, []);
   const [researchSub, setResearchSub] = useState("resumen");
   const [admin, setAdmin] = useState(false);
   const [adminPrompt, setAdminPrompt] = useState(false);
@@ -6644,6 +6668,9 @@ export default function App() {
     { id:"productos",    label:"Productos",       Icon:Package,    desc:"FCIs y ETPs Balanz" },
     { id:"research",     label:"Research",        Icon:Search,     desc:"Resúmenes, balances y recomendaciones" },
   ];
+
+  // Expose goChart globally so nested components can call it without prop drilling
+  useEffect(() => { window.__goChart = goChart; return () => { delete window.__goChart; }; }, [goChart]);
 
   const goResearch = (sub) => { setResearchSub(sub); setTab("research"); };
 
@@ -6933,7 +6960,7 @@ export default function App() {
         {tab==="inicio" && <InicioView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} t={t} setTab={setTab} goResearch={goResearch} isMobile={isMobile} clock={clock} liveMarket={liveMarket} />}
         {tab==="mercados" && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} liveMarket={liveMarket} t={t} />}
         {tab==="rentafija" && <InstrumentosView t={t} />}
-        {tab==="rentavariable" && <RentaVariableView t={t} />}
+        {tab==="rentavariable" && <RentaVariableView t={t} initialTicker={chartTickerGlobal} onTickerConsumed={()=>setChartTickerGlobal(null)} />}
         {tab==="productos" && <ProductosView t={t} />}
         {tab==="research" && <InformesView t={t} initialSub={researchSub} onSubChange={setResearchSub} />}
       </main>

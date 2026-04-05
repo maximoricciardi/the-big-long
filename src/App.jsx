@@ -177,7 +177,7 @@ const SUMMARIES = [
   {
     id:"s26", date:"26 MAR 2026", label:"CIERRE DE MERCADO",
     kpis:[
-      {k:"AO28 LICITACIÓN", v:"~9% TNA",      b:"hoy",           bc:"blue"},
+      {k:"AO28 LICITACIÓN", v:"8,52% TNA",   b:"result",        bc:"blue"},
       {k:"BCRA COMPRAS",    v:"USD 146M",      b:"USD 450M/3d",   bc:"green"},
       {k:"SPOT ARS/USD",    v:"-0,9%",         b:"firme",         bc:"green"},
       {k:"GLOBALES",        v:"+0,7%",         b:"rebote",        bc:"green"},
@@ -525,6 +525,7 @@ const LECAP = [
   {mes:"Mayo",      vto:"15/05/2026", dias:57,  rows:[{t:"S15Y6", pre:"$100,00",r:"4,20%", tna:"26,90%", tem:"2,18%", fxbe:"$1.470"}]},
   {mes:"Mayo",      vto:"29/05/2026", dias:71,  rows:[{t:"S29Y6", pre:"$124,96",r:"5,67%", tna:"29,12%", tem:"2,36%", fxbe:"$1.502"}]},
   {mes:"Junio",     vto:"30/06/2026", dias:103, rows:[{t:"T30J6", pre:"$134,20",r:"7,97%", tna:"28,24%", tem:"2,26%", fxbe:"$1.535"}]},
+  {mes:"Julio",     vto:"17/07/2026", dias:120, rows:[{t:"S17L6", pre:"$102,50",r:"8,64%", tna:"26,28%", tem:"2,16%", fxbe:"$1.548"}]},
   {mes:"Julio",     vto:"31/07/2026", dias:134, rows:[{t:"S31L6", pre:"$106,81",r:"10,18%",tna:"27,73%", tem:"2,19%", fxbe:"$1.566"}]},
   {mes:"Agosto",    vto:"31/08/2026", dias:165, rows:[{t:"S31G6", pre:"$112,28",r:"13,16%",tna:"29,12%", tem:"2,27%", fxbe:"$1.609"}]},
   {mes:"Septiembre",vto:"30/09/2026", dias:195, rows:[{t:"S30S6", pre:"$101,30",r:"16,03%",tna:"30,01%", tem:"2,31%", fxbe:"$1.649"}]},
@@ -561,7 +562,7 @@ const DOLARLINKED = [
 const SOBERANOS = [
   // ley argentina
   {t:"AO27D",vto:"Oct 2027",p:"$102,20",tir:"4,90%", sprd:"—",    cy:"5,87%",dur:1.56,pago:"Mensual", ley:"ARG",par:"101,84%",var1d:"+0,25%",var1w:"+1,29%",neg:false},
-  {t:"AO28D",vto:"Oct 2028",p:"$99,50",tir:"8,86%",sprd:"—",   cy:"6,00%",dur:2.30,pago:"Mensual",  ley:"ARG",par:"99,50%",var1d:"—",     var1w:"—",     neg:false},
+  {t:"AO28D",vto:"Oct 2028",p:"$95,00",tir:"9,50%",sprd:"—",   cy:"6,32%",dur:2.10,pago:"Mensual",  ley:"ARG",par:"95,00%",var1d:"—",     var1w:"—",     neg:false},
   {t:"AL29D",vto:"Jul 2029",p:"$61,99", tir:"8,38%", sprd:"-2,62%",cy:"1,21%",dur:1.69,pago:"Semestral",ley:"ARG",par:"77,34%", var1d:"-0,18%",var1w:"+1,46%",neg:true},
   {t:"AN29D",vto:"Nov 2029",p:"$94,14", tir:"9,15%", sprd:"—",    cy:"6,67%",dur:3.30,pago:"Semestral",ley:"ARG",par:"92,50%", var1d:"-0,12%",var1w:"+0,68%",neg:true},
   {t:"AL30D",vto:"Jul 2030",p:"$60,67", tir:"9,47%", sprd:"-2,41%",cy:"0,94%",dur:2.12,pago:"Semestral",ley:"ARG",par:"75,73%", var1d:"-0,61%",var1w:"+0,12%",neg:true},
@@ -889,15 +890,8 @@ En paralelo, el gobernador de Corrientes aprovechó la oportunidad para reiterar
    BCRA DATA — 20 MAR 2026
    Fuente: BCRA Informe Monetario / La Macro (último dato disponible)
 ════════════════════════════════════════════════════════════════ */
-const BCRA_DATA = {
-  fecha: "20 MAR 2026",
-  tamar:     { val: "26,56%", nota: "TNA · Bcos. Privados" },
-  badlar:    { val: "26,25%", nota: "TNA · Bcos. Privados" },
-  comprasUSD:{ val: "USD 172M", nota: "Compra de divisas del día" },
-  reservas:  { val: "USD 43.808M", nota: "Reservas brutas" },
-  mayorista: { val: "$1.414", nota: "Tipo de cambio minorista" },
-  nota: "El BCRA aceleró compras a USD 172M en la rueda del viernes. Reservas brutas en USD 43.808M, presionadas por la baja del oro en la semana.",
-};
+// BCRA key variable IDs (API v4)
+const BCRA_VARS = { RESERVAS:1, TC_MIN:4, TC_MAY:5, BADLAR:6, TPM:7, TAMAR:27, BASE_MON:15 };
 
 /* ════════════════════════════════════════════════════════════════
    UI PRIMITIVES
@@ -2530,12 +2524,27 @@ function calcBondMetrics(s, livePrice) {
 ════════════════════════════════════════════════════════════════ */
 
 // Genera pagos mensuales de cupón para AO27D (bullet)
+// AO27: cupón 3% anual = 0.25% mensual, bullet Oct 2027, paga último día hábil del mes
 const _ao27Flows = (() => {
   const out = [];
+  const lastDay = (y,m) => new Date(y,m,0).getDate();
   let y = 2026, m = 4;
   while (!(y === 2027 && m === 11)) {
     const isLast = y === 2027 && m === 10;
-    out.push({ date:`${y}-${String(m).padStart(2,"0")}-04`, cpn:0.25, amort: isLast ? 100 : 0 });
+    out.push({ date:`${y}-${String(m).padStart(2,"0")}-${lastDay(y,m)}`, cpn:0.25, amort: isLast ? 100 : 0 });
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  return out;
+})();
+
+// AO28: cupón 6% anual = 0.50% mensual, bullet Oct 2028, paga último día hábil del mes
+const _ao28Flows = (() => {
+  const out = [];
+  const lastDay = (y,m) => new Date(y,m,0).getDate();
+  let y = 2026, m = 5; // first coupon May 2026
+  while (!(y === 2028 && m === 11)) {
+    const isLast = y === 2028 && m === 10;
+    out.push({ date:`${y}-${String(m).padStart(2,"0")}-${lastDay(y,m)}`, cpn:0.50, amort: isLast ? 100 : 0 });
     m++; if (m > 12) { m = 1; y++; }
   }
   return out;
@@ -2546,6 +2555,9 @@ const _ao27Flows = (() => {
 const BOND_SCHEDULES = {
   // AO27D — Bonar 2027 · Ley ARG · cupón 3% anual mensual · BULLET Oct-2027
   "AO27D": _ao27Flows,
+
+  // AO28D — Bonar 2028 · Ley ARG · cupón 6% anual mensual · BULLET Oct-2028
+  "AO28D": _ao28Flows,
 
   // AL29D — Bonar 2029 · Ley ARG · step-up · amort 4x25% Jul27-Ene29
   // Cupón: 0.5% sem sobre outstanding restante
@@ -4887,6 +4899,106 @@ function PlazosFijosPanel({ t }) {
 /* ════════════════════════════════════════════════════════════════
    MERCADOS VIEW — LIVE QUOTES (dolarapi.com + argentinadatos.com)
 ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   BCRA PANEL — Live data from BCRA API v4 via Vercel proxy
+════════════════════════════════════════════════════════════════ */
+function BCRAPanel({ t }) {
+  const [data, setData] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [updatedAt, setUpdatedAt] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // Fetch list of principales variables — includes ultValorInformado
+        const r = await fetch("/api/bcra?list=1");
+        const json = await r.json();
+        const vars = json.results || [];
+        
+        // Extract specific variables by ID
+        const get = (id) => {
+          const v = vars.find(x => x.idVariable === id);
+          return v ? { val:v.ultValorInformado, fecha:v.ultFechaInformada, desc:v.descripcion } : null;
+        };
+
+        const reservas  = get(BCRA_VARS.RESERVAS);
+        const tamar     = get(BCRA_VARS.TAMAR);
+        const badlar    = get(BCRA_VARS.BADLAR);
+        const tcMin     = get(BCRA_VARS.TC_MIN);
+        const tcMay     = get(BCRA_VARS.TC_MAY);
+        const tpm       = get(BCRA_VARS.TPM);
+        const baseMon   = get(BCRA_VARS.BASE_MON);
+
+        setData({ reservas, tamar, badlar, tcMin, tcMay, tpm, baseMon });
+        setUpdatedAt(Date.now());
+        setStatus("ok");
+      } catch (e) {
+        console.error("BCRA fetch error:", e);
+        setStatus("error");
+      }
+    };
+    load();
+  }, []);
+
+  const fmtDate = (d) => {
+    if (!d) return "";
+    const [y,m,dd] = d.split("-");
+    return `${dd}/${m}/${y}`;
+  };
+
+  const items = data ? [
+    { label:"TAMAR",            val:data.tamar     ? `${data.tamar.val.toFixed(2)}%`     : "—", nota:"TNA · Bcos. Privados",    color:t.bl, bg:t.blBg },
+    { label:"BADLAR",           val:data.badlar    ? `${data.badlar.val.toFixed(2)}%`    : "—", nota:"TNA · Bcos. Privados",    color:t.pu, bg:t.puBg },
+    { label:"TASA DE POLÍTICA", val:data.tpm       ? `${data.tpm.val.toFixed(1)}%`       : "—", nota:"TNA · TPM",               color:t.gr, bg:t.grBg },
+    { label:"RESERVAS BRUTAS",  val:data.reservas  ? `USD ${(data.reservas.val).toLocaleString("es-AR")}M` : "—", nota:"Reservas internacionales", color:t.rd, bg:t.rdBg },
+    { label:"TC MINORISTA",     val:data.tcMin     ? `$${data.tcMin.val.toLocaleString("es-AR",{minimumFractionDigits:2})}` : "—", nota:"Pesos por USD",  color:t.go, bg:t.goBg },
+  ] : [];
+
+  const fecha = data?.reservas?.fecha ? fmtDate(data.reservas.fecha) : "—";
+
+  return (
+    <Card t={t} style={{ marginTop:4 }}>
+      <div style={{ padding:"20px 24px" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+          <SectionLabel t={t}>BANCO CENTRAL · DATOS DEL DÍA</SectionLabel>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"3px 10px", borderRadius:6 }}>
+              {status==="ok" ? fecha : "Cargando..."}
+            </span>
+            <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
+              background:status==="ok"?"#22c55e":status==="error"?"#ef4444":"#94a3b8",
+              boxShadow:status==="ok"?"0 0 5px #22c55e":"none"}} />
+          </div>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10, marginBottom:14 }}>
+          {status==="loading" && Array.from({length:5}).map((_,i) => (
+            <div key={i} style={{ background:t.alt, borderRadius:10, padding:"12px 14px" }}>
+              <Skeleton w={60} h={10} style={{marginBottom:8}} />
+              <Skeleton w={90} h={22} style={{marginBottom:6}} />
+              <Skeleton w={110} h={10} />
+            </div>
+          ))}
+          {status==="ok" && items.map((item,i) => (
+            <div key={i} style={{ background:item.bg, border:`1px solid ${item.color}22`, borderRadius:10, padding:"12px 14px", borderLeft:`3px solid ${item.color}` }}>
+              <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".1em", color:item.color, marginBottom:5 }}>{item.label}</div>
+              <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, lineHeight:1 }}>{item.val}</div>
+              <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4, lineHeight:1.4 }}>{item.nota}</div>
+            </div>
+          ))}
+          {status==="error" && (
+            <div style={{ gridColumn:"1 / -1", textAlign:"center", padding:20, fontFamily:FB, fontSize:12, color:t.mu }}>
+              ⚠️ No se pudo conectar con la API del BCRA · <span style={{color:t.bl,cursor:"pointer"}} onClick={()=>window.location.reload()}>Reintentar</span>
+            </div>
+          )}
+        </div>
+        <div style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+          Fuente: Banco Central de la República Argentina · API v4.0 · Actualización diaria
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
   const cMap = {
     blue:{bg:t.blBg,ac:t.bl}, gold:{bg:t.goBg,ac:t.go}, green:{bg:t.grBg,ac:t.gr},
@@ -5145,33 +5257,8 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
         </div>
       </Card>
 
-      {/* ── PANEL BCRA ── */}
-      <Card t={t} style={{ marginTop:4 }}>
-        <div style={{ padding:"20px 24px" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
-            <SectionLabel t={t}>BANCO CENTRAL · DATOS DEL DÍA</SectionLabel>
-            <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"3px 10px", borderRadius:6 }}>{BCRA_DATA.fecha}</span>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10, marginBottom:14 }}>
-            {[
-              { label:"TAMAR",             val:BCRA_DATA.tamar.val,      nota:BCRA_DATA.tamar.nota,      color:t.bl,   bg:t.blBg },
-              { label:"BADLAR",            val:BCRA_DATA.badlar.val,     nota:BCRA_DATA.badlar.nota,     color:t.pu,   bg:t.puBg },
-              { label:"COMPRAS BCRA",      val:BCRA_DATA.comprasUSD.val, nota:BCRA_DATA.comprasUSD.nota, color:t.gr,   bg:t.grBg },
-              { label:"RESERVAS BRUTAS",   val:BCRA_DATA.reservas.val,   nota:BCRA_DATA.reservas.nota,   color:t.rd,   bg:t.rdBg },
-              { label:"TIPO DE CAMBIO REF",val:BCRA_DATA.mayorista.val,  nota:BCRA_DATA.mayorista.nota,  color:t.go,   bg:t.goBg },
-            ].map((item,i) => (
-              <div key={i} style={{ background:item.bg, border:`1px solid ${item.color}22`, borderRadius:10, padding:"12px 14px", borderLeft:`3px solid ${item.color}` }}>
-                <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".1em", color:item.color, marginBottom:5 }}>{item.label}</div>
-                <div style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, lineHeight:1 }}>{item.val}</div>
-                <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:4, lineHeight:1.4 }}>{item.nota}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ background:t.rdBg, border:`1px solid ${t.rd}22`, borderRadius:8, padding:"10px 14px", fontFamily:FB, fontSize:11, color:t.tx, lineHeight:1.6 }}>
-            ⚠️ {BCRA_DATA.nota}
-          </div>
-        </div>
-      </Card>
+      {/* ── PANEL BCRA — LIVE ── */}
+      <BCRAPanel t={t} />
 
       <p style={{ fontFamily:FB, fontSize:11, color:t.fa, marginTop:16, lineHeight:1.6 }}>
         Datos en tiempo real · Múltiples fuentes
@@ -6854,8 +6941,6 @@ export default function App() {
     setLogoClicks(n => { const next = n+1; if(next>=5){ setAdminPrompt(true); return 0; } return next; });
   };
 
-  // Mobile drawer
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [logoSpin, setLogoSpin] = useState(false);
   const [logoIdx, setLogoIdx] = useState(0);
 
@@ -6870,8 +6955,6 @@ export default function App() {
     { main:"#4A2C2A", accent:"#C17C74" }, // burgundy + rose
   ];
   const logoC = LOGO_COLORS[logoIdx];
-
-  const handleMobileNav = (id) => { setTab(id); setMobileMenu(false); };
 
   const publishExtra = useCallback(async (item) => {
     const updated = [item, ...extra];

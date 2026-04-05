@@ -49,8 +49,8 @@ const FD = "'Playfair Display','Georgia',serif"; // Display font for hero titles
 const CONTACT = {
   name: "Máximo Ricciardi",
   title: "Asesor Financiero",
-  phone: "(+54) 11 4050-0087",
-  email: "mricciardi@balanz.com",
+  phone: "",
+  email: "",
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -561,7 +561,7 @@ const DOLARLINKED = [
 const SOBERANOS = [
   // ley argentina
   {t:"AO27D",vto:"Oct 2027",p:"$102,20",tir:"4,90%", sprd:"—",    cy:"5,87%",dur:1.56,pago:"Mensual", ley:"ARG",par:"101,84%",var1d:"+0,25%",var1w:"+1,29%",neg:false},
-  {t:"AO28D",vto:"2028",    p:"$100,00",tir:"~9% TNA",sprd:"—",   cy:"6,00%",dur:1.80,pago:"Bullet",  ley:"ARG",par:"100,00%",var1d:"—",     var1w:"—",     neg:false, nuevo:true},
+  {t:"AO28D",vto:"Oct 2028",p:"$99,50",tir:"8,86%",sprd:"—",   cy:"6,00%",dur:2.30,pago:"Mensual",  ley:"ARG",par:"99,50%",var1d:"—",     var1w:"—",     neg:false},
   {t:"AL29D",vto:"Jul 2029",p:"$61,99", tir:"8,38%", sprd:"-2,62%",cy:"1,21%",dur:1.69,pago:"Semestral",ley:"ARG",par:"77,34%", var1d:"-0,18%",var1w:"+1,46%",neg:true},
   {t:"AN29D",vto:"Nov 2029",p:"$94,14", tir:"9,15%", sprd:"—",    cy:"6,67%",dur:3.30,pago:"Semestral",ley:"ARG",par:"92,50%", var1d:"-0,12%",var1w:"+0,68%",neg:true},
   {t:"AL30D",vto:"Jul 2030",p:"$60,67", tir:"9,47%", sprd:"-2,41%",cy:"0,94%",dur:2.12,pago:"Semestral",ley:"ARG",par:"75,73%", var1d:"-0,61%",var1w:"+0,12%",neg:true},
@@ -629,7 +629,7 @@ const PERFILES = [
 
 /* ════════════════════════════════════════════════════════════════
    FONDOS COMUNES DE INVERSIÓN · BALANZ
-   Fuente: balanz.com/inversiones/fondos/ — 22 MAR 2026
+   Fuente: balanz.com — 22 MAR 2026
    Cada fondo linkea a su ficha en balanz.com
 ════════════════════════════════════════════════════════════════ */
 const BZ = "https://balanz.com/inversiones/fondos"; // base URL
@@ -5516,7 +5516,7 @@ function NoticiasView({ t }) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   FCIs PANEL — 24 Fondos Comunes de Inversión de Balanz
+   FCIs PANEL — 24 Fondos Comunes de Inversión
 ════════════════════════════════════════════════════════════════ */
 const WhatsAppCTA = ({ t }) => (
   <a href="https://wa.me/541140500087?text=Hola%20Máximo%2C%20quiero%20más%20información" target="_blank" rel="noreferrer"
@@ -5715,7 +5715,7 @@ function FCIsPanel({ t }) {
   return (
     <div className="fade-up">
       <p style={{ fontFamily:FB, fontSize:12, color:t.mu, marginBottom:20, lineHeight:1.6 }}>
-        Los 24 Fondos Comunes de Inversión de Balanz Capital. Hacé click en cualquier fondo para ver su ficha completa en balanz.com.
+        24 Fondos Comunes de Inversión. Hacé click en cualquier fondo para ver su ficha completa en balanz.com.
       </p>
       {FONDOS_BALANZ.map((cat, ci) => {
         const catCol = cMapF[cat.color] || cMapF.blue;
@@ -5861,7 +5861,7 @@ function RentaVariableView({ t, initialTicker, onTickerConsumed }) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   PRODUCTOS VIEW — FCIs + ETPs Balanz
+   PRODUCTOS VIEW — FCIs + ETPs
 ════════════════════════════════════════════════════════════════ */
 function ProductosView({ t }) {
   const [sub, setSub] = useState("cuentas");
@@ -5875,7 +5875,7 @@ function ProductosView({ t }) {
   const SUBS = [
     {id:"cuentas", label:"Cuentas y Billeteras", Icon:Banknote},
     {id:"fondos",  label:"FCIs", Icon:Wallet},
-    {id:"etps",    label:"ETPs Balanz", Icon:Package},
+    {id:"etps",    label:"ETPs", Icon:Package},
   ];
   return (
     <div className="fade-up">
@@ -6921,7 +6921,6 @@ export default function App() {
   const tickerData = [
     dolar?.oficial?.venta     ? mkItem("USD Oficial",  fmt2(dolar.oficial.venta),    null)                                          : null,
     dolar?.bolsa?.venta       ? mkItem("USD MEP",      fmt2(dolar.bolsa.venta),       null)                                          : null,
-    dolar?.contadoconliqui?.venta ? mkItem("CCL",          fmt2(dolar.contadoconliqui.venta), null)                                       : null,
     dolar?.contadoconliqui?.venta ? mkItem("CCL",      fmt2(dolar.contadoconliqui.venta), null)                                       : null,
     riesgoPais                ? mkItem("Riesgo País",  `${riesgoPais.valor} pb`,             null)                                          : null,
     liveMarket.mervalARS      ? mkItem("Merval",       `${liveMarket.mervalARS.value.toLocaleString("es-AR",{maximumFractionDigits:0})}`, liveMarket.mervalARS.changePct) : null,
@@ -6989,98 +6988,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
-      {/* ── MOBILE DRAWER MENU ── */}
-      {isMobile && (
-        <>
-          {/* FAB Menu Button */}
-          {!mobileMenu && (
-            <button onClick={()=>setMobileMenu(true)} style={{
-              position:"fixed", bottom:20, left:"50%", transform:"translateX(-50%)", zIndex:100,
-              width:56, height:56, borderRadius:"50%",
-              background:`linear-gradient(135deg, ${t.go}, #D4A853)`,
-              border:"none", cursor:"pointer",
-              boxShadow:"0 4px 24px rgba(176,120,42,.45)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              transition:"transform .2s",
-            }}
-            onMouseEnter={e=>e.currentTarget.style.transform="translateX(-50%) scale(1.08)"}
-            onMouseLeave={e=>e.currentTarget.style.transform="translateX(-50%) scale(1)"}>
-              <Menu size={24} color="#fff" />
-            </button>
-          )}
-
-          {/* Backdrop */}
-          {mobileMenu && (
-            <div onClick={()=>setMobileMenu(false)} style={{
-              position:"fixed", inset:0, zIndex:150,
-              background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)",
-              animation:"fadeUp .2s ease",
-            }} />
-          )}
-
-          {/* Drawer from bottom */}
-          {mobileMenu && (
-            <div style={{
-              position:"fixed", bottom:0, left:0, right:0, zIndex:160,
-              background:t.srf, borderRadius:"24px 24px 0 0",
-              boxShadow:"0 -8px 40px rgba(0,0,0,.2)",
-              padding:"12px 20px 28px",
-              animation:"fadeUp .25s ease",
-            }}>
-              {/* Handle */}
-              <div style={{ width:40, height:4, borderRadius:2, background:t.brd, margin:"0 auto 16px" }} />
-
-              {/* Current section indicator */}
-              <div style={{ fontFamily:FB, fontSize:10, color:t.fa, letterSpacing:".08em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>
-                NAVEGACIÓN
-              </div>
-
-              {/* Menu items */}
-              <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                {TABS.map(tb => {
-                  const isActive = tab === tb.id;
-                  return (
-                    <button key={tb.id} onClick={()=>handleMobileNav(tb.id)} style={{
-                      display:"flex", alignItems:"center", gap:14,
-                      padding:"14px 16px", borderRadius:14, border:"none",
-                      background: isActive ? t.go+"14" : "transparent",
-                      cursor:"pointer", transition:"all .15s", textAlign:"left",
-                      borderLeft: isActive ? `3px solid ${t.go}` : "3px solid transparent",
-                    }}>
-                      <div style={{
-                        width:40, height:40, borderRadius:12, flexShrink:0,
-                        background: isActive ? t.go+"22" : t.alt,
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                      }}>
-                        <tb.Icon size={20} color={isActive ? t.go : t.mu} strokeWidth={isActive ? 2.2 : 1.5} />
-                      </div>
-                      <div>
-                        <div style={{ fontFamily:FH, fontSize:15, fontWeight:isActive?700:500, color:isActive?t.go:t.tx }}>
-                          {tb.label}
-                        </div>
-                        <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:1 }}>
-                          {tb.desc}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Close */}
-              <button onClick={()=>setMobileMenu(false)} style={{
-                width:"100%", marginTop:12, padding:"12px", borderRadius:12,
-                border:`1px solid ${t.brd}`, background:"transparent",
-                fontFamily:FB, fontSize:13, fontWeight:600, color:t.mu,
-                cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-              }}>
-                <X size={16} /> Cerrar
-              </button>
-            </div>
-          )}
-        </>
-      )}
 
       {/* ── TICKER ── */}
       <div style={{ background:t.tick, padding:"6px 0", overflow:"hidden", borderBottom:`1px solid rgba(255,255,255,.04)` }}>

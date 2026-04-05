@@ -4901,6 +4901,7 @@ function PlazosFijosPanel({ t }) {
 ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════
    BCRA PANEL — Live data from BCRA API v4 via Vercel proxy
+   Variables: Reservas, TAMAR, BADLAR, TC, Compras del día
 ════════════════════════════════════════════════════════════════ */
 function BCRAPanel({ t }) {
   const [data, setData] = useState(null);
@@ -4910,30 +4911,54 @@ function BCRAPanel({ t }) {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch list of principales variables — includes ultValorInformado
+        // Fetch the full list of principales variables — each has ultValorInformado
         const r = await fetch("/api/bcra?list=1");
         const json = await r.json();
         const vars = json.results || [];
         
-        // Extract specific variables by ID
-        const get = (id) => {
-          const v = vars.find(x => x.idVariable === id);
-          return v ? { val:v.ultValorInformado, fecha:v.ultFechaInformada, desc:v.descripcion } : null;
+        if (!vars.length) { setStatus("error"); return; }
+
+        // Search by description keywords (more robust than hardcoding IDs)
+        const find = (keywords) => {
+          const lower = keywords.map(k => k.toLowerCase());
+          return vars.find(v => {
+            const desc = (v.descripcion || "").toLowerCase();
+            return lower.every(k => desc.includes(k));
+          });
         };
 
-        const reservas  = get(BCRA_VARS.RESERVAS);
-        const tamar     = get(BCRA_VARS.TAMAR);
-        const badlar    = get(BCRA_VARS.BADLAR);
-        const tcMin     = get(BCRA_VARS.TC_MIN);
-        const tcMay     = get(BCRA_VARS.TC_MAY);
-        const tpm       = get(BCRA_VARS.TPM);
-        const baseMon   = get(BCRA_VARS.BASE_MON);
+        const reservas  = find(["reservas","internacionales"]);
+        const tamar     = find(["tamar","privados"]) || find(["tamar"]);
+        const badlar    = find(["badlar","privados"]) || find(["badlar"]);
+        const tcMin     = find(["tipo","cambio","minorista"]);
 
-        setData({ reservas, tamar, badlar, tcMin, tcMay, tpm, baseMon });
+        // For compras: diff between last 2 reserve values
+        let comprasVal = null;
+        if (reservas) {
+          try {
+            const hoy = new Date().toISOString().split("T")[0];
+            const hace7 = new Date(Date.now()-7*86400000).toISOString().split("T")[0];
+            const rHist = await fetch(`/api/bcra?id=${reservas.idVariable}&desde=${hace7}&hasta=${hoy}`);
+            const hJson = await rHist.json();
+            const det = hJson.results?.[0]?.detalle;
+            if (det && det.length >= 2) {
+              // detalle is sorted desc by date
+              comprasVal = det[0].valor - det[1].valor;
+            }
+          } catch {}
+        }
+
+        setData({
+          reservas:  reservas  ? { val:reservas.ultValorInformado, fecha:reservas.ultFechaInformada } : null,
+          tamar:     tamar     ? { val:tamar.ultValorInformado, fecha:tamar.ultFechaInformada } : null,
+          badlar:    badlar    ? { val:badlar.ultValorInformado, fecha:badlar.ultFechaInformada } : null,
+          tcMin:     tcMin     ? { val:tcMin.ultValorInformado, fecha:tcMin.ultFechaInformada } : null,
+          compras:   comprasVal,
+        });
         setUpdatedAt(Date.now());
         setStatus("ok");
       } catch (e) {
-        console.error("BCRA fetch error:", e);
+        console.error("BCRA:", e);
         setStatus("error");
       }
     };
@@ -4947,14 +4972,12 @@ function BCRAPanel({ t }) {
   };
 
   const items = data ? [
-    { label:"TAMAR",            val:data.tamar     ? `${data.tamar.val.toFixed(2)}%`     : "—", nota:"TNA · Bcos. Privados",    color:t.bl, bg:t.blBg },
-    { label:"BADLAR",           val:data.badlar    ? `${data.badlar.val.toFixed(2)}%`    : "—", nota:"TNA · Bcos. Privados",    color:t.pu, bg:t.puBg },
-    { label:"TASA DE POLÍTICA", val:data.tpm       ? `${data.tpm.val.toFixed(1)}%`       : "—", nota:"TNA · TPM",               color:t.gr, bg:t.grBg },
-    { label:"RESERVAS BRUTAS",  val:data.reservas  ? `USD ${(data.reservas.val).toLocaleString("es-AR")}M` : "—", nota:"Reservas internacionales", color:t.rd, bg:t.rdBg },
-    { label:"TC MINORISTA",     val:data.tcMin     ? `$${data.tcMin.val.toLocaleString("es-AR",{minimumFractionDigits:2})}` : "—", nota:"Pesos por USD",  color:t.go, bg:t.goBg },
-  ] : [];
-
-  const fecha = data?.reservas?.fecha ? fmtDate(data.reservas.fecha) : "—";
+    data.tamar   && { label:"TAMAR",           val:`${data.tamar.val.toFixed(2)}%`,                       nota:`TNA · Bcos. Privados · ${fmtDate(data.tamar.fecha)}`, color:t.bl, bg:t.blBg },
+    data.badlar  && { label:"BADLAR",          val:`${data.badlar.val.toFixed(2)}%`,                      nota:`TNA · Bcos. Privados · ${fmtDate(data.badlar.fecha)}`, color:t.pu, bg:t.puBg },
+    data.compras!=null && { label:"COMPRAS BCRA",     val:`USD ${data.compras>=0?"+":""}${data.compras}M`, nota:"Variación diaria de reservas",  color:data.compras>=0?t.gr:t.rd, bg:data.compras>=0?t.grBg:t.rdBg },
+    data.reservas && { label:"RESERVAS BRUTAS", val:`USD ${data.reservas.val.toLocaleString("es-AR")}M`,  nota:`${fmtDate(data.reservas.fecha)} · Cifras provisorias`, color:t.go, bg:t.goBg },
+    data.tcMin   && { label:"TC MINORISTA",    val:`$${data.tcMin.val.toLocaleString("es-AR",{minimumFractionDigits:2})}`, nota:`Pesos por USD · ${fmtDate(data.tcMin.fecha)}`, color:t.mu, bg:t.alt },
+  ].filter(Boolean) : [];
 
   return (
     <Card t={t} style={{ marginTop:4 }}>
@@ -4962,12 +4985,10 @@ function BCRAPanel({ t }) {
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
           <SectionLabel t={t}>BANCO CENTRAL · DATOS DEL DÍA</SectionLabel>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontFamily:FB, fontSize:10, color:t.mu, background:t.alt, padding:"3px 10px", borderRadius:6 }}>
-              {status==="ok" ? fecha : "Cargando..."}
-            </span>
             <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",
               background:status==="ok"?"#22c55e":status==="error"?"#ef4444":"#94a3b8",
               boxShadow:status==="ok"?"0 0 5px #22c55e":"none"}} />
+            <LiveTimestamp ts={updatedAt} t={t} />
           </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10, marginBottom:14 }}>
@@ -4986,13 +5007,14 @@ function BCRAPanel({ t }) {
             </div>
           ))}
           {status==="error" && (
-            <div style={{ gridColumn:"1 / -1", textAlign:"center", padding:20, fontFamily:FB, fontSize:12, color:t.mu }}>
-              ⚠️ No se pudo conectar con la API del BCRA · <span style={{color:t.bl,cursor:"pointer"}} onClick={()=>window.location.reload()}>Reintentar</span>
+            <div style={{ gridColumn:"1 / -1", textAlign:"center", padding:20 }}>
+              <div style={{ fontFamily:FB, fontSize:12, color:t.mu, marginBottom:8 }}>⚠️ No se pudo conectar con la API del BCRA</div>
+              <button onClick={()=>window.location.reload()} style={{ fontFamily:FB, fontSize:11, color:t.bl, background:"transparent", border:`1px solid ${t.brd}`, borderRadius:8, padding:"6px 16px", cursor:"pointer" }}>Reintentar</button>
             </div>
           )}
         </div>
         <div style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-          Fuente: Banco Central de la República Argentina · API v4.0 · Actualización diaria
+          Fuente: Banco Central de la República Argentina · API v4.0
         </div>
       </div>
     </Card>

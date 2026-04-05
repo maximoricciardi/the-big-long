@@ -1,22 +1,13 @@
 // /api/bcra.js — Vercel Serverless Function
 // Proxy for BCRA Estadísticas Monetarias API v4
-// Usage: /api/bcra?id=1 → Reservas Internacionales (last value)
-//        /api/bcra?id=1&desde=2026-01-01&hasta=2026-04-05 → Historical range
-//        /api/bcra?list=1 → List all variables
-//
-// Key variable IDs:
-//   1  = Reservas Internacionales (USD millones)
-//   4  = Tipo de Cambio Minorista ($ por USD)
-//   5  = Tipo de Cambio Mayorista ($ por USD)
-//   6  = Tasa BADLAR (% TNA)
-//   7  = Tasa de Política Monetaria (% TNA)
-//  15  = Base Monetaria ($ millones)
-//  27  = TAMAR (% TNA)
+// Usage: /api/bcra?list=1 → All principales variables with latest values
+//        /api/bcra?id=1 → Reservas last 30 days
+//        /api/bcra?id=1&desde=2026-01-01&hasta=2026-04-05
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET");
-  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600"); // 5 min edge cache
+  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
 
   const { id, desde, hasta, list } = req.query;
   const BASE = "https://api.bcra.gob.ar/estadisticas/v4.0";
@@ -24,14 +15,13 @@ export default async function handler(req, res) {
   try {
     let url;
     if (list) {
-      url = `${BASE}/monetarias?limit=50&categoria=Principales%20Variables`;
+      url = `${BASE}/monetarias?limit=200`;
     } else if (id) {
       url = `${BASE}/monetarias/${id}`;
       const params = [];
       if (desde) params.push(`desde=${desde}`);
       if (hasta) params.push(`hasta=${hasta}`);
       if (!desde && !hasta) {
-        // Default: last 30 days
         const h = new Date().toISOString().split("T")[0];
         const d = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
         params.push(`desde=${d}`, `hasta=${h}`);
@@ -43,11 +33,12 @@ export default async function handler(req, res) {
     }
 
     const r = await fetch(url, {
-      headers: {
-        "Accept": "application/json",
-        "Accept-Language": "es-AR",
-      },
+      headers: { "Accept": "application/json", "Accept-Language": "es-AR" },
     });
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: `BCRA API returned ${r.status}` });
+    }
 
     const data = await r.json();
     return res.status(200).json(data);

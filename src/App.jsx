@@ -558,6 +558,22 @@ const DOLARLINKED = [
   {t:"TZV27", vto:"30/06/2027", dias:468, pre:"$1.310",rend:"6,84%",  tna:"5,33%"},
 ];
 
+// ── BONOS CER — Ajustados por inflación ──────────────────
+const BONOS_CER = [
+  {t:"TX26",  desc:"Bonte 2026",    vto:"09/11/2026", cupCer:2.00, tipo:"CER+2%",    ley:"ARG", amort:"Bullet"},
+  {t:"TZXM6", desc:"BONCER Jun 26", vto:"30/06/2026", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TZXO6", desc:"BONCER Oct 26", vto:"30/10/2026", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TZXD6", desc:"BONCER Dic 26", vto:"30/12/2026", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TZX26", desc:"BONCER Mar 26", vto:"31/03/2026", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TZX27", desc:"BONCER Mar 27", vto:"31/03/2027", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TZXM7", desc:"BONCER Jun 27", vto:"30/06/2027", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TZXD7", desc:"BONCER Dic 27", vto:"31/12/2027", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"TX28",  desc:"Bonte 2028",    vto:"09/11/2028", cupCer:2.25, tipo:"CER+2,25%", ley:"ARG", amort:"Bullet"},
+  {t:"TZX28", desc:"BONCER Mar 28", vto:"31/03/2028", cupCer:0,    tipo:"CER (Zero)",ley:"ARG", amort:"Bullet"},
+  {t:"DICP",  desc:"Discount 2033", vto:"31/12/2033", cupCer:5.83, tipo:"CER+5,83%", ley:"ARG", amort:"Amort."},
+  {t:"PARP",  desc:"Par 2038",      vto:"31/12/2038", cupCer:1.68, tipo:"CER+1,68%", ley:"ARG", amort:"Amort."},
+];
+
 // ── SOBERANOS EN USD — 19 MAR 2026 ──────────────────────────
 const SOBERANOS = [
   // ley argentina
@@ -1141,6 +1157,114 @@ function SummaryCard({ s, t }) {
    EARNINGS CARD
 ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════
+   POLYMARKET PANEL — Prediction markets · Argentina politics
+════════════════════════════════════════════════════════════════ */
+function PolymarketPanel({ t }) {
+  const [markets, setMarkets] = useState([]);
+  const [status, setStatus] = useState("loading");
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch("/api/polymarket");
+        const d = await r.json();
+        setMarkets(d.markets || []);
+        setStatus("ok");
+      } catch { setStatus("error"); }
+    };
+    load();
+  }, []);
+
+  return (
+    <div>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+        <div>
+          <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Mercados de Predicción</h3>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Probabilidades en tiempo real · Fuente: Polymarket</p>
+        </div>
+        <a href="https://polymarket.com/es/predictions/argentina" target="_blank" rel="noreferrer"
+          style={{ fontFamily:FB, fontSize:10, color:t.bl, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
+          Ver en Polymarket <ExternalLink size={10} />
+        </a>
+      </div>
+
+      {status === "loading" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {Array.from({length:5}).map((_,i) => <Skeleton key={i} w="100%" h={60} r={10} />)}
+        </div>
+      )}
+
+      {status === "error" && (
+        <Card t={t}>
+          <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu }}>
+            ⚠️ No se pudo conectar con Polymarket ·{" "}
+            <span style={{color:t.bl,cursor:"pointer"}} onClick={()=>window.location.reload()}>Reintentar</span>
+          </div>
+        </Card>
+      )}
+
+      {status === "ok" && markets.length === 0 && (
+        <Card t={t}>
+          <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu }}>
+            No hay mercados activos sobre Argentina en este momento.
+          </div>
+        </Card>
+      )}
+
+      {status === "ok" && markets.map((m,i) => {
+        const pctYes = Math.round(m.yesPrice * 100);
+        const pctNo = 100 - pctYes;
+        const isHigh = pctYes >= 70;
+        const isLow = pctYes <= 30;
+        const barColor = isHigh ? t.gr : isLow ? t.rd : t.bl;
+        const vol = m.volume >= 1000 ? `$${(m.volume/1000).toFixed(1)}K` : `$${Math.round(m.volume)}`;
+
+        return (
+          <Card key={i} t={t} style={{ marginBottom:8 }}>
+            <div style={{ padding:"14px 18px" }}>
+              <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, lineHeight:1.4, marginBottom:8 }}>
+                    {m.question}
+                  </div>
+                  <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:8 }}>
+                    <div style={{ flex:1, height:20, background:t.alt, borderRadius:6, overflow:"hidden", position:"relative" }}>
+                      <div style={{
+                        width:`${pctYes}%`, height:"100%",
+                        background:`linear-gradient(90deg, ${barColor}88, ${barColor})`,
+                        borderRadius:6, transition:"width .4s ease",
+                      }} />
+                      <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 8px" }}>
+                        <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:pctYes>50?"#fff":t.tx }}>Sí {pctYes}%</span>
+                        <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:pctYes<50?"#fff":t.mu }}>No {pctNo}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap:12, fontFamily:FB, fontSize:9, color:t.fa }}>
+                    <span>Vol: {vol}</span>
+                    {m.endDate && <span>Cierre: {new Date(m.endDate).toLocaleDateString("es-AR",{day:"2-digit",month:"short",year:"numeric"})}</span>}
+                  </div>
+                </div>
+                <div style={{ flexShrink:0, textAlign:"center", minWidth:60 }}>
+                  <div style={{ fontFamily:FH, fontSize:28, fontWeight:800, color:barColor, lineHeight:1 }}>
+                    {pctYes}%
+                  </div>
+                  <div style={{ fontFamily:FB, fontSize:8, color:t.fa, marginTop:2 }}>PROB.</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.6 }}>
+        * Polymarket es un mercado de predicción descentralizado. Las probabilidades reflejan el consenso de mercado, no constituyen pronósticos ni asesoramiento. Los precios pueden cambiar en tiempo real.
+      </p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
    INFORMES VIEW — Balances · Informes de empresas
 ════════════════════════════════════════════════════════════════ */
 function InformesView({ t, initialSub="resumen", onSubChange }) {
@@ -1156,6 +1280,7 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
     { id:"resumen",   label:"Resumen Diario", Icon:ClipboardList },
     { id:"balances",  label:"Balances",        Icon:BarChart3 },
     { id:"informes",  label:"Informes",        Icon:FileText },
+    { id:"polymarket", label:"Polymarket",     Icon:Activity },
     { id:"recos",     label:"Recomendaciones", Icon:Briefcase },
   ];
 
@@ -1280,6 +1405,9 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
           <VISTInformeCard t={t} />
         </div>
       )}
+
+      {/* ── POLYMARKET ── */}
+      {sub === "polymarket" && <PolymarketPanel t={t} />}
 
       {sub === "recos" && <RecomendacionesView t={t} />}
     </div>
@@ -4303,6 +4431,7 @@ function InstrumentosView({ t }) {
 
   const SUBTABS = [
     {id:"lecap",      label:"Renta Fija ARS",    Icon:ClipboardList},
+    {id:"cer",        label:"Bonos CER",          Icon:TrendingUp},
     {id:"soberano",   label:"Soberanos USD",      Icon:Globe},
     {id:"calendario", label:"Calendario",         Icon:Clock},
     {id:"corp",       label:"Corporativos (ONs)", Icon:Building2},
@@ -4535,6 +4664,60 @@ function InstrumentosView({ t }) {
             return <LecapYieldCurve t={t} points={curvePoints} />;
           })()}
 
+        </div>
+      )}
+
+      {/* ── BONOS CER ── */}
+      {sub === "cer" && (
+        <div>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.6, marginBottom:16 }}>
+            Bonos ajustados por inflación (CER). Precios en ARS vía DATA912. Los BONCER zero-coupon capitalizan el ajuste CER. TX26/TX28 pagan cupón real + CER.
+          </p>
+          <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:12 }}>
+              <thead>
+                <tr style={{ borderBottom:`2px solid ${t.brd}` }}>
+                  {["Ticker","Descripción","Vto","Tipo","Cupón Real","Ley","Precio","Var %"].map((h,i)=>(
+                    <th key={i} style={{ padding:"10px 8px", textAlign:i>4?"right":"left", fontSize:10, fontWeight:700, color:t.fa, textTransform:"uppercase", letterSpacing:".08em", whiteSpace:"nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {BONOS_CER.map((b,i) => {
+                  const liveP = bondPrices[b.t];
+                  const price = liveP ? `$${liveP.price.toLocaleString("es-AR",{minimumFractionDigits:2})}` : "—";
+                  const pct = liveP?.changePct;
+                  const pctCol = pct > 0 ? t.gr : pct < 0 ? t.rd : t.mu;
+                  const [d,m,y] = b.vto.split("/");
+                  const dias = Math.floor((new Date(+y,+m-1,+d) - Date.now()) / 86400000);
+                  const vencido = dias <= 0;
+                  return (
+                    <tr key={i} style={{ borderBottom:`1px solid ${t.brd}`, opacity:vencido?0.4:1 }}>
+                      <td style={{ padding:"8px", fontWeight:700, color:t.bl }}>
+                        <button onClick={()=>window.__goChart?.("BYMA:"+b.t)} style={{background:"none",border:"none",color:t.bl,fontWeight:700,fontFamily:FB,fontSize:12,cursor:"pointer",padding:0}}>
+                          {b.t}
+                        </button>
+                      </td>
+                      <td style={{ padding:"8px", color:t.tx }}>{b.desc}</td>
+                      <td style={{ padding:"8px", color:t.mu, fontSize:11 }}>{b.vto} <span style={{fontSize:9,color:t.fa}}>({dias}d)</span></td>
+                      <td style={{ padding:"8px" }}>
+                        <span style={{ fontSize:10, fontWeight:600, color:b.cupCer>0?"#22c55e":t.mu, background:b.cupCer>0?"#22c55e15":t.alt, padding:"2px 6px", borderRadius:4 }}>{b.tipo}</span>
+                      </td>
+                      <td style={{ padding:"8px", textAlign:"right", color:t.tx, fontWeight:600 }}>{b.cupCer > 0 ? `${b.cupCer.toFixed(2)}%` : "—"}</td>
+                      <td style={{ padding:"8px", color:t.fa, fontSize:10 }}>{b.ley}</td>
+                      <td style={{ padding:"8px", textAlign:"right", fontWeight:700, color:t.tx, fontFamily:"monospace" }}>{price}</td>
+                      <td style={{ padding:"8px", textAlign:"right", fontWeight:600, color:pctCol }}>
+                        {pct != null ? `${pct>=0?"+":""}${pct.toFixed(2)}%` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.6 }}>
+            * BONCER zero-coupon: el rendimiento surge del descuento sobre el valor ajustado por CER al vencimiento. TX26/TX28/DICP/PARP: pagan cupón real semestral sobre capital ajustado. Fuente precios: DATA912.
+          </p>
         </div>
       )}
 

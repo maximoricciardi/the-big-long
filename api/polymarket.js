@@ -1,6 +1,5 @@
 // /api/polymarket.js — Vercel Serverless Function
-// Proxy for Polymarket Gamma API — Argentina markets
-// Fetches politics, economics, and general Argentina-related prediction markets
+// Fetches prediction markets: Argentina priority, then LatAm, then global politics/economics
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -8,37 +7,39 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "s-maxage=600, stale-while-revalidate=1200");
 
   try {
-    // Fetch Argentina events + broader search
-    const urls = [
-      "https://gamma-api.polymarket.com/events?tag=argentina&limit=50&active=true&closed=false&order=volume&ascending=false",
-      "https://gamma-api.polymarket.com/events?tag=latin-america&limit=20&active=true&closed=false&order=volume&ascending=false",
-    ];
-
-    const responses = await Promise.all(
-      urls.map(u => fetch(u, { headers: { Accept: "application/json" } }).then(r => r.json()).catch(() => []))
+    // Fetch from multiple tags to ensure 30+ results
+    const tags = ["argentina", "latin-america", "politics", "economics", "world-politics", "inflation", "elections"];
+    const fetches = tags.map(tag =>
+      fetch(`https://gamma-api.polymarket.com/events?tag=${tag}&limit=30&active=true&closed=false&order=volume&ascending=false`, {
+        headers: { Accept: "application/json" }
+      }).then(r => r.json()).catch(() => [])
     );
 
+    const responses = await Promise.all(fetches);
     const allEvents = responses.flat();
     const seen = new Set();
-    const markets = [];
+    const argentina = [];
+    const global = [];
+
+    const argKeys = ["argentin","milei","peso argentino","buenos aires","bcra","caputo","kirchn","peronism","inflaci.n argentin","cepo","devalua","libertad avanza","vaca muerta","ypf"];
 
     for (const event of allEvents) {
-      if (!event.markets) continue;
+      if (!event || !event.markets) continue;
       for (const m of event.markets) {
         if (seen.has(m.id)) continue;
         seen.add(m.id);
 
-        const outcomes = JSON.parse(m.outcomes || "[]");
-        const prices = JSON.parse(m.outcomePrices || "[]");
+        let outcomes, prices;
+        try {
+          outcomes = JSON.parse(m.outcomes || "[]");
+          prices = JSON.parse(m.outcomePrices || "[]");
+        } catch { continue; }
         if (!outcomes.length || !prices.length) continue;
 
         const q = (m.question || event.title || "").toLowerCase();
-        // Filter: only Argentina-relevant
-        const argKeywords = ["argentin","milei","peso","buenos aires","bcra","caputo","kirchn","peronism","inflaci","imf","cepo","devalua","libertad avanza"];
-        const isArg = argKeywords.some(k => q.includes(k));
-        if (!isArg) continue;
+        const isArg = argKeys.some(k => q.includes(k));
 
-        markets.push({
+        const entry = {
           id: m.id,
           question: m.question || event.title,
           yesPrice: parseFloat(prices[0]) || 0,
@@ -46,12 +47,21 @@ export default async function handler(req, res) {
           volume: parseFloat(m.volume) || 0,
           endDate: m.endDate || event.endDate,
           slug: event.slug,
-        });
+          isArg,
+        };
+
+        if (isArg) argentina.push(entry);
+        else global.push(entry);
       }
     }
 
-    markets.sort((a, b) => b.volume - a.volume);
-    return res.status(200).json({ markets: markets.slice(0, 30) });
+    // Sort each group by volume, Argentina first
+    argentina.sort((a, b) => b.volume - a.volume);
+    global.sort((a, b) => b.volume - a.volume);
+
+    // Take all Argentina + fill with global up to 40
+    const combined = [...argentina, ...global.slice(0, Math.max(40 - argentina.length, 15))];
+    return res.status(200).json({ markets: combined.slice(0, 40) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

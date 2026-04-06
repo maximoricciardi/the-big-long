@@ -1160,15 +1160,22 @@ function SummaryCard({ s, t }) {
    POLYMARKET PANEL — Prediction markets · Tabs + categorized
 ════════════════════════════════════════════════════════════════ */
 const PM_CATS = {
-  politica:  ["milei","president","kirchn","peronism","libertad avanza","election","gobierno","congres","senate","gobernador","legislat","impeach","resign"],
-  economia:  ["inflaci","inflation","peso","devalua","imf","cepo","dolar","gdp","recession","reserve","default","debt","rate cut","interest rate","bcra","caputo","economy"],
+  politica:  ["milei","president","kirchn","peronism","libertad avanza","election","gobierno","congres","senate","gobernador","legislat","impeach","resign","trump","biden","lula","vote","prime minister","chancellor","macron","starmer","modi","putin"],
+  economia:  ["inflaci","inflation","peso","devalua","imf","cepo","dolar","gdp","recession","reserve","default","debt","rate cut","interest rate","bcra","caputo","economy","tariff","fed ","ecb","cpi","unemployment","s&p","nasdaq","bitcoin","crypto","oil price","gold price"],
 };
+
+const ARG_KEYS = ["argentin","milei","peso argentino","buenos aires","bcra","caputo","kirchn","peronism","cepo","devalua","libertad avanza","vaca muerta","ypf"];
 
 const categorizePM = (q) => {
   const low = q.toLowerCase();
   if (PM_CATS.politica.some(k => low.includes(k))) return "politica";
   if (PM_CATS.economia.some(k => low.includes(k))) return "economia";
   return "varios";
+};
+
+const isArgMarket = (q) => {
+  const low = q.toLowerCase();
+  return ARG_KEYS.some(k => low.includes(k));
 };
 
 function PolymarketPanel({ t }) {
@@ -1181,7 +1188,7 @@ function PolymarketPanel({ t }) {
       try {
         const r = await fetch("/api/polymarket");
         const d = await r.json();
-        setMarkets((d.markets || []).map(m => ({ ...m, cat:categorizePM(m.question) })));
+        setMarkets((d.markets || []).map(m => ({ ...m, cat:categorizePM(m.question), local:m.isArg || isArgMarket(m.question) })));
         setStatus("ok");
       } catch { setStatus("error"); }
     };
@@ -1189,13 +1196,16 @@ function PolymarketPanel({ t }) {
   }, []);
 
   const tabs = [
-    {id:"todos",    label:"Todos",    count:markets.length },
-    {id:"politica", label:"Política", count:markets.filter(m=>m.cat==="politica").length },
-    {id:"economia", label:"Economía", count:markets.filter(m=>m.cat==="economia").length },
-    {id:"varios",   label:"Varios",   count:markets.filter(m=>m.cat==="varios").length },
+    {id:"todos",     label:"Todos",     count:markets.length },
+    {id:"argentina", label:"Argentina", count:markets.filter(m=>m.local).length },
+    {id:"politica",  label:"Política",  count:markets.filter(m=>m.cat==="politica").length },
+    {id:"economia",  label:"Economía",  count:markets.filter(m=>m.cat==="economia").length },
+    {id:"varios",    label:"Varios",    count:markets.filter(m=>m.cat==="varios").length },
   ];
 
-  const filtered = tab === "todos" ? markets : markets.filter(m => m.cat === tab);
+  const filtered = tab === "todos" ? markets
+    : tab === "argentina" ? markets.filter(m => m.local)
+    : markets.filter(m => m.cat === tab);
 
   return (
     <div>
@@ -1288,6 +1298,7 @@ function PolymarketPanel({ t }) {
                       <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:accent, background:accent+"15", padding:"2px 8px", borderRadius:5 }}>
                         {m.cat === "politica" ? "Política" : m.cat === "economia" ? "Economía" : "Varios"}
                       </span>
+                      {m.local && <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:"#3b82f6", background:"#3b82f615", padding:"2px 6px", borderRadius:4 }}>🇦🇷 ARG</span>}
                       <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>Vol: {vol}</span>
                       {m.endDate && (
                         <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>

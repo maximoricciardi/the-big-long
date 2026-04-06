@@ -1157,30 +1157,52 @@ function SummaryCard({ s, t }) {
    EARNINGS CARD
 ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════
-   POLYMARKET PANEL — Prediction markets · Argentina politics
+   POLYMARKET PANEL — Prediction markets · Tabs + categorized
 ════════════════════════════════════════════════════════════════ */
+const PM_CATS = {
+  politica:  ["milei","president","kirchn","peronism","libertad avanza","election","gobierno","congres","senate","gobernador","legislat","impeach","resign"],
+  economia:  ["inflaci","inflation","peso","devalua","imf","cepo","dolar","gdp","recession","reserve","default","debt","rate cut","interest rate","bcra","caputo","economy"],
+};
+
+const categorizePM = (q) => {
+  const low = q.toLowerCase();
+  if (PM_CATS.politica.some(k => low.includes(k))) return "politica";
+  if (PM_CATS.economia.some(k => low.includes(k))) return "economia";
+  return "varios";
+};
+
 function PolymarketPanel({ t }) {
   const [markets, setMarkets] = useState([]);
   const [status, setStatus] = useState("loading");
+  const [tab, setTab] = useState("todos");
 
   useEffect(() => {
     const load = async () => {
       try {
         const r = await fetch("/api/polymarket");
         const d = await r.json();
-        setMarkets(d.markets || []);
+        setMarkets((d.markets || []).map(m => ({ ...m, cat:categorizePM(m.question) })));
         setStatus("ok");
       } catch { setStatus("error"); }
     };
     load();
   }, []);
 
+  const tabs = [
+    {id:"todos",    label:"Todos",    count:markets.length },
+    {id:"politica", label:"Política", count:markets.filter(m=>m.cat==="politica").length },
+    {id:"economia", label:"Economía", count:markets.filter(m=>m.cat==="economia").length },
+    {id:"varios",   label:"Varios",   count:markets.filter(m=>m.cat==="varios").length },
+  ];
+
+  const filtered = tab === "todos" ? markets : markets.filter(m => m.cat === tab);
+
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
         <div>
           <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Mercados de Predicción</h3>
-          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Probabilidades en tiempo real · Fuente: Polymarket</p>
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Probabilidades en tiempo real sobre Argentina · Fuente: Polymarket</p>
         </div>
         <a href="https://polymarket.com/es/predictions/argentina" target="_blank" rel="noreferrer"
           style={{ fontFamily:FB, fontSize:10, color:t.bl, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
@@ -1188,9 +1210,23 @@ function PolymarketPanel({ t }) {
         </a>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:4, marginBottom:16, flexWrap:"wrap" }}>
+        {tabs.map(tb => (
+          <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
+            padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, fontWeight:tab===tb.id?700:400,
+            border:`1.5px solid ${tab===tb.id?t.go:t.brd}`, background:tab===tb.id?t.goBg:"transparent",
+            color:tab===tb.id?t.go:t.mu, cursor:"pointer", display:"flex", alignItems:"center", gap:5,
+          }}>
+            {tb.label}
+            {tb.count > 0 && <span style={{ fontSize:9, fontWeight:700, background:tab===tb.id?t.go:t.alt, color:tab===tb.id?"#fff":t.fa, borderRadius:10, padding:"0 5px", minWidth:16, textAlign:"center" }}>{tb.count}</span>}
+          </button>
+        ))}
+      </div>
+
       {status === "loading" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {Array.from({length:5}).map((_,i) => <Skeleton key={i} w="100%" h={60} r={10} />)}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:10 }}>
+          {Array.from({length:4}).map((_,i) => <Skeleton key={i} w="100%" h={100} r={12} />)}
         </div>
       )}
 
@@ -1198,67 +1234,85 @@ function PolymarketPanel({ t }) {
         <Card t={t}>
           <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu }}>
             ⚠️ No se pudo conectar con Polymarket ·{" "}
-            <span style={{color:t.bl,cursor:"pointer"}} onClick={()=>window.location.reload()}>Reintentar</span>
+            <button onClick={()=>window.location.reload()} style={{color:t.bl,background:"none",border:"none",cursor:"pointer",fontFamily:FB,fontSize:12}}>Reintentar</button>
           </div>
         </Card>
       )}
 
-      {status === "ok" && markets.length === 0 && (
+      {status === "ok" && filtered.length === 0 && (
         <Card t={t}>
           <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu }}>
-            No hay mercados activos sobre Argentina en este momento.
+            No hay mercados activos en esta categoría.
           </div>
         </Card>
       )}
 
-      {status === "ok" && markets.map((m,i) => {
-        const pctYes = Math.round(m.yesPrice * 100);
-        const pctNo = 100 - pctYes;
-        const isHigh = pctYes >= 70;
-        const isLow = pctYes <= 30;
-        const barColor = isHigh ? t.gr : isLow ? t.rd : t.bl;
-        const vol = m.volume >= 1000 ? `$${(m.volume/1000).toFixed(1)}K` : `$${Math.round(m.volume)}`;
+      {status === "ok" && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:10 }}>
+          {filtered.map((m,i) => {
+            const pctYes = Math.round(m.yesPrice * 100);
+            const pctNo = 100 - pctYes;
+            const isHigh = pctYes >= 65;
+            const isLow = pctYes <= 35;
+            const accent = isHigh ? t.gr : isLow ? t.rd : t.bl;
+            const vol = m.volume >= 1000 ? `$${(m.volume/1000).toFixed(0)}K` : `$${Math.round(m.volume)}`;
 
-        return (
-          <Card key={i} t={t} style={{ marginBottom:8 }}>
-            <div style={{ padding:"14px 18px" }}>
-              <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, lineHeight:1.4, marginBottom:8 }}>
-                    {m.question}
-                  </div>
-                  <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:8 }}>
-                    <div style={{ flex:1, height:20, background:t.alt, borderRadius:6, overflow:"hidden", position:"relative" }}>
-                      <div style={{
-                        width:`${pctYes}%`, height:"100%",
-                        background:`linear-gradient(90deg, ${barColor}88, ${barColor})`,
-                        borderRadius:6, transition:"width .4s ease",
-                      }} />
-                      <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 8px" }}>
-                        <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:pctYes>50?"#fff":t.tx }}>Sí {pctYes}%</span>
-                        <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:pctYes<50?"#fff":t.mu }}>No {pctNo}%</span>
-                      </div>
+            // SVG donut for probability
+            const r = 32, stroke = 6, circ = 2 * Math.PI * r;
+            const dashYes = (pctYes / 100) * circ;
+
+            return (
+              <Card key={i} t={t}>
+                <div style={{ padding:"16px 18px", display:"flex", gap:16, alignItems:"center" }}>
+                  {/* Donut chart */}
+                  <div style={{ flexShrink:0, position:"relative", width:76, height:76 }}>
+                    <svg width={76} height={76} viewBox="0 0 76 76">
+                      <circle cx={38} cy={38} r={r} fill="none" stroke={t.alt} strokeWidth={stroke} />
+                      <circle cx={38} cy={38} r={r} fill="none" stroke={accent} strokeWidth={stroke}
+                        strokeDasharray={`${dashYes} ${circ}`} strokeDashoffset={circ * 0.25}
+                        strokeLinecap="round" style={{transition:"stroke-dasharray .5s ease"}} />
+                    </svg>
+                    <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+                      <span style={{ fontFamily:FH, fontSize:20, fontWeight:800, color:accent, lineHeight:1 }}>{pctYes}%</span>
+                      <span style={{ fontFamily:FB, fontSize:7, color:t.fa, letterSpacing:".05em" }}>SÍ</span>
                     </div>
                   </div>
-                  <div style={{ display:"flex", gap:12, fontFamily:FB, fontSize:9, color:t.fa }}>
-                    <span>Vol: {vol}</span>
-                    {m.endDate && <span>Cierre: {new Date(m.endDate).toLocaleDateString("es-AR",{day:"2-digit",month:"short",year:"numeric"})}</span>}
-                  </div>
-                </div>
-                <div style={{ flexShrink:0, textAlign:"center", minWidth:60 }}>
-                  <div style={{ fontFamily:FH, fontSize:28, fontWeight:800, color:barColor, lineHeight:1 }}>
-                    {pctYes}%
-                  </div>
-                  <div style={{ fontFamily:FB, fontSize:8, color:t.fa, marginTop:2 }}>PROB.</div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        );
-      })}
 
-      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.6 }}>
-        * Polymarket es un mercado de predicción descentralizado. Las probabilidades reflejan el consenso de mercado, no constituyen pronósticos ni asesoramiento. Los precios pueden cambiar en tiempo real.
+                  {/* Content */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, lineHeight:1.35, marginBottom:8,
+                      display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                      {m.question}
+                    </div>
+                    <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:accent, background:accent+"15", padding:"2px 8px", borderRadius:5 }}>
+                        {m.cat === "politica" ? "Política" : m.cat === "economia" ? "Economía" : "Varios"}
+                      </span>
+                      <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>Vol: {vol}</span>
+                      {m.endDate && (
+                        <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>
+                          {new Date(m.endDate).toLocaleDateString("es-AR",{day:"2-digit",month:"short",year:"2-digit"})}
+                        </span>
+                      )}
+                    </div>
+                    {/* Mini bar */}
+                    <div style={{ marginTop:8, height:6, background:t.alt, borderRadius:3, overflow:"hidden" }}>
+                      <div style={{ width:`${pctYes}%`, height:"100%", background:accent, borderRadius:3, transition:"width .4s ease" }} />
+                    </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:3 }}>
+                      <span style={{ fontFamily:FB, fontSize:8, color:accent, fontWeight:600 }}>Sí {pctYes}%</span>
+                      <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>No {pctNo}%</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:14, lineHeight:1.6 }}>
+        * Polymarket es un mercado de predicción descentralizado. Las probabilidades reflejan el consenso de participantes del mercado, no constituyen pronósticos. Datos actualizados cada 10 minutos.
       </p>
     </div>
   );

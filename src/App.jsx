@@ -1157,37 +1157,12 @@ function SummaryCard({ s, t }) {
    EARNINGS CARD
 ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════
-   SENTIMENT PANEL — Market-implied probabilities
-   Bloomberg-style indicator dashboard
+   SENTIMENT PANEL — Curated market-implied indicators
+   Tracked elections + scored macro/geopolitical events
 ════════════════════════════════════════════════════════════════ */
-const SENT_CATS = {
-  politica: ["milei","president","kirchn","peronism","libertad avanza","election","gobierno","congres","senate","gobernador","legislat","impeach","resign","trump","biden","lula","vote","prime minister","chancellor","macron","starmer","modi","putin"],
-  economia: ["inflaci","inflation","peso","devalua","imf","cepo","dolar","gdp","recession","reserve","default","debt","rate cut","interest rate","bcra","caputo","economy","tariff","fed ","ecb","cpi","unemployment","s&p","nasdaq","bitcoin","crypto","oil price","gold price"],
-};
-const ARG_KEYS = ["argentin","milei","peso argentino","buenos aires","bcra","caputo","kirchn","peronism","cepo","devalua","libertad avanza","vaca muerta","ypf"];
-
-const classifyEvent = (q) => {
-  const low = q.toLowerCase();
-  const isArg = ARG_KEYS.some(k => low.includes(k));
-  const cat = SENT_CATS.politica.some(k => low.includes(k)) ? "politica"
-    : SENT_CATS.economia.some(k => low.includes(k)) ? "economia" : "varios";
-  return { cat, isArg };
-};
-
-// Mock baselines — in production these would come from historical averages
-const getBaseline = (q) => {
-  const low = q.toLowerCase();
-  if (low.includes("milei") && low.includes("president")) return 0.88;
-  if (low.includes("recession") && low.includes("argentin")) return 0.25;
-  if (low.includes("inflaci") && low.includes("below")) return 0.40;
-  if (low.includes("cepo")) return 0.35;
-  if (low.includes("trump") && low.includes("president")) return 0.52;
-  if (low.includes("recession") && low.includes("us")) return 0.30;
-  return null; // no baseline available
-};
-
 function PolymarketPanel({ t }) {
-  const [events, setEvents] = useState([]);
+  const [tracked, setTracked] = useState([]);
+  const [indicators, setIndicators] = useState([]);
   const [status, setStatus] = useState("loading");
   const [tab, setTab] = useState("todos");
 
@@ -1196,113 +1171,50 @@ function PolymarketPanel({ t }) {
       try {
         const r = await fetch("/api/polymarket");
         const d = await r.json();
-        const processed = (d.markets || []).map(m => {
-          const { cat, isArg } = classifyEvent(m.question);
-          const baseline = getBaseline(m.question);
-          const prob = m.yesPrice;
-          const drift = baseline != null ? prob - baseline : null;
-          return { ...m, cat, isArg, prob, baseline, drift };
-        });
-        setEvents(processed);
+        setTracked(d.tracked || []);
+        setIndicators(d.indicators || []);
         setStatus("ok");
       } catch { setStatus("error"); }
     };
     load();
   }, []);
 
-  const tabs = [
-    { id:"todos",     label:"Todos" },
-    { id:"argentina", label:"Argentina" },
-    { id:"politica",  label:"Política" },
-    { id:"economia",  label:"Economía" },
-    { id:"varios",    label:"Varios" },
+  const catTabs = [
+    { id:"todos",       label:"Todos" },
+    { id:"macro",       label:"Macro" },
+    { id:"geopolitics", label:"Geopolítica" },
+    { id:"markets",     label:"Mercados" },
   ];
 
-  const filtered = tab === "todos" ? events
-    : tab === "argentina" ? events.filter(e => e.isArg)
-    : events.filter(e => e.cat === tab);
+  const filteredInd = tab === "todos" ? indicators : indicators.filter(e => e.category === tab);
 
-  // Summary stats
-  const argEvents = events.filter(e => e.isArg);
-  const avgArgProb = argEvents.length ? (argEvents.reduce((s,e) => s + e.prob, 0) / argEvents.length) : 0;
+  // Group tracked events by their parent event
+  const trackedGroups = {};
+  tracked.forEach(t => {
+    const g = t.group || t.title;
+    if (!trackedGroups[g]) trackedGroups[g] = { title:g, markets:[], slug:t.slug };
+    trackedGroups[g].markets.push(t);
+  });
 
   return (
     <div>
       {/* ── Header ── */}
       <div style={{ marginBottom:20 }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
-          <div>
-            <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Indicadores de Sentimiento</h3>
-            <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Probabilidades implícitas de mercado · Datos en tiempo real</p>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",background:status==="ok"?"#22c55e":"#94a3b8",boxShadow:status==="ok"?"0 0 5px #22c55e":"none"}} />
-            <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-              {status==="ok" ? `${events.length} indicadores activos` : "Cargando..."}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Summary strip (Argentina focus) ── */}
-      {status === "ok" && argEvents.length > 0 && (
-        <div style={{ display:"flex", gap:10, marginBottom:16, overflowX:"auto", paddingBottom:4 }}>
-          {argEvents.slice(0,4).map((e,i) => {
-            const pct = Math.round(e.prob * 100);
-            const col = pct >= 65 ? t.gr : pct <= 35 ? t.rd : t.bl;
-            // Truncate question to short label
-            const label = e.question.replace(/\?$/,"").replace(/^Will /i,"").replace(/before .*/i,"").slice(0,45);
-            return (
-              <div key={i} style={{
-                background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${col}`, borderRadius:10,
-                padding:"12px 16px", minWidth:180, flex:"0 0 auto",
-              }}>
-                <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</div>
-                <div style={{ fontFamily:FH, fontSize:26, fontWeight:800, color:col, lineHeight:1 }}>{pct}%</div>
-                {e.drift != null && (
-                  <div style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:e.drift>=0?t.gr:t.rd, marginTop:4 }}>
-                    vs baseline: {e.drift>=0?"+":""}{(e.drift*100).toFixed(1)}pp
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── Tabs ── */}
-      <div style={{ display:"flex", gap:4, marginBottom:14, borderBottom:`1px solid ${t.brd}`, paddingBottom:8 }}>
-        {tabs.map(tb => {
-          const count = tb.id === "todos" ? events.length
-            : tb.id === "argentina" ? events.filter(e=>e.isArg).length
-            : events.filter(e=>e.cat===tb.id).length;
-          return (
-            <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
-              padding:"6px 12px", borderRadius:6, fontFamily:FB, fontSize:11,
-              fontWeight:tab===tb.id?700:400, border:"none",
-              background:tab===tb.id?t.go+"18":"transparent",
-              color:tab===tb.id?t.go:t.mu, cursor:"pointer",
-            }}>
-              {tb.label} {count > 0 && <span style={{fontSize:9,opacity:.7}}>({count})</span>}
-            </button>
-          );
-        })}
+        <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Indicadores de Sentimiento</h3>
+        <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>
+          Probabilidades implícitas de mercado · Indicadores macro, geopolíticos y electorales
+        </p>
       </div>
 
       {/* ── Loading ── */}
       {status === "loading" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-          {Array.from({length:8}).map((_,i) => (
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${t.brd}` }}>
-              <Skeleton w={50} h={28} r={4} />
-              <Skeleton w="60%" h={14} r={4} />
-              <div style={{marginLeft:"auto"}}><Skeleton w={80} h={8} r={3} /></div>
-            </div>
-          ))}
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          <Skeleton w="100%" h={120} r={12} />
+          <Skeleton w="100%" h={120} r={12} />
+          {Array.from({length:5}).map((_,i) => <Skeleton key={i} w="100%" h={40} r={6} />)}
         </div>
       )}
 
-      {/* ── Error ── */}
       {status === "error" && (
         <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu, background:t.alt, borderRadius:10 }}>
           ⚠️ Sin conexión al proveedor de datos ·{" "}
@@ -1310,91 +1222,155 @@ function PolymarketPanel({ t }) {
         </div>
       )}
 
-      {/* ── Event list — Bloomberg terminal style ── */}
-      {status === "ok" && filtered.length > 0 && (
-        <div style={{ border:`1px solid ${t.brd}`, borderRadius:10, overflow:"hidden" }}>
-          {/* Table header */}
-          <div style={{
-            display:"grid", gridTemplateColumns:"60px 1fr 100px 70px",
-            padding:"8px 14px", background:t.alt, borderBottom:`1px solid ${t.brd}`,
-            fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".08em", textTransform:"uppercase",
-          }}>
-            <span>PROB.</span>
-            <span>INDICADOR</span>
-            <span style={{textAlign:"right"}}>VS BASELINE</span>
-            <span style={{textAlign:"right"}}>VOLUMEN</span>
+      {status === "ok" && (
+        <>
+          {/* ══════ SECTION 1: Tracked Elections ══════ */}
+          {Object.keys(trackedGroups).length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
+                ELECCIONES MONITOREADAS
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:10 }}>
+                {Object.values(trackedGroups).map((grp,gi) => (
+                  <Card key={gi} t={t}>
+                    <div style={{ padding:"16px 18px" }}>
+                      <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:12, lineHeight:1.3 }}>
+                        {grp.title}
+                      </div>
+                      {grp.markets.map((m,mi) => {
+                        // For multi-outcome: show each outcome as a bar
+                        const mainOutcome = m.outcomes && m.outcomes[0];
+                        if (!mainOutcome) return null;
+                        // If it's a simple Yes/No
+                        if (m.outcomes.length === 2 && (m.outcomes[0].label === "Yes" || m.outcomes[0].label === "No")) {
+                          const pct = Math.round(m.outcomes[0].prob * 100);
+                          const col = pct >= 60 ? t.gr : pct <= 40 ? t.rd : t.bl;
+                          return (
+                            <div key={mi} style={{ marginBottom:8 }}>
+                              <div style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                {m.title.replace(/^Will /i,"").replace(/\?$/,"")}
+                              </div>
+                              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                <div style={{ flex:1, height:20, background:t.alt, borderRadius:5, overflow:"hidden" }}>
+                                  <div style={{ width:`${pct}%`, height:"100%", background:`linear-gradient(90deg,${col}88,${col})`, borderRadius:5, transition:"width .6s cubic-bezier(.4,0,.2,1)" }} />
+                                </div>
+                                <span style={{ fontFamily:FH, fontSize:16, fontWeight:800, color:col, minWidth:42, textAlign:"right" }}>{pct}%</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        // Multi-outcome (like Brazil election with candidates)
+                        return m.outcomes.map((o,oi) => {
+                          const pct = Math.round(o.prob * 100);
+                          if (pct < 3) return null; // skip tiny outcomes
+                          const col = oi === 0 ? t.bl : oi === 1 ? t.rd : oi === 2 ? t.gr : t.pu;
+                          return (
+                            <div key={`${mi}-${oi}`} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                              <span style={{ fontFamily:FB, fontSize:10, color:t.mu, minWidth:90, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{o.label}</span>
+                              <div style={{ flex:1, height:14, background:t.alt, borderRadius:4, overflow:"hidden" }}>
+                                <div style={{ width:`${pct}%`, height:"100%", background:col, borderRadius:4, transition:"width .6s cubic-bezier(.4,0,.2,1)" }} />
+                              </div>
+                              <span style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:col, minWidth:35, textAlign:"right" }}>{pct}%</span>
+                            </div>
+                          );
+                        });
+                      })}
+                      <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:6 }}>
+                        Vol: ${grp.markets.reduce((s,m)=>s+m.volume,0) >= 1e6 ? (grp.markets.reduce((s,m)=>s+m.volume,0)/1e6).toFixed(1)+"M" : Math.round(grp.markets.reduce((s,m)=>s+m.volume,0)/1000)+"K"}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ══════ SECTION 2: Curated Indicators ══════ */}
+          <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
+            INDICADORES MACRO Y GEOPOLÍTICOS
           </div>
 
-          {/* Rows */}
-          {filtered.map((e,i) => {
-            const pct = Math.round(e.prob * 100);
-            const col = pct >= 65 ? t.gr : pct <= 35 ? t.rd : t.bl;
-            const vol = e.volume >= 1e6 ? `$${(e.volume/1e6).toFixed(1)}M`
-              : e.volume >= 1000 ? `$${(e.volume/1000).toFixed(0)}K` : `$${Math.round(e.volume)}`;
+          {/* Tabs */}
+          <div style={{ display:"flex", gap:4, marginBottom:12, borderBottom:`1px solid ${t.brd}`, paddingBottom:8 }}>
+            {catTabs.map(ct => {
+              const count = ct.id === "todos" ? indicators.length : indicators.filter(e=>e.category===ct.id).length;
+              return (
+                <button key={ct.id} onClick={()=>setTab(ct.id)} style={{
+                  padding:"5px 12px", borderRadius:6, fontFamily:FB, fontSize:11,
+                  fontWeight:tab===ct.id?700:400, border:"none",
+                  background:tab===ct.id?t.go+"18":"transparent",
+                  color:tab===ct.id?t.go:t.mu, cursor:"pointer",
+                }}>
+                  {ct.label} <span style={{fontSize:9,opacity:.6}}>({count})</span>
+                </button>
+              );
+            })}
+          </div>
 
-            return (
-              <div key={i} style={{
-                display:"grid", gridTemplateColumns:"60px 1fr 100px 70px", alignItems:"center",
-                padding:"10px 14px", borderBottom:i < filtered.length - 1 ? `1px solid ${t.brd}` : "none",
-                transition:"background .15s",
-              }}
-              onMouseEnter={ev=>ev.currentTarget.style.background=t.alt}
-              onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                {/* Probability */}
-                <div style={{ position:"relative" }}>
-                  <span style={{ fontFamily:FH, fontSize:18, fontWeight:800, color:col }}>{pct}%</span>
-                </div>
-
-                {/* Event description */}
-                <div style={{ paddingRight:12, minWidth:0 }}>
-                  <div style={{ fontFamily:FB, fontSize:12, fontWeight:600, color:t.tx, lineHeight:1.35,
-                    overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
-                    {e.question}
-                  </div>
-                  <div style={{ display:"flex", gap:5, marginTop:3 }}>
-                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:600, padding:"1px 5px", borderRadius:3,
-                      color:e.cat==="politica"?"#8b5cf6":e.cat==="economia"?"#f59e0b":"#6b7280",
-                      background:e.cat==="politica"?"#8b5cf615":e.cat==="economia"?"#f59e0b15":"#6b728015",
-                    }}>{e.cat==="politica"?"POL":e.cat==="economia"?"ECON":"GEN"}</span>
-                    {e.isArg && <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:"#3b82f6", background:"#3b82f612", padding:"1px 5px", borderRadius:3 }}>ARG</span>}
-                    {/* Mini probability bar */}
-                    <div style={{ width:40, height:5, background:t.alt, borderRadius:3, overflow:"hidden", alignSelf:"center" }}>
-                      <div style={{ width:`${pct}%`, height:"100%", background:col, borderRadius:3, transition:"width .6s cubic-bezier(.4,0,.2,1)" }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Baseline comparison */}
-                <div style={{ textAlign:"right" }}>
-                  {e.drift != null ? (
-                    <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:e.drift>=0?t.gr:t.rd }}>
-                      {e.drift>=0?"▲":"▼"} {Math.abs(e.drift*100).toFixed(1)}pp
-                    </span>
-                  ) : (
-                    <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>—</span>
-                  )}
-                </div>
-
-                {/* Volume */}
-                <div style={{ textAlign:"right", fontFamily:FB, fontSize:10, color:t.mu, fontVariantNumeric:"tabular-nums" }}>
-                  {vol}
-                </div>
+          {/* Table */}
+          {filteredInd.length > 0 ? (
+            <div style={{ border:`1px solid ${t.brd}`, borderRadius:10, overflow:"hidden" }}>
+              <div style={{
+                display:"grid", gridTemplateColumns:"55px 1fr 60px 65px",
+                padding:"8px 14px", background:t.alt, borderBottom:`1px solid ${t.brd}`,
+                fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".08em", textTransform:"uppercase",
+              }}>
+                <span>PROB.</span>
+                <span>INDICADOR</span>
+                <span style={{textAlign:"right"}}>SCORE</span>
+                <span style={{textAlign:"right"}}>VOLUMEN</span>
               </div>
-            );
-          })}
-        </div>
-      )}
 
-      {status === "ok" && filtered.length === 0 && (
-        <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu, background:t.alt, borderRadius:10 }}>
-          Sin indicadores activos en esta categoría.
-        </div>
+              {filteredInd.map((e,i) => {
+                const pct = Math.round(e.probability * 100);
+                const col = pct >= 65 ? t.gr : pct <= 35 ? t.rd : t.bl;
+                const catLabel = e.category === "macro" ? "MACRO" : e.category === "geopolitics" ? "GEO" : "MKT";
+                const catCol = e.category === "macro" ? "#f59e0b" : e.category === "geopolitics" ? "#8b5cf6" : "#3b82f6";
+                const vol = e.volume >= 1e6 ? `$${(e.volume/1e6).toFixed(1)}M` : e.volume >= 1000 ? `$${(e.volume/1000).toFixed(0)}K` : `$${Math.round(e.volume)}`;
+
+                return (
+                  <div key={i} style={{
+                    display:"grid", gridTemplateColumns:"55px 1fr 60px 65px", alignItems:"center",
+                    padding:"10px 14px", borderBottom:i < filteredInd.length - 1 ? `1px solid ${t.brd}` : "none",
+                    transition:"background .15s",
+                  }}
+                  onMouseEnter={ev=>ev.currentTarget.style.background=t.alt}
+                  onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                    <span style={{ fontFamily:FH, fontSize:18, fontWeight:800, color:col }}>{pct}%</span>
+                    <div style={{ paddingRight:12, minWidth:0 }}>
+                      <div style={{ fontFamily:FB, fontSize:12, fontWeight:600, color:t.tx, lineHeight:1.3,
+                        overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
+                        {e.title}
+                      </div>
+                      <div style={{ display:"flex", gap:4, marginTop:3, alignItems:"center" }}>
+                        <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, padding:"1px 5px", borderRadius:3, color:catCol, background:catCol+"15" }}>{catLabel}</span>
+                        {e.isArg && <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:"#3b82f6", background:"#3b82f612", padding:"1px 5px", borderRadius:3 }}>ARG</span>}
+                        <div style={{ width:32, height:4, background:t.alt, borderRadius:2, overflow:"hidden" }}>
+                          <div style={{ width:`${pct}%`, height:"100%", background:col, borderRadius:2, transition:"width .6s cubic-bezier(.4,0,.2,1)" }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign:"right" }}>
+                      <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:e.score>=12?t.gr:e.score>=10?t.bl:t.mu }}>{e.score}</span>
+                      <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>/15</span>
+                    </div>
+                    <div style={{ textAlign:"right", fontFamily:FB, fontSize:10, color:t.mu }}>{vol}</div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding:20, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu, background:t.alt, borderRadius:10 }}>
+              Sin indicadores en esta categoría.
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Disclaimer ── */}
       <div style={{ marginTop:14, padding:"10px 14px", background:t.alt, borderRadius:8, borderLeft:`3px solid ${t.brd}` }}>
         <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.6, margin:0 }}>
-          Este panel muestra indicadores probabilísticos basados en datos públicos de mercados de predicción. Las probabilidades implícitas reflejan el consenso agregado de participantes y no constituyen pronósticos, recomendaciones ni asesoramiento. Este panel no facilita ni promueve apuestas de ningún tipo.
+          Este panel muestra indicadores probabilísticos basados en datos públicos. Las probabilidades implícitas reflejan el consenso agregado de participantes y no constituyen pronósticos, recomendaciones ni asesoramiento. Este panel no facilita ni promueve apuestas de ningún tipo.
         </p>
       </div>
     </div>

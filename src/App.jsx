@@ -1157,29 +1157,37 @@ function SummaryCard({ s, t }) {
    EARNINGS CARD
 ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════
-   POLYMARKET PANEL — Prediction markets · Tabs + categorized
+   SENTIMENT PANEL — Market-implied probabilities
+   Bloomberg-style indicator dashboard
 ════════════════════════════════════════════════════════════════ */
-const PM_CATS = {
-  politica:  ["milei","president","kirchn","peronism","libertad avanza","election","gobierno","congres","senate","gobernador","legislat","impeach","resign","trump","biden","lula","vote","prime minister","chancellor","macron","starmer","modi","putin"],
-  economia:  ["inflaci","inflation","peso","devalua","imf","cepo","dolar","gdp","recession","reserve","default","debt","rate cut","interest rate","bcra","caputo","economy","tariff","fed ","ecb","cpi","unemployment","s&p","nasdaq","bitcoin","crypto","oil price","gold price"],
+const SENT_CATS = {
+  politica: ["milei","president","kirchn","peronism","libertad avanza","election","gobierno","congres","senate","gobernador","legislat","impeach","resign","trump","biden","lula","vote","prime minister","chancellor","macron","starmer","modi","putin"],
+  economia: ["inflaci","inflation","peso","devalua","imf","cepo","dolar","gdp","recession","reserve","default","debt","rate cut","interest rate","bcra","caputo","economy","tariff","fed ","ecb","cpi","unemployment","s&p","nasdaq","bitcoin","crypto","oil price","gold price"],
 };
-
 const ARG_KEYS = ["argentin","milei","peso argentino","buenos aires","bcra","caputo","kirchn","peronism","cepo","devalua","libertad avanza","vaca muerta","ypf"];
 
-const categorizePM = (q) => {
+const classifyEvent = (q) => {
   const low = q.toLowerCase();
-  if (PM_CATS.politica.some(k => low.includes(k))) return "politica";
-  if (PM_CATS.economia.some(k => low.includes(k))) return "economia";
-  return "varios";
+  const isArg = ARG_KEYS.some(k => low.includes(k));
+  const cat = SENT_CATS.politica.some(k => low.includes(k)) ? "politica"
+    : SENT_CATS.economia.some(k => low.includes(k)) ? "economia" : "varios";
+  return { cat, isArg };
 };
 
-const isArgMarket = (q) => {
+// Mock baselines — in production these would come from historical averages
+const getBaseline = (q) => {
   const low = q.toLowerCase();
-  return ARG_KEYS.some(k => low.includes(k));
+  if (low.includes("milei") && low.includes("president")) return 0.88;
+  if (low.includes("recession") && low.includes("argentin")) return 0.25;
+  if (low.includes("inflaci") && low.includes("below")) return 0.40;
+  if (low.includes("cepo")) return 0.35;
+  if (low.includes("trump") && low.includes("president")) return 0.52;
+  if (low.includes("recession") && low.includes("us")) return 0.30;
+  return null; // no baseline available
 };
 
 function PolymarketPanel({ t }) {
-  const [markets, setMarkets] = useState([]);
+  const [events, setEvents] = useState([]);
   const [status, setStatus] = useState("loading");
   const [tab, setTab] = useState("todos");
 
@@ -1188,7 +1196,14 @@ function PolymarketPanel({ t }) {
       try {
         const r = await fetch("/api/polymarket");
         const d = await r.json();
-        setMarkets((d.markets || []).map(m => ({ ...m, cat:categorizePM(m.question), local:m.isArg || isArgMarket(m.question) })));
+        const processed = (d.markets || []).map(m => {
+          const { cat, isArg } = classifyEvent(m.question);
+          const baseline = getBaseline(m.question);
+          const prob = m.yesPrice;
+          const drift = baseline != null ? prob - baseline : null;
+          return { ...m, cat, isArg, prob, baseline, drift };
+        });
+        setEvents(processed);
         setStatus("ok");
       } catch { setStatus("error"); }
     };
@@ -1196,135 +1211,192 @@ function PolymarketPanel({ t }) {
   }, []);
 
   const tabs = [
-    {id:"todos",     label:"Todos",     count:markets.length },
-    {id:"argentina", label:"Argentina", count:markets.filter(m=>m.local).length },
-    {id:"politica",  label:"Política",  count:markets.filter(m=>m.cat==="politica").length },
-    {id:"economia",  label:"Economía",  count:markets.filter(m=>m.cat==="economia").length },
-    {id:"varios",    label:"Varios",    count:markets.filter(m=>m.cat==="varios").length },
+    { id:"todos",     label:"Todos" },
+    { id:"argentina", label:"Argentina" },
+    { id:"politica",  label:"Política" },
+    { id:"economia",  label:"Economía" },
+    { id:"varios",    label:"Varios" },
   ];
 
-  const filtered = tab === "todos" ? markets
-    : tab === "argentina" ? markets.filter(m => m.local)
-    : markets.filter(m => m.cat === tab);
+  const filtered = tab === "todos" ? events
+    : tab === "argentina" ? events.filter(e => e.isArg)
+    : events.filter(e => e.cat === tab);
+
+  // Summary stats
+  const argEvents = events.filter(e => e.isArg);
+  const avgArgProb = argEvents.length ? (argEvents.reduce((s,e) => s + e.prob, 0) / argEvents.length) : 0;
 
   return (
     <div>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
-        <div>
-          <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Mercados de Predicción</h3>
-          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Probabilidades en tiempo real sobre Argentina · Fuente: Polymarket</p>
+      {/* ── Header ── */}
+      <div style={{ marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+          <div>
+            <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Indicadores de Sentimiento</h3>
+            <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>Probabilidades implícitas de mercado · Datos en tiempo real</p>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{width:7,height:7,borderRadius:"50%",display:"inline-block",background:status==="ok"?"#22c55e":"#94a3b8",boxShadow:status==="ok"?"0 0 5px #22c55e":"none"}} />
+            <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+              {status==="ok" ? `${events.length} indicadores activos` : "Cargando..."}
+            </span>
+          </div>
         </div>
-        <a href="https://polymarket.com/es/predictions/argentina" target="_blank" rel="noreferrer"
-          style={{ fontFamily:FB, fontSize:10, color:t.bl, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
-          Ver en Polymarket <ExternalLink size={10} />
-        </a>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:"flex", gap:4, marginBottom:16, flexWrap:"wrap" }}>
-        {tabs.map(tb => (
-          <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
-            padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, fontWeight:tab===tb.id?700:400,
-            border:`1.5px solid ${tab===tb.id?t.go:t.brd}`, background:tab===tb.id?t.goBg:"transparent",
-            color:tab===tb.id?t.go:t.mu, cursor:"pointer", display:"flex", alignItems:"center", gap:5,
-          }}>
-            {tb.label}
-            {tb.count > 0 && <span style={{ fontSize:9, fontWeight:700, background:tab===tb.id?t.go:t.alt, color:tab===tb.id?"#fff":t.fa, borderRadius:10, padding:"0 5px", minWidth:16, textAlign:"center" }}>{tb.count}</span>}
-          </button>
-        ))}
-      </div>
-
-      {status === "loading" && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:10 }}>
-          {Array.from({length:4}).map((_,i) => <Skeleton key={i} w="100%" h={100} r={12} />)}
-        </div>
-      )}
-
-      {status === "error" && (
-        <Card t={t}>
-          <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu }}>
-            ⚠️ No se pudo conectar con Polymarket ·{" "}
-            <button onClick={()=>window.location.reload()} style={{color:t.bl,background:"none",border:"none",cursor:"pointer",fontFamily:FB,fontSize:12}}>Reintentar</button>
-          </div>
-        </Card>
-      )}
-
-      {status === "ok" && filtered.length === 0 && (
-        <Card t={t}>
-          <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu }}>
-            No hay mercados activos en esta categoría.
-          </div>
-        </Card>
-      )}
-
-      {status === "ok" && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:10 }}>
-          {filtered.map((m,i) => {
-            const pctYes = Math.round(m.yesPrice * 100);
-            const pctNo = 100 - pctYes;
-            const isHigh = pctYes >= 65;
-            const isLow = pctYes <= 35;
-            const accent = isHigh ? t.gr : isLow ? t.rd : t.bl;
-            const vol = m.volume >= 1000 ? `$${(m.volume/1000).toFixed(0)}K` : `$${Math.round(m.volume)}`;
-
-            // SVG donut for probability
-            const r = 32, stroke = 6, circ = 2 * Math.PI * r;
-            const dashYes = (pctYes / 100) * circ;
-
+      {/* ── Summary strip (Argentina focus) ── */}
+      {status === "ok" && argEvents.length > 0 && (
+        <div style={{ display:"flex", gap:10, marginBottom:16, overflowX:"auto", paddingBottom:4 }}>
+          {argEvents.slice(0,4).map((e,i) => {
+            const pct = Math.round(e.prob * 100);
+            const col = pct >= 65 ? t.gr : pct <= 35 ? t.rd : t.bl;
+            // Truncate question to short label
+            const label = e.question.replace(/\?$/,"").replace(/^Will /i,"").replace(/before .*/i,"").slice(0,45);
             return (
-              <Card key={i} t={t}>
-                <div style={{ padding:"16px 18px", display:"flex", gap:16, alignItems:"center" }}>
-                  {/* Donut chart */}
-                  <div style={{ flexShrink:0, position:"relative", width:76, height:76 }}>
-                    <svg width={76} height={76} viewBox="0 0 76 76">
-                      <circle cx={38} cy={38} r={r} fill="none" stroke={t.alt} strokeWidth={stroke} />
-                      <circle cx={38} cy={38} r={r} fill="none" stroke={accent} strokeWidth={stroke}
-                        strokeDasharray={`${dashYes} ${circ}`} strokeDashoffset={circ * 0.25}
-                        strokeLinecap="round" style={{transition:"stroke-dasharray .5s ease"}} />
-                    </svg>
-                    <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-                      <span style={{ fontFamily:FH, fontSize:20, fontWeight:800, color:accent, lineHeight:1 }}>{pctYes}%</span>
-                      <span style={{ fontFamily:FB, fontSize:7, color:t.fa, letterSpacing:".05em" }}>SÍ</span>
-                    </div>
+              <div key={i} style={{
+                background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${col}`, borderRadius:10,
+                padding:"12px 16px", minWidth:180, flex:"0 0 auto",
+              }}>
+                <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</div>
+                <div style={{ fontFamily:FH, fontSize:26, fontWeight:800, color:col, lineHeight:1 }}>{pct}%</div>
+                {e.drift != null && (
+                  <div style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:e.drift>=0?t.gr:t.rd, marginTop:4 }}>
+                    vs baseline: {e.drift>=0?"+":""}{(e.drift*100).toFixed(1)}pp
                   </div>
-
-                  {/* Content */}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, lineHeight:1.35, marginBottom:8,
-                      display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
-                      {m.question}
-                    </div>
-                    <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
-                      <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:accent, background:accent+"15", padding:"2px 8px", borderRadius:5 }}>
-                        {m.cat === "politica" ? "Política" : m.cat === "economia" ? "Economía" : "Varios"}
-                      </span>
-                      {m.local && <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:"#3b82f6", background:"#3b82f615", padding:"2px 6px", borderRadius:4 }}>🇦🇷 ARG</span>}
-                      <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>Vol: {vol}</span>
-                      {m.endDate && (
-                        <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>
-                          {new Date(m.endDate).toLocaleDateString("es-AR",{day:"2-digit",month:"short",year:"2-digit"})}
-                        </span>
-                      )}
-                    </div>
-                    {/* Mini bar */}
-                    <div style={{ marginTop:8, height:6, background:t.alt, borderRadius:3, overflow:"hidden" }}>
-                      <div style={{ width:`${pctYes}%`, height:"100%", background:accent, borderRadius:3, transition:"width .4s ease" }} />
-                    </div>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:3 }}>
-                      <span style={{ fontFamily:FB, fontSize:8, color:accent, fontWeight:600 }}>Sí {pctYes}%</span>
-                      <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>No {pctNo}%</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                )}
+              </div>
             );
           })}
         </div>
       )}
 
-      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:14, lineHeight:1.6 }}>
-        * Polymarket es un mercado de predicción descentralizado. Las probabilidades reflejan el consenso de participantes del mercado, no constituyen pronósticos. Datos actualizados cada 10 minutos.
-      </p>
+      {/* ── Tabs ── */}
+      <div style={{ display:"flex", gap:4, marginBottom:14, borderBottom:`1px solid ${t.brd}`, paddingBottom:8 }}>
+        {tabs.map(tb => {
+          const count = tb.id === "todos" ? events.length
+            : tb.id === "argentina" ? events.filter(e=>e.isArg).length
+            : events.filter(e=>e.cat===tb.id).length;
+          return (
+            <button key={tb.id} onClick={()=>setTab(tb.id)} style={{
+              padding:"6px 12px", borderRadius:6, fontFamily:FB, fontSize:11,
+              fontWeight:tab===tb.id?700:400, border:"none",
+              background:tab===tb.id?t.go+"18":"transparent",
+              color:tab===tb.id?t.go:t.mu, cursor:"pointer",
+            }}>
+              {tb.label} {count > 0 && <span style={{fontSize:9,opacity:.7}}>({count})</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Loading ── */}
+      {status === "loading" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+          {Array.from({length:8}).map((_,i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${t.brd}` }}>
+              <Skeleton w={50} h={28} r={4} />
+              <Skeleton w="60%" h={14} r={4} />
+              <div style={{marginLeft:"auto"}}><Skeleton w={80} h={8} r={3} /></div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {status === "error" && (
+        <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu, background:t.alt, borderRadius:10 }}>
+          ⚠️ Sin conexión al proveedor de datos ·{" "}
+          <button onClick={()=>window.location.reload()} style={{color:t.bl,background:"none",border:"none",cursor:"pointer",fontFamily:FB,fontSize:12,fontWeight:600}}>Reintentar</button>
+        </div>
+      )}
+
+      {/* ── Event list — Bloomberg terminal style ── */}
+      {status === "ok" && filtered.length > 0 && (
+        <div style={{ border:`1px solid ${t.brd}`, borderRadius:10, overflow:"hidden" }}>
+          {/* Table header */}
+          <div style={{
+            display:"grid", gridTemplateColumns:"60px 1fr 100px 70px",
+            padding:"8px 14px", background:t.alt, borderBottom:`1px solid ${t.brd}`,
+            fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".08em", textTransform:"uppercase",
+          }}>
+            <span>PROB.</span>
+            <span>INDICADOR</span>
+            <span style={{textAlign:"right"}}>VS BASELINE</span>
+            <span style={{textAlign:"right"}}>VOLUMEN</span>
+          </div>
+
+          {/* Rows */}
+          {filtered.map((e,i) => {
+            const pct = Math.round(e.prob * 100);
+            const col = pct >= 65 ? t.gr : pct <= 35 ? t.rd : t.bl;
+            const vol = e.volume >= 1e6 ? `$${(e.volume/1e6).toFixed(1)}M`
+              : e.volume >= 1000 ? `$${(e.volume/1000).toFixed(0)}K` : `$${Math.round(e.volume)}`;
+
+            return (
+              <div key={i} style={{
+                display:"grid", gridTemplateColumns:"60px 1fr 100px 70px", alignItems:"center",
+                padding:"10px 14px", borderBottom:i < filtered.length - 1 ? `1px solid ${t.brd}` : "none",
+                transition:"background .15s",
+              }}
+              onMouseEnter={ev=>ev.currentTarget.style.background=t.alt}
+              onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                {/* Probability */}
+                <div style={{ position:"relative" }}>
+                  <span style={{ fontFamily:FH, fontSize:18, fontWeight:800, color:col }}>{pct}%</span>
+                </div>
+
+                {/* Event description */}
+                <div style={{ paddingRight:12, minWidth:0 }}>
+                  <div style={{ fontFamily:FB, fontSize:12, fontWeight:600, color:t.tx, lineHeight:1.35,
+                    overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
+                    {e.question}
+                  </div>
+                  <div style={{ display:"flex", gap:5, marginTop:3 }}>
+                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:600, padding:"1px 5px", borderRadius:3,
+                      color:e.cat==="politica"?"#8b5cf6":e.cat==="economia"?"#f59e0b":"#6b7280",
+                      background:e.cat==="politica"?"#8b5cf615":e.cat==="economia"?"#f59e0b15":"#6b728015",
+                    }}>{e.cat==="politica"?"POL":e.cat==="economia"?"ECON":"GEN"}</span>
+                    {e.isArg && <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:"#3b82f6", background:"#3b82f612", padding:"1px 5px", borderRadius:3 }}>ARG</span>}
+                    {/* Mini probability bar */}
+                    <div style={{ width:40, height:5, background:t.alt, borderRadius:3, overflow:"hidden", alignSelf:"center" }}>
+                      <div style={{ width:`${pct}%`, height:"100%", background:col, borderRadius:3, transition:"width .6s cubic-bezier(.4,0,.2,1)" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Baseline comparison */}
+                <div style={{ textAlign:"right" }}>
+                  {e.drift != null ? (
+                    <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:e.drift>=0?t.gr:t.rd }}>
+                      {e.drift>=0?"▲":"▼"} {Math.abs(e.drift*100).toFixed(1)}pp
+                    </span>
+                  ) : (
+                    <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>—</span>
+                  )}
+                </div>
+
+                {/* Volume */}
+                <div style={{ textAlign:"right", fontFamily:FB, fontSize:10, color:t.mu, fontVariantNumeric:"tabular-nums" }}>
+                  {vol}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {status === "ok" && filtered.length === 0 && (
+        <div style={{ padding:30, textAlign:"center", fontFamily:FB, fontSize:12, color:t.mu, background:t.alt, borderRadius:10 }}>
+          Sin indicadores activos en esta categoría.
+        </div>
+      )}
+
+      {/* ── Disclaimer ── */}
+      <div style={{ marginTop:14, padding:"10px 14px", background:t.alt, borderRadius:8, borderLeft:`3px solid ${t.brd}` }}>
+        <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.6, margin:0 }}>
+          Este panel muestra indicadores probabilísticos basados en datos públicos de mercados de predicción. Las probabilidades implícitas reflejan el consenso agregado de participantes y no constituyen pronósticos, recomendaciones ni asesoramiento. Este panel no facilita ni promueve apuestas de ningún tipo.
+        </p>
+      </div>
     </div>
   );
 }
@@ -1345,7 +1417,7 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
     { id:"resumen",   label:"Resumen Diario", Icon:ClipboardList },
     { id:"balances",  label:"Balances",        Icon:BarChart3 },
     { id:"informes",  label:"Informes",        Icon:FileText },
-    { id:"polymarket", label:"Polymarket",     Icon:Activity },
+    { id:"polymarket", label:"Sentimiento",    Icon:Activity },
     { id:"recos",     label:"Recomendaciones", Icon:Briefcase },
   ];
 

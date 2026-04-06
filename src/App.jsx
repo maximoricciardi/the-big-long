@@ -6340,66 +6340,6 @@ function ProductosView({ t }) {
   );
 }
 
-/* ── Live News Strip — rotates headlines from Google News RSS ── */
-function LiveNewsStrip({ t, setTab }) {
-  const [news, setNews] = useState([]);
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const r = await fetch("/api/news");
-        const d = await r.json();
-        if (Array.isArray(d) && d.length > 0) {
-          // Take first 10 headlines, alternate local/international
-          setNews(d.slice(0, 10).map(n => ({
-            title: n.title || n.headline || "",
-            source: n.source || "",
-            url: n.link || n.url || "",
-          })));
-        }
-      } catch {}
-    };
-    load();
-    const refresh = setInterval(load, 30 * 60 * 1000); // refresh every 30 min
-    return () => clearInterval(refresh);
-  }, []);
-
-  // Rotate headline every 8 seconds
-  useEffect(() => {
-    if (news.length <= 1) return;
-    const id = setInterval(() => setIdx(i => (i + 1) % news.length), 8000);
-    return () => clearInterval(id);
-  }, [news.length]);
-
-  if (!news.length) return null;
-  const current = news[idx];
-  const next = news[(idx + 1) % news.length];
-
-  return (
-    <div>
-      {[current, next].filter(Boolean).map((n,i) => (
-        <div key={`${idx}-${i}`} onClick={()=>setTab("mercados")} style={{
-          padding:"8px 0", borderTop:i===0?`1px solid ${t.brd}33`:"none",
-          borderBottom:`1px solid ${t.brd}33`, cursor:"pointer",
-          animation: i===0 ? "fadeUp .4s ease" : "none",
-        }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
-            <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:i===0?t.bl:t.go, letterSpacing:".06em", textTransform:"uppercase" }}>
-              {i===0?"🌍 INTERNACIONAL":"🇦🇷 LOCAL"}
-            </span>
-            <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>{n.source}</span>
-          </div>
-          <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, lineHeight:1.35,
-            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-            {n.title}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, clock, liveMarket={} }) {
   const mep = dolar?.bolsa;
   const ccl = dolar?.contadoconliqui;
@@ -6487,48 +6427,50 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
         ))}
       </div>
 
-      {/* ── PANEL EN VIVO · BCRA + Noticias rotativas ── */}
+      {/* ── RESUMEN DEL DÍA · Dinámico desde SUMMARIES[0] ── */}
       <div style={{
         background:t.srf, border:`1px solid ${t.brd}`,
         borderLeft:`4px solid ${t.go}`, borderRadius:16,
         padding:isMobile?"16px 14px":"22px 26px", marginBottom:16,
       }}>
-        {/* Header — live indicator */}
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
-          <span style={{ width:8, height:8, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 6px #22c55e", display:"inline-block", animation:"blink 2s infinite" }} />
-          <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:t.go }}>
-            EN VIVO
+          <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:t.go, background:t.goBg, padding:"3px 10px", borderRadius:20 }}>
+            ● {latest.date}
           </span>
-          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            {new Date().toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
-          </span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{latest.label || "CIERRE DE MERCADO"}</span>
         </div>
 
-        {/* Live KPI chips — clickable */}
+        {/* KPI chips — clickeables */}
         <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
-          {[
-            mep ? {k:"USD MEP",v:`$${Math.round(mep.venta).toLocaleString("es-AR")}`,tab:"mercados"} : null,
-            rp ? {k:"RIESGO PAÍS",v:`${rp} pb`,tab:"mercados",color:rp>600?t.rd:t.gr} : null,
-            mervalARS ? {k:"MERVAL",v:`${(mervalARS.value/1000).toFixed(0)}K`,sub:mervalARS.changePct!=null?`${mervalARS.changePct>=0?"+":""}${mervalARS.changePct.toFixed(1)}%`:null,tab:"mercados"} : null,
-            spy ? {k:"S&P 500",v:`$${spy.price.toFixed(0)}`,sub:spy.changePct!=null?`${spy.changePct>=0?"+":""}${spy.changePct.toFixed(1)}%`:null,tab:"mercados"} : null,
-            bestLec ? {k:"MEJOR LECAP",v:bestLec.rows[0].tna,sub:`${bestLec.rows[0].t} · ${bestLec.dias}d`,tab:"rentafija"} : null,
-          ].filter(Boolean).map((k,i) => (
-            <button key={i} onClick={()=>setTab(k.tab)} style={{
-              background:t.alt, borderRadius:8, padding:"6px 10px", fontFamily:FB, fontSize:10,
-              display:"flex", flexDirection:"column", gap:2, border:"none", cursor:"pointer",
-              textAlign:"left", transition:"all .15s",
-            }}
-            onMouseEnter={e=>e.currentTarget.style.background=t.goBg}
-            onMouseLeave={e=>e.currentTarget.style.background=t.alt}>
-              <span style={{ fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>{k.k}</span>
-              <span style={{ fontWeight:700, color:k.color||t.tx }}>{k.v}</span>
-              {k.sub && <span style={{ fontSize:8, fontWeight:600, color:parseFloat(k.sub)>=0?t.gr:parseFloat(k.sub)<0?t.rd:t.mu }}>{k.sub}</span>}
-            </button>
-          ))}
+          {latest.kpis?.slice(0,6).map((k,i) => {
+            const bcMap = {green:t.gr,red:t.rd,blue:t.bl,gold:t.go,gray:t.mu};
+            const col = bcMap[k.bc]||t.mu;
+            const tabMap = {"SPOT ARS/USD":"mercados","BCRA COMPRAS":"mercados","TASAS TEM":"rentafija","LECAP CORTA":"rentafija","LECAP MAYO":"rentafija","DÓLAR BCRA":"mercados","RIESGO PAÍS":"mercados","MERVAL USD":"mercados","GLOBALES":"mercados","ABSORCIÓN BCRA":"mercados","EMAE ENERO":"mercados","INFLACIÓN MAY. FEB.":"mercados","SUPERÁVIT FEB.":"mercados","AO28 LICITACIÓN":"rentafija"};
+            const dest = tabMap[k.k] || "mercados";
+            return (
+              <button key={i} onClick={()=>setTab(dest)} style={{
+                background:t.alt, borderRadius:8, padding:"6px 10px", fontFamily:FB, fontSize:10,
+                display:"flex", flexDirection:"column", gap:2, border:"none", cursor:"pointer", textAlign:"left",
+              }}>
+                <span style={{ fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>{k.k}</span>
+                <span style={{ fontWeight:700, color:t.tx }}>{k.v}</span>
+                {k.b && <span style={{ fontSize:8, fontWeight:600, color:col, background:col+"15", padding:"0 5px", borderRadius:4, width:"fit-content" }}>{k.b}</span>}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Rotating news — from Google News RSS */}
-        <LiveNewsStrip t={t} setTab={setTab} />
+        {/* First 2 news cards — dinámicas */}
+        {latest.cards?.slice(0,2).map((c,i) => (
+          <div key={i} style={{ padding:"10px 0", borderTop:`1px solid ${t.brd}33`, cursor:"pointer" }} onClick={()=>setTab("mercados")}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+              <span style={{ fontSize:12 }}>{c.icon}</span>
+              <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:c.ac, letterSpacing:".08em", textTransform:"uppercase" }}>{c.cat}</span>
+            </div>
+            <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:4 }}>{c.title}</div>
+            {c.note && <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }} dangerouslySetInnerHTML={{__html:c.note.length>180?c.note.slice(0,180)+"...":c.note}} />}
+          </div>
+        ))}
       </div>
 
       {/* ── TOP MOVERS ── */}

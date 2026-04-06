@@ -1200,10 +1200,26 @@ function PolymarketPanel({ t }) {
     <div>
       {/* ── Header ── */}
       <div style={{ marginBottom:20 }}>
-        <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Indicadores de Sentimiento</h3>
-        <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>
-          Probabilidades implícitas de mercado · Indicadores macro, geopolíticos y electorales
-        </p>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+          <div>
+            <h3 style={{ fontFamily:FH, fontSize:18, fontWeight:700, color:t.tx, margin:0 }}>Indicadores de Sentimiento</h3>
+            <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginTop:4 }}>
+              Probabilidades implícitas de mercado · Indicadores macro, geopolíticos y electorales
+            </p>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{
+              width:8, height:8, borderRadius:"50%", display:"inline-block",
+              background: status==="ok" ? "#22c55e" : status==="error" ? "#ef4444" : "#f59e0b",
+              boxShadow: status==="ok" ? "0 0 6px #22c55e" : "none",
+              animation: status==="loading" ? "blink 1s infinite" : "none",
+            }} />
+            <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color: status==="ok" ? t.gr : status==="error" ? t.rd : t.mu }}>
+              {status==="ok" ? "API EN VIVO" : status==="error" ? "API OFFLINE" : "CONECTANDO..."}
+            </span>
+            {status==="ok" && <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>· {tracked.length + indicators.length} indicadores</span>}
+          </div>
+        </div>
       </div>
 
       {/* ── Loading ── */}
@@ -4766,12 +4782,16 @@ function InstrumentosView({ t }) {
             </div>
           </Card>
 
-          {/* Yield Curve ARS */}
+          {/* Yield Curve ARS — solo LECAPs y BONCAPs, máx 1 año */}
           {(() => {
             const curvePoints = LECAP.flatMap(g => g.rows.map(r => {
               const m = calcLECAPMetrics(r, g);
               if (!m || m.diasRest <= 0 || m.tna <= 0) return null;
-              const tipo = r.t.startsWith("T") ? "T" : r.t.startsWith("X") ? "X" : "S";
+              // Solo S-prefix (LECAPs) y T-prefix (BONCAPs), no X ni D (duales/DL)
+              if (!r.t.startsWith("S") && !r.t.startsWith("T")) return null;
+              // Máximo 365 días
+              if (m.diasRest > 365) return null;
+              const tipo = r.t.startsWith("T") ? "T" : "S";
               return { ticker:r.t, dias:m.diasRest, tna:m.tna, tipo, price:m.pLive };
             })).filter(Boolean);
             return <LecapYieldCurve t={t} points={curvePoints} />;
@@ -5976,15 +5996,33 @@ function CuentasPanel({ t }) {
         if (Array.isArray(rP)) rP.forEach(f => { if (f.fondo && f.vcp > 0) mapP[f.fondo] = f.vcp; });
 
         const fciEntries = [];
+        const ENTITY_COLORS = {
+          "mercado":"#00BCFF","balanz":"#C4956A","pellegrini":"#1A5276","galicia":"#F97316",
+          "supervielle":"#EF4444","icbc":"#22C55E","adcap":"#8B5CF6","ieb":"#3B82F6",
+          "uala":"#7B2EFF","fiwind":"#F59E0B","cocos":"#FF6B35","lemon":"#4CD964",
+          "sbs":"#E91E63","allaria":"#6366F1","provincia":"#14B8A6","bind":"#A855F7",
+          "taca":"#FF4081","toronto":"#0EA5E9","delta":"#D97706","st zero":"#8B5CF6",
+        };
+        const guessEntity = (name) => {
+          const low = name.toLowerCase();
+          for (const [key,col] of Object.entries(ENTITY_COLORS)) { if (low.includes(key)) return { entity:key, color:col }; }
+          return { entity:"otro", color:"#94A3B8" };
+        };
+
         Object.keys(mapU).forEach(fondo => {
-          if (isUSD(fondo)) return; // skip USD funds
+          if (isUSD(fondo)) return;
+          // Filter out "Super Ahorro Plus" — different product category
+          const low = fondo.toLowerCase();
+          if (low.includes("super ahorro") || low.includes("súper ahorro")) return;
+
           const u = mapU[fondo], p = mapP[fondo];
           if (!u || !p || p <= 0) return;
           const tna = ((u / p - 1) * 365 * 100);
-          if (tna <= 5 || tna > 60) return; // filter outliers
+          if (tna <= 5 || tna > 60) return;
           const meta = mapMeta[fondo] || {};
           const patStr = meta.patrimonio ? (meta.patrimonio >= 1e9 ? `${(meta.patrimonio/1e9).toFixed(1)}B` : `${Math.round(meta.patrimonio/1e6)}M`) : null;
-          fciEntries.push({ nombre:fondo, tipo:"Money Market", tna, patrimonio:patStr, isFCI:true });
+          const { entity, color } = guessEntity(fondo);
+          fciEntries.push({ nombre:fondo, tipo:"Money Market", tna, patrimonio:patStr, isFCI:true, entity, color });
         });
 
         const billEntries = BILLETERAS_GARANTIZADAS.map(b => ({
@@ -6033,7 +6071,7 @@ function CuentasPanel({ t }) {
           {status==="loading" && Array.from({length:8}).map((_,i) => <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}><Skeleton w={100} h={16} r={4}/><Skeleton w="100%" h={24} r={6}/></div>)}
           {chartEntries.map((e,i) => {
             const isBill = !e.isFCI;
-            const barColor = isBill ? t.go : t.gr;
+            const barColor = isBill ? t.go : (e.color || t.gr);
             return (
               <div key={i} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
                 <span style={{ fontFamily:FB, fontSize:10, color:t.mu, minWidth:140, textAlign:"right", flexShrink:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
@@ -6071,9 +6109,9 @@ function CuentasPanel({ t }) {
             <Card key={i} t={t}>
               <div style={{ display:"flex", alignItems:"center", padding:"12px 16px", gap:14 }}>
                 <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
-                  background:isBill ? t.goBg : t.grBg, border:`1px solid ${isBill?t.go:t.gr}33`,
+                  background:isBill ? t.goBg : (e.color||t.gr)+"15", border:`1px solid ${isBill?t.go:(e.color||t.gr)}33`,
                 }}>
-                  <span style={{ fontFamily:FH, fontSize:13, fontWeight:800, color:isBill?t.go:t.gr }}>
+                  <span style={{ fontFamily:FH, fontSize:13, fontWeight:800, color:isBill?t.go:(e.color||t.gr) }}>
                     {i+1}
                   </span>
                 </div>
@@ -6082,7 +6120,7 @@ function CuentasPanel({ t }) {
                     {e.nombre.replace(/ - Clase.*$/,"")}
                   </div>
                   <div style={{ display:"flex", gap:6, marginTop:3, flexWrap:"wrap" }}>
-                    <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:isBill?t.go:t.gr, background:isBill?t.goBg:t.grBg, padding:"1px 7px", borderRadius:4 }}>{e.tipo}</span>
+                    <span style={{ fontFamily:FB, fontSize:9, fontWeight:600, color:isBill?t.go:(e.color||t.gr), background:isBill?t.goBg:(e.color||t.gr)+"15", padding:"1px 7px", borderRadius:4 }}>{e.tipo}</span>
                     {e.patrimonio && <span style={{fontFamily:FB,fontSize:9,color:t.mu}}>Patrimonio: {e.patrimonio}</span>}
                     {e.limite && <span style={{fontFamily:FB,fontSize:9,color:t.rd,background:t.rdBg,padding:"1px 6px",borderRadius:4}}>Límite: {e.limite}</span>}
                   </div>
@@ -6302,6 +6340,66 @@ function ProductosView({ t }) {
   );
 }
 
+/* ── Live News Strip — rotates headlines from Google News RSS ── */
+function LiveNewsStrip({ t, setTab }) {
+  const [news, setNews] = useState([]);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch("/api/news");
+        const d = await r.json();
+        if (Array.isArray(d) && d.length > 0) {
+          // Take first 10 headlines, alternate local/international
+          setNews(d.slice(0, 10).map(n => ({
+            title: n.title || n.headline || "",
+            source: n.source || "",
+            url: n.link || n.url || "",
+          })));
+        }
+      } catch {}
+    };
+    load();
+    const refresh = setInterval(load, 30 * 60 * 1000); // refresh every 30 min
+    return () => clearInterval(refresh);
+  }, []);
+
+  // Rotate headline every 8 seconds
+  useEffect(() => {
+    if (news.length <= 1) return;
+    const id = setInterval(() => setIdx(i => (i + 1) % news.length), 8000);
+    return () => clearInterval(id);
+  }, [news.length]);
+
+  if (!news.length) return null;
+  const current = news[idx];
+  const next = news[(idx + 1) % news.length];
+
+  return (
+    <div>
+      {[current, next].filter(Boolean).map((n,i) => (
+        <div key={`${idx}-${i}`} onClick={()=>setTab("mercados")} style={{
+          padding:"8px 0", borderTop:i===0?`1px solid ${t.brd}33`:"none",
+          borderBottom:`1px solid ${t.brd}33`, cursor:"pointer",
+          animation: i===0 ? "fadeUp .4s ease" : "none",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
+            <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:i===0?t.bl:t.go, letterSpacing:".06em", textTransform:"uppercase" }}>
+              {i===0?"🌍 INTERNACIONAL":"🇦🇷 LOCAL"}
+            </span>
+            <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>{n.source}</span>
+          </div>
+          <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, lineHeight:1.35,
+            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            {n.title}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, clock, liveMarket={} }) {
   const mep = dolar?.bolsa;
   const ccl = dolar?.contadoconliqui;
@@ -6389,50 +6487,48 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
         ))}
       </div>
 
-      {/* ── RESUMEN DEL DÍA · 100% dinámico desde SUMMARIES[0] ── */}
+      {/* ── PANEL EN VIVO · BCRA + Noticias rotativas ── */}
       <div style={{
         background:t.srf, border:`1px solid ${t.brd}`,
         borderLeft:`4px solid ${t.go}`, borderRadius:16,
         padding:isMobile?"16px 14px":"22px 26px", marginBottom:16,
       }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:14 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:t.go, background:t.goBg, padding:"3px 10px", borderRadius:20 }}>
-              ● {latest.date}
-            </span>
-            <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{latest.label || "CIERRE DE MERCADO"}</span>
-          </div>
-          <button onClick={()=>goResearch("resumen")} style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:t.go, background:t.goBg, border:`1px solid ${t.go}33`, borderRadius:8, padding:"5px 14px", cursor:"pointer" }}>
-            Ver completo →
-          </button>
+        {/* Header — live indicator */}
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+          <span style={{ width:8, height:8, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 6px #22c55e", display:"inline-block", animation:"blink 2s infinite" }} />
+          <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:t.go }}>
+            EN VIVO
+          </span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            {new Date().toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+          </span>
         </div>
 
-        {/* KPI chips — dinámicos */}
+        {/* Live KPI chips — clickable */}
         <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
-          {latest.kpis?.slice(0,6).map((k,i) => {
-            const bcMap = {green:t.gr,red:t.rd,blue:t.bl,gold:t.go,gray:t.mu};
-            const col = bcMap[k.bc]||t.mu;
-            return (
-              <div key={i} style={{ background:t.alt, borderRadius:8, padding:"6px 10px", fontFamily:FB, fontSize:10, display:"flex", flexDirection:"column", gap:2 }}>
-                <span style={{ fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>{k.k}</span>
-                <span style={{ fontWeight:700, color:t.tx }}>{k.v}</span>
-                {k.b && <span style={{ fontSize:8, fontWeight:600, color:col, background:col+"15", padding:"0 5px", borderRadius:4, width:"fit-content" }}>{k.b}</span>}
-              </div>
-            );
-          })}
+          {[
+            mep ? {k:"USD MEP",v:`$${Math.round(mep.venta).toLocaleString("es-AR")}`,tab:"mercados"} : null,
+            rp ? {k:"RIESGO PAÍS",v:`${rp} pb`,tab:"mercados",color:rp>600?t.rd:t.gr} : null,
+            mervalARS ? {k:"MERVAL",v:`${(mervalARS.value/1000).toFixed(0)}K`,sub:mervalARS.changePct!=null?`${mervalARS.changePct>=0?"+":""}${mervalARS.changePct.toFixed(1)}%`:null,tab:"mercados"} : null,
+            spy ? {k:"S&P 500",v:`$${spy.price.toFixed(0)}`,sub:spy.changePct!=null?`${spy.changePct>=0?"+":""}${spy.changePct.toFixed(1)}%`:null,tab:"mercados"} : null,
+            bestLec ? {k:"MEJOR LECAP",v:bestLec.rows[0].tna,sub:`${bestLec.rows[0].t} · ${bestLec.dias}d`,tab:"rentafija"} : null,
+          ].filter(Boolean).map((k,i) => (
+            <button key={i} onClick={()=>setTab(k.tab)} style={{
+              background:t.alt, borderRadius:8, padding:"6px 10px", fontFamily:FB, fontSize:10,
+              display:"flex", flexDirection:"column", gap:2, border:"none", cursor:"pointer",
+              textAlign:"left", transition:"all .15s",
+            }}
+            onMouseEnter={e=>e.currentTarget.style.background=t.goBg}
+            onMouseLeave={e=>e.currentTarget.style.background=t.alt}>
+              <span style={{ fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>{k.k}</span>
+              <span style={{ fontWeight:700, color:k.color||t.tx }}>{k.v}</span>
+              {k.sub && <span style={{ fontSize:8, fontWeight:600, color:parseFloat(k.sub)>=0?t.gr:parseFloat(k.sub)<0?t.rd:t.mu }}>{k.sub}</span>}
+            </button>
+          ))}
         </div>
 
-        {/* First 2 cards — dinámicas */}
-        {latest.cards?.slice(0,2).map((c,i) => (
-          <div key={i} style={{ padding:"10px 0", borderTop:`1px solid ${t.brd}33` }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-              <span style={{ fontSize:12 }}>{c.icon}</span>
-              <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:c.ac, letterSpacing:".08em", textTransform:"uppercase" }}>{c.cat}</span>
-            </div>
-            <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:4 }}>{c.title}</div>
-            {c.note && <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }} dangerouslySetInnerHTML={{__html:c.note.length>180?c.note.slice(0,180)+"...":c.note}} />}
-          </div>
-        ))}
+        {/* Rotating news — from Google News RSS */}
+        <LiveNewsStrip t={t} setTab={setTab} />
       </div>
 
       {/* ── TOP MOVERS ── */}

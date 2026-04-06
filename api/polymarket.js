@@ -1,16 +1,16 @@
 // /api/polymarket.js — Curated Sentiment Indicators
-// Intelligent filtering: only macro, geopolitics, markets
-// + Tracked elections (Brazil, US Midterms)
+// Tracked events + scored macro/geopolitical + specific markets
 
 const EXCLUDE = [
-  "airdrop","nft","memecoin","meme coin","solana price","eth price","btc price","dogecoin",
-  "shiba","pepe coin","bonk","floki","token launch","token listing","dex","defi protocol",
-  "celebrity","kardashian","swift","drake","kanye","beyonce","grammys","oscars","emmy",
+  "airdrop","nft","memecoin","meme coin","solana price","eth price","btc price above","dogecoin",
+  "shiba","pepe coin","bonk","floki","token launch","token listing","dex volume","defi protocol",
+  "celebrity","kardashian","swift","drake","kanye","beyonce","grammys","oscars","emmy","grammy",
   "super bowl","nfl","nba","mlb","nhl","ufc","boxing","f1 race","world cup","champions league",
-  "tiktok ban","youtube","streamer","twitch","influencer","onlyfans",
-  "alien","ufo","paranormal","flat earth","simulation",
+  "tiktok","youtube","streamer","twitch","influencer","onlyfans",
+  "alien","ufo","paranormal","flat earth","simulation","zodiac",
   "bachelor","married","divorce","baby","pregnant",
   "elon musk twitter","x rebrand","threads app",
+  "super ahorro","lottery","powerball","mega millions",
 ];
 
 const MACRO_KEYS = ["recession","gdp","inflation","cpi","pce","interest rate","rate cut","rate hike",
@@ -19,49 +19,34 @@ const MACRO_KEYS = ["recession","gdp","inflation","cpi","pce","interest rate","r
 const GEOPO_KEYS = ["war","invasion","sanction","nato","un security","missile","nuclear","ceasefire",
   "iran","israel","ukraine","russia","china","taiwan","north korea","middle east","opec","oil embargo",
   "election","president","prime minister","chancellor","parliament","impeach","resign","coup"];
-const MARKET_KEYS = ["s&p","nasdaq","dow","stock","index","oil price","gold price","brent","crude",
-  "commodity","treasury","yield","bond","dollar","euro","yen","yuan","tariff","trade war"];
-const ARG_KEYS_S = ["argentin","milei","peso","bcra","caputo","kirchn","peronism","cepo","devalua",
+const MARKET_KEYS = ["s&p","nasdaq","dow","stock market","index","oil price","gold price","brent","crude",
+  "commodity","treasury","yield","bond","dollar","euro","yen","yuan","tariff","trade war","oil above","oil below"];
+const ARG_KEYS = ["argentin","milei","peso","bcra","caputo","kirchn","peronism","cepo","devalua",
   "libertad avanza","vaca muerta","ypf","buenos aires"];
 
 function scoreEvent(q, vol) {
   const low = q.toLowerCase();
-  let relevance = 0, impact = 0;
-
-  // Macro
-  if (MACRO_KEYS.some(k => low.includes(k))) { relevance += 4; impact += 4; }
-  // Geopolitics
-  if (GEOPO_KEYS.some(k => low.includes(k))) { relevance += 3; impact += 4; }
-  // Markets
-  if (MARKET_KEYS.some(k => low.includes(k))) { relevance += 3; impact += 3; }
-  // Argentina bonus
-  if (ARG_KEYS_S.some(k => low.includes(k))) { relevance += 5; impact += 5; }
-  // Election bonus
-  if (low.includes("election") || low.includes("president")) { relevance += 2; impact += 3; }
-
-  // Volume score (0-5)
+  let rel = 0, imp = 0;
+  if (MACRO_KEYS.some(k => low.includes(k))) { rel += 4; imp += 4; }
+  if (GEOPO_KEYS.some(k => low.includes(k))) { rel += 3; imp += 4; }
+  if (MARKET_KEYS.some(k => low.includes(k))) { rel += 3; imp += 3; }
+  if (ARG_KEYS.some(k => low.includes(k))) { rel += 5; imp += 5; }
+  if (low.includes("election") || low.includes("president")) { rel += 2; imp += 3; }
   const volScore = vol >= 1e6 ? 5 : vol >= 500000 ? 4 : vol >= 100000 ? 3 : vol >= 10000 ? 2 : vol >= 1000 ? 1 : 0;
-
-  return Math.min(relevance, 5) + Math.min(impact, 5) + volScore;
+  return Math.min(rel, 5) + Math.min(imp, 5) + volScore;
 }
 
 function categorize(q) {
   const low = q.toLowerCase();
   if (MACRO_KEYS.some(k => low.includes(k))) return "macro";
-  if (GEOPO_KEYS.some(k => low.includes(k))) return "geopolitics";
   if (MARKET_KEYS.some(k => low.includes(k))) return "markets";
+  if (GEOPO_KEYS.some(k => low.includes(k))) return "geopolitics";
   if (low.includes("election") || low.includes("president")) return "geopolitics";
-  return "macro"; // default
+  return "macro";
 }
 
 function normalizeTitle(q) {
-  return q
-    .replace(/^Will /i, "")
-    .replace(/\?$/, "")
-    .replace(/ by (\w+ \d+,? \d{4})/i, " (antes de $1)")
-    .replace(/ before (\w+ \d+,? \d{4})/i, " (antes de $1)")
-    .replace(/ in 2026/i, " en 2026")
-    .replace(/ in 2027/i, " en 2027");
+  return q.replace(/^Will /i, "").replace(/\?$/, "");
 }
 
 export default async function handler(req, res) {
@@ -70,30 +55,47 @@ export default async function handler(req, res) {
 
   try {
     // 1. Fetch from strategic tags
-    const tags = ["argentina","politics","economics","world-politics","elections","inflation","geopolitics","midterms"];
+    const tags = ["argentina","politics","economics","world-politics","elections","inflation","geopolitics","midterms","fed","oil"];
     const fetches = tags.map(tag =>
       fetch(`https://gamma-api.polymarket.com/events?tag=${tag}&limit=40&active=true&closed=false&order=volume&ascending=false`,
         { headers: { Accept: "application/json" } }).then(r => r.json()).catch(() => [])
     );
 
-    // 2. Fetch tracked elections
+    // 2. Fetch specific tracked events by slug
     const trackedSlugs = [
       "brazil-presidential-election",
       "which-party-will-win-the-house-in-2026",
       "which-party-will-win-the-senate-in-2026",
       "balance-of-power-2026-midterms",
+      "how-many-fed-rate-cuts-in-2026",
+      "argentina-monthly-inflation-april",
+      "argentina-monthly-inflation-may",
+      "argentina-inflation",
     ];
+    
+    // Also search for Argentina + oil specific
+    const searchQueries = [
+      "https://gamma-api.polymarket.com/events?tag=argentina&limit=50&active=true&closed=false&order=volume&ascending=false",
+      "https://gamma-api.polymarket.com/events?tag=oil&limit=20&active=true&closed=false&order=volume&ascending=false",
+      "https://gamma-api.polymarket.com/events?tag=fed&limit=20&active=true&closed=false&order=volume&ascending=false",
+    ];
+
     const trackedFetches = trackedSlugs.map(slug =>
       fetch(`https://gamma-api.polymarket.com/events?slug=${slug}&limit=1`,
         { headers: { Accept: "application/json" } }).then(r => r.json()).catch(() => [])
     );
+    
+    const searchFetches = searchQueries.map(url =>
+      fetch(url, { headers: { Accept: "application/json" } }).then(r => r.json()).catch(() => [])
+    );
 
-    const [tagResults, trackedResults] = await Promise.all([
+    const [tagResults, trackedResults, searchResults] = await Promise.all([
       Promise.all(fetches),
       Promise.all(trackedFetches),
+      Promise.all(searchFetches),
     ]);
 
-    // 3. Process tracked elections
+    // 3. Process tracked elections / specific events
     const tracked = [];
     for (const events of trackedResults) {
       if (!Array.isArray(events) || !events.length) continue;
@@ -114,54 +116,44 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. Process general events with scoring
+    // 4. Process general + search events with scoring
+    const allEvents = [...tagResults.flat(), ...searchResults.flat()];
     const seen = new Set(tracked.map(t => t.id));
     const curated = [];
 
-    for (const events of tagResults) {
-      if (!Array.isArray(events)) continue;
-      for (const ev of events) {
-        if (!ev.markets) continue;
-        for (const m of ev.markets) {
-          if (seen.has(m.id)) continue;
-          seen.add(m.id);
-
-          let outcomes, prices;
-          try { outcomes = JSON.parse(m.outcomes||"[]"); prices = JSON.parse(m.outcomePrices||"[]"); } catch { continue; }
-          if (!outcomes.length || !prices.length) continue;
-
-          const q = (m.question || ev.title || "");
-          const low = q.toLowerCase();
-
-          // Exclude
-          if (EXCLUDE.some(k => low.includes(k))) continue;
-
-          const vol = parseFloat(m.volume) || 0;
-          const score = scoreEvent(q, vol);
-          if (score < 8) continue;
-
-          const isArg = ARG_KEYS_S.some(k => low.includes(k));
-
-          curated.push({
-            id: m.id,
-            title: normalizeTitle(q),
-            probability: parseFloat(prices[0]) || 0,
-            volume: vol,
-            category: categorize(q),
-            score,
-            isArg,
-          });
-        }
+    for (const ev of allEvents) {
+      if (!ev || !ev.markets) continue;
+      for (const m of ev.markets) {
+        if (seen.has(m.id)) continue;
+        seen.add(m.id);
+        let outcomes, prices;
+        try { outcomes = JSON.parse(m.outcomes||"[]"); prices = JSON.parse(m.outcomePrices||"[]"); } catch { continue; }
+        if (!outcomes.length || !prices.length) continue;
+        const q = (m.question || ev.title || "");
+        const low = q.toLowerCase();
+        if (EXCLUDE.some(k => low.includes(k))) continue;
+        const vol = parseFloat(m.volume) || 0;
+        const score = scoreEvent(q, vol);
+        if (score < 7) continue;
+        const isArg = ARG_KEYS.some(k => low.includes(k));
+        curated.push({
+          id: m.id, title: normalizeTitle(q),
+          probability: parseFloat(prices[0]) || 0,
+          volume: vol, category: categorize(q),
+          score, isArg,
+        });
       }
     }
 
     curated.sort((a, b) => b.score - a.score || b.volume - a.volume);
 
     return res.status(200).json({
-      tracked: tracked.slice(0, 20),
-      indicators: curated.slice(0, 15),
+      tracked: tracked.slice(0, 25),
+      indicators: curated.slice(0, 20),
+      status: "live",
+      timestamp: new Date().toISOString(),
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message, status: "offline" });
   }
 }

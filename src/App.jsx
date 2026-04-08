@@ -2021,10 +2021,9 @@ const upColor   = {"MUY ALTO":"green",ALTO:"blue",MEDIO:"gold",BAJO:"gray"};
    EQUITY SCREENER COMPONENT
 ════════════════════════════════════════════════════════════════ */
 // Finnhub — llamadas directas al API con key en frontend
-const FINNHUB_KEY = "d6uv5a9r01qig5460670d6uv5a9r01qig546067g";
-const FINNHUB_BASE = "https://finnhub.io/api/v1";
-const FINNHUB_PROXY = `${FINNHUB_BASE}/quote?token=${FINNHUB_KEY}&symbol`;
-const FINNHUB_CANDLE_PROXY = `${FINNHUB_BASE}/stock/candle?token=${FINNHUB_KEY}&symbol`;
+// Finnhub via Vercel proxy — key is in env variable, never exposed to client
+const FINNHUB_PROXY = "/api/quote?symbol";
+const FINNHUB_CANDLE_PROXY = "/api/candle?symbol";
 
 function EquityScreener({ t }) {
   // ── Filtros & sort ────────────────────────────────────────────
@@ -3923,7 +3922,7 @@ function ONsPanel({ t }) {
             <h2 style={{ fontFamily:FD, fontSize:24, fontWeight:700, color:"#fff", margin:0 }}>
               Obligaciones <span style={{ color:"#4A90D9" }}>Negociables</span>
             </h2>
-            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", marginTop:6 }}>Datos: mercado secundario · 26 MAR 2026</p>
+            <p style={{ fontFamily:FB, fontSize:11, color:"rgba(255,255,255,.5)", marginTop:6 }}>Datos: mercado secundario · en vivo</p>
           </div>
           <div style={{
             borderRadius:8, padding:"6px 12px", fontFamily:FB, fontSize:10,
@@ -4443,13 +4442,13 @@ function InstrumentosView({ t }) {
         }
       } catch {}
       try {
-        const r = await fetch("https://api.bcra.gob.ar/estadisticas/v3.0/monetarias/principales-variables");
+        const r = await fetch("/api/bcra?list=1");
         const data = await r.json();
-        const results = data.results || data;
-        const tamar = Array.isArray(results) && results.find(v =>
-          (v.descripcion || v.nombre || "").toLowerCase().includes("tamar") || v.idVariable === 17
+        const results = data.results || [];
+        const tamar = results.find(v =>
+          (v.descripcion || "").toLowerCase().includes("tamar") && (v.descripcion || "").toLowerCase().includes("privad")
         );
-        if (tamar && tamar.valor) { setTamarRate(parseFloat(tamar.valor)); hits++; }
+        if (tamar && tamar.ultValorInformado) { setTamarRate(parseFloat(tamar.ultValorInformado)); hits++; }
       } catch {}
       setArsStatus(hits > 0 ? "ok" : "partial");
       setLastUpdate(new Date());
@@ -5379,7 +5378,7 @@ function MercadosView({ dolar, riesgoPais, fxError, liveMarket={}, t }) {
   const of  = dolar?.oficial?.venta;
   const bl  = dolar?.blue?.venta;
   const mep = dolar?.bolsa?.venta;
-  const ccl = dolar?.ccl?.venta;
+  const ccl = dolar?.contadoconliqui?.venta;
   const may = dolar?.mayorista?.venta;
 
   const bBlue = pct(bl, of);
@@ -7201,11 +7200,11 @@ export default function App() {
   useEffect(() => {
     // Valores verificados 20 MAR 2026 — Fuente: La Nación / El Cronista / c5n
     const FALLBACK = {
-      oficial:   { compra: 1365, venta: 1415 },
-      blue:      { compra: 1410, venta: 1430 },
-      bolsa:     { compra: 1418, venta: 1421 },
-      ccl:       { compra: 1462, venta: 1478 },
-      mayorista: { compra: 1392, venta: 1394 },
+      oficial:          { compra: 1365, venta: 1415 },
+      blue:             { compra: 1410, venta: 1430 },
+      bolsa:            { compra: 1418, venta: 1421 },
+      contadoconliqui:  { compra: 1462, venta: 1478 },
+      mayorista:        { compra: 1392, venta: 1394 },
     };
     const FALLBACK_RP = { valor: 640, fecha: "20 MAR 2026" };
 
@@ -7218,11 +7217,11 @@ export default function App() {
         const data = await res.json();
         const byName = k => data.find(d => d.casa === k);
         setDolar({
-          oficial:   byName("oficial")   || FALLBACK.oficial,
-          blue:      byName("blue")      || FALLBACK.blue,
-          bolsa:     byName("bolsa")     || FALLBACK.bolsa,
-          ccl:       byName("contadoconliqui") || FALLBACK.ccl,
-          mayorista: byName("mayorista") || FALLBACK.mayorista,
+          oficial:         byName("oficial")          || FALLBACK.oficial,
+          blue:            byName("blue")             || FALLBACK.blue,
+          bolsa:           byName("bolsa")            || FALLBACK.bolsa,
+          contadoconliqui: byName("contadoconliqui")  || FALLBACK.contadoconliqui,
+          mayorista:       byName("mayorista")         || FALLBACK.mayorista,
         });
         setFxError(false);
       } catch {
@@ -7341,7 +7340,7 @@ export default function App() {
   const of  = dolar?.oficial?.venta;
   const bl  = dolar?.blue?.venta;
   const mep = dolar?.bolsa?.venta;
-  const ccl = dolar?.ccl?.venta;
+  const ccl = dolar?.contadoconliqui?.venta;
 
   // ── Última noticia para el ticker ──────────────────────────
   const lastNews = NOTICIAS[0];

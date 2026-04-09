@@ -2334,43 +2334,50 @@ function EquityScreener({ t }) {
   const [quotesComplete, setQuotesComplete] = useState(false);
   const livePricesRef = useRef({});
 
-  // Phase 1 — Quotes (precio en vivo + cambio 1D)
+  // Phase 1 — Quotes batch: una sola llamada al proxy /api/batch en vez de 131 llamadas secuenciales
+  // Tiempo anterior: 131 × 820ms = 107 segundos. Ahora: ~5-10 segundos total.
   useEffect(() => {
     let cancelled = false;
-    const tickers = EQUITIES.map(e => e.t);
-    let firstHit = false;
+    const tickers = EQUITIES.map(e => e.t).filter(t => t && t !== "ARG" && t !== "US");
     const run = async () => {
-      for (let i = 0; i < tickers.length; i++) {
+      try {
+        // Llamada única — Vercel resuelve todos en paralelo server-side
+        const symbols = tickers.join(",");
+        const r = await fetch(`/api/batch?symbols=${encodeURIComponent(symbols)}`);
+        const data = await r.json();
         if (cancelled) return;
-        try {
-          const r = await fetch(`${FINNHUB_PROXY}=${tickers[i]}`);
-          const d = await r.json();
-          if (d.c && d.c > 0) {
-            const entry = { price: d.c, change: d.d, changePct: d.dp };
-            livePricesRef.current = { ...livePricesRef.current, [tickers[i]]: entry };
-            updateLivePrice(tickers[i], entry);
-            if (!firstHit) { firstHit = true; setLiveStatus("ok"); }
-          }
-        } catch {}
-        if (i < tickers.length - 1) await new Promise(r => setTimeout(r, 820));
+        const prices = data.prices || {};
+        if (Object.keys(prices).length > 0) {
+          // Cargar todos a la vez en lugar de uno por uno
+          livePricesRef.current = prices;
+          setLivePrices(prev => {
+            const next = { ...prev, ...prices };
+            try { localStorage.setItem("tbl-live-prices", JSON.stringify(next)); } catch {}
+            return next;
+          });
+          setLiveStatus("ok");
+        } else {
+          setLiveStatus("error");
+        }
+      } catch {
+        if (!cancelled) setLiveStatus("error");
       }
-      if (!cancelled) {
-        if (!firstHit) setLiveStatus("error");
-        setQuotesComplete(true);
-      }
+      if (!cancelled) setQuotesComplete(true);
     };
     run();
-    return () => { cancelled = true; };
+    // Refresh cada 90 segundos
+    const id = setInterval(() => { if (!cancelled) run(); }, 90000);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   // Phase 2 — Candles semanales (1S, 1M, YTD, 52H) — arranca cuando terminan los quotes
   useEffect(() => {
     if (!quotesComplete) return;
     let cancelled = false;
-    const tickers = EQUITIES.map(e => e.t);
+    const tickers = EQUITIES.map(e => e.t).filter(t => t && t !== "ARG" && t !== "US");
     const NOW     = Math.floor(Date.now() / 1000);
     const W52_AGO = NOW - 366 * 86400;
-    const JAN1    = 1735689600; // 1 ene 2026
+    const JAN1    = 1735689600;
     const M1_AGO  = NOW - 30  * 86400;
     const W1_AGO  = NOW - 7   * 86400;
 
@@ -2381,34 +2388,39 @@ function EquityScreener({ t }) {
       return closes[closes.length - 1];
     };
 
+    // Fetch candles in parallel batches of 10 (respeta rate limit de Finnhub)
+    const BATCH = 10;
     const run = async () => {
       let firstHit = false;
-      for (let i = 0; i < tickers.length; i++) {
+      for (let i = 0; i < tickers.length; i += BATCH) {
         if (cancelled) return;
-        try {
-          const url = `${FINNHUB_CANDLE_PROXY}=${tickers[i]}&resolution=W&from=${W52_AGO}&to=${NOW}`;
-          const r = await fetch(url);
-          const d = await r.json();
-          if (d.s === "ok" && d.c?.length > 1) {
-            const closes = d.c, times = d.t;
-            const cur    = livePricesRef.current[tickers[i]]?.price ?? closes[closes.length - 1];
-            const hi52   = Math.max(...closes);
-            const s1Base = findClose(times, closes, W1_AGO);
-            const m1Base = findClose(times, closes, M1_AGO);
-            const ytdBase= findClose(times, closes, JAN1);
-            setLiveHistory(prev => ({
-              ...prev,
-              [tickers[i]]: {
-                s1:      (cur - s1Base)  / s1Base  * 100,
-                m1:      (cur - m1Base)  / m1Base  * 100,
-                ytd:     (cur - ytdBase) / ytdBase * 100,
-                distHi52:(cur - hi52)    / hi52    * 100,
-              }
-            }));
-            if (!firstHit) { firstHit = true; setHistStatus("ok"); }
-          }
-        } catch {}
-        if (i < tickers.length - 1) await new Promise(r => setTimeout(r, 950));
+        const batch = tickers.slice(i, i + BATCH);
+        await Promise.allSettled(batch.map(async ticker => {
+          try {
+            const url = `${FINNHUB_CANDLE_PROXY}=${ticker}&resolution=W&from=${W52_AGO}&to=${NOW}`;
+            const r = await fetch(url);
+            const d = await r.json();
+            if (d.s === "ok" && d.c?.length > 1) {
+              const closes = d.c, times = d.t;
+              const cur     = livePricesRef.current[ticker]?.price ?? closes[closes.length - 1];
+              const hi52    = Math.max(...closes);
+              const s1Base  = findClose(times, closes, W1_AGO);
+              const m1Base  = findClose(times, closes, M1_AGO);
+              const ytdBase = findClose(times, closes, JAN1);
+              setLiveHistory(prev => ({
+                ...prev,
+                [ticker]: {
+                  s1:      (cur - s1Base)  / s1Base  * 100,
+                  m1:      (cur - m1Base)  / m1Base  * 100,
+                  ytd:     (cur - ytdBase) / ytdBase * 100,
+                  distHi52:(cur - hi52)    / hi52    * 100,
+                }
+              }));
+              if (!firstHit) { firstHit = true; setHistStatus("ok"); }
+            }
+          } catch {}
+        }));
+        if (i + BATCH < tickers.length) await new Promise(r => setTimeout(r, 1200));
       }
       if (!cancelled && !firstHit) setHistStatus("error");
     };

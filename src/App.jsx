@@ -806,6 +806,55 @@ const BALANZ_ETPS = [
 ];
 
 const NOTICIAS = [
+  // ════════════════════════════════════════════════════════
+  //  INFORMES DE CONTEXTO — ABR 2026
+  // ════════════════════════════════════════════════════════
+  {
+    id:"inf3", fecha:"08 ABR 2026", cat:"INFORME · TECNOLOGÍA", catColor:"blue", seccion:"Informes",
+    titulo:"Tecnológicas: el fondo del selloff o una trampa de valor",
+    relevancia:"alta",
+    cuerpo:`El <strong>S&P 500 acumula cuatro semanas en rojo</strong> y el sector tecnológico fue el más golpeado. NVDA bajó -4,3% en el año, MSFT -19%, META -8%, AMZN -9%. La pregunta que divide al mercado: ¿este es el piso de la corrección o el inicio de una rotación estructural fuera del sector?
+
+<strong>El dato duro:</strong> las valuaciones siguen siendo altas en términos absolutos. El Nasdaq cotiza a 28x ganancias forward, bien por encima de su promedio histórico de 22x. Pero el contexto cambió: la Fed implícitamente señala que no recortará tasas antes de diciembre, lo que comprime múltiplos de crecimiento.
+
+<strong>Earnings de abril serán el termómetro clave.</strong> Tesla reporta el 22 ABR, Amazon el 23, Meta el 29, Apple el 30. NVIDIA espera hasta el 20 de mayo. El mercado no perdonará guianzas conservadoras —los PEs actuales solo se justifican con crecimiento de dos dígitos sostenido.
+
+<em>Dato vs. interpretación:</em> el selloff parece más un reacomodamiento de múltiplos que un deterioro de fundamentos. Los balances corporativos siguen fuertes, el gasto en IA no da señales de desaceleración. La clave está en el guidance de Q2. Los que aguanten la volatilidad de las próximas tres semanas tienen una ventana de entrada que históricamente generó retornos superiores.
+
+<strong>Sectores con mayor margen de suba relativo:</strong> ciberseguridad (CRWD, PANW) que corrigieron ~10% sin deterioro de fundamentos, y software de infraestructura (NOW, DDOG) con crecimiento de ingresos acelerado.`,
+  },
+  {
+    id:"inf2", fecha:"07 ABR 2026", cat:"INFORME · ENERGÍA", catColor:"gold", seccion:"Informes",
+    titulo:"Petroleras: cómo leer el rally del petróleo y la decisión de toma de ganancias",
+    relevancia:"alta",
+    cuerpo:`El Brent escaló de USD 72 en enero a USD 108 en marzo, un rally de <strong>+50% en diez semanas</strong>. El catalizador fue el ataque de EE.UU. e Israel sobre instalaciones iraníes el 28 de febrero, que generó temores concretos sobre el estrecho de Ormuz, por donde transita el 20% del suministro mundial de crudo. Las grandes petroleras respondieron en consecuencia: <strong>XOM subió +31%</strong>, CVX +32%, OXY +36%, EOG +27%.
+
+<strong>¿Es momento de vender?</strong> La señal iraní del 7 de abril —el presidente Pezeshkian dijo que Irán está dispuesto a terminar la guerra a cambio de garantías de seguridad— hizo caer el WTI -2% en la jornada, a ~$100. Esto es el primer indicador real de desescalada.
+
+<em>La tesis para mantener:</em> incluso con ceasefire, la oferta de la OPEP sigue restringida, los inventarios de EEUU están 8% bajo el promedio de 5 años y la demanda asiática sorprendió al alza en Q1. El precio de equilibrio del Brent en un escenario sin conflicto sería ~$80-85 —todavía por encima del mínimo de enero.
+
+<em>La tesis para rotar:</em> los stocks de energía ya descontaron un conflicto prolongado. La resolución —parcial o total— generaría una compresión rápida de 15-20% en los precios spot, arrastrando las acciones. Las compañías con mayor beta al Brent (OXY, DVN, HAL) serían las más expuestas.
+
+<strong>Dato preciso para la decisión:</strong> OXY necesita Brent a $75 para generar FCF positivo. A $100, su FCF yield es ~12%. Eso es un colchón cómodo. SLB y HAL, como servicios de campo, tienen menos leverage directo al precio del crudo y mayor visibilidad de contratos —son mejores para mantener en cartera con horizonte más largo.`,
+  },
+  {
+    id:"inf1", fecha:"06 ABR 2026", cat:"INFORME · GEOPOLÍTICA", catColor:"red", seccion:"Informes",
+    titulo:"Conflicto Irán: el mapa del riesgo para carteras argentinas",
+    relevancia:"alta",
+    cuerpo:`El <strong>ataque coordinado de EE.UU. e Israel sobre Irán</strong> el 28 de febrero de 2026 marcó la escalada más significativa en Medio Oriente desde la Segunda Guerra del Golfo. El impacto sobre los mercados fue inmediato y diferenciado: el Brent saltó $25 en 48 horas, los índices americanos cedieron más del 8% en dos semanas, y el oro tocó USD 4.700 antes de corregir.
+
+<strong>¿Cómo afecta esto a un inversor argentino?</strong>
+
+<em>Canal 1 — Precio del petróleo → Vaca Muerta:</em> el petróleo alto es inequívocamente positivo para las exportaciones argentinas de crudo. YPF, Vista (VIST) y Pampa Energía se benefician directamente. Un Brent sostenido en $90-100 acelera los plazos de retorno de los pozos en Vaca Muerta y mejora el perfil de crédito soberano vía ingreso de divisas.
+
+<em>Canal 2 — Tasas globales → Bonos soberanos:</em> el shock energético presionó la inflación americana al alza (FED revisó su estimación al 2.7%), lo que retrasó los recortes de tasas. Para Argentina, esto significa que sus soberanos en USD siguen compitiendo con Treasuries a tasas altas —un headwind para la compresión del spread.
+
+<em>Canal 3 — Risk-off → Merval:</em> cuando el mundo entra en modo risk-off, los activos emergentes sufren en primer lugar. El Merval mostró resiliencia relativa (caída menor a pares EM) gracias al componente energético del índice.
+
+<strong>Señal del 7 ABR:</strong> el presidente iraní expresó disposición a negociar con garantías de seguridad. WTI cayó 2% a $100. Si esta señal se materializa en un cese del fuego, el escenario más probable es una rotación desde energía y defensa hacia tech y consumo. El oro podría corregir otro 5-8%.
+
+<em>Dato vs. interpretación:</em> el riesgo de cola —un ataque al estrecho de Ormuz con cierre real de la ruta— sería un evento con consecuencias inflacionarias globales de magnitud comparable a la crisis del '73. La probabilidad del mercado, según Polymarket, se ubica en torno al 12%.`,
+  },
   {
     id:"n7", fecha:"20 MAR 2026", cat:"EMPRESAS · $BIOX", catColor:"red", seccion:"Empresas",
     titulo:"Bioceres (BIOX) en riesgo de desliste en Nasdaq: cotizó debajo de US$1 durante 30 ruedas",
@@ -1162,9 +1211,11 @@ function SummaryCard({ s, t }) {
 ════════════════════════════════════════════════════════════════ */
 function PolymarketPanel({ t }) {
   const [tracked, setTracked] = useState([]);
+  const [argTracked, setArgTracked] = useState([]);
   const [indicators, setIndicators] = useState([]);
   const [status, setStatus] = useState("loading");
   const [tab, setTab] = useState("todos");
+  const [argNote, setArgNote] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -1172,7 +1223,9 @@ function PolymarketPanel({ t }) {
         const r = await fetch("/api/polymarket");
         const d = await r.json();
         setTracked(d.tracked || []);
+        setArgTracked(d.argTracked || []);
         setIndicators(d.indicators || []);
+        setArgNote(d.argNote || "");
         setStatus("ok");
       } catch { setStatus("error"); }
     };
@@ -1217,7 +1270,7 @@ function PolymarketPanel({ t }) {
             <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color: status==="ok" ? t.gr : status==="error" ? t.rd : t.mu }}>
               {status==="ok" ? "API EN VIVO" : status==="error" ? "API OFFLINE" : "CONECTANDO..."}
             </span>
-            {status==="ok" && <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>· {tracked.length + indicators.length} indicadores</span>}
+            {status==="ok" && <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>· {tracked.length + argTracked.length + indicators.length} indicadores</span>}
           </div>
         </div>
       </div>
@@ -1240,7 +1293,84 @@ function PolymarketPanel({ t }) {
 
       {status === "ok" && (
         <>
-          {/* ══════ SECTION 1: Tracked Elections ══════ */}
+          {/* ══════ SECTION 2: Argentina ══════ */}
+          {argTracked.length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                <span style={{ fontSize:14 }}>🇦🇷</span>
+                <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.go, letterSpacing:".1em", textTransform:"uppercase" }}>
+                  ARGENTINA · MERCADOS DE PREDICCIÓN
+                </div>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:10 }}>
+                {argTracked.map((m, i) => {
+                  const isMulti = m.outcomes && m.outcomes.length > 2;
+                  const isYesNo = m.outcomes && m.outcomes.length === 2;
+                  return (
+                    <Card key={i} t={t} style={{ borderLeft:`3px solid ${t.go}` }}>
+                      <div style={{ padding:"14px 16px" }}>
+                        <div style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.tx, marginBottom:10, lineHeight:1.3 }}>
+                          {m.group || m.title}
+                        </div>
+
+                        {isYesNo && (() => {
+                          const yes = m.outcomes.find(o => o.label === "Yes" || o.label === "Sí");
+                          const pct = Math.round((yes || m.outcomes[0]).prob * 100);
+                          const col = pct >= 65 ? t.gr : pct <= 35 ? t.rd : t.bl;
+                          return (
+                            <div>
+                              <div style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:10, color:t.mu, marginBottom:5 }}>
+                                <span>{(yes || m.outcomes[0]).label === "Yes" ? "Probabilidad Sí" : m.outcomes[0].label}</span>
+                                <span style={{ fontWeight:700, color:col }}>{pct}%</span>
+                              </div>
+                              <div style={{ height:18, background:t.alt, borderRadius:5, overflow:"hidden" }}>
+                                <div style={{ width:`${pct}%`, height:"100%",
+                                  background:`linear-gradient(90deg,${col}88,${col})`,
+                                  borderRadius:5, transition:"width .6s cubic-bezier(.4,0,.2,1)" }} />
+                              </div>
+                              <div style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:9, color:t.fa, marginTop:5 }}>
+                                <span>No: {100-pct}%</span>
+                                <span>Vol: ${m.volume >= 1e6 ? (m.volume/1e6).toFixed(1)+"M" : m.volume >= 1000 ? (m.volume/1000).toFixed(0)+"K" : Math.round(m.volume)}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {isMulti && (
+                          <div>
+                            {m.outcomes.filter(o => o.prob >= 0.03).sort((a,b) => b.prob-a.prob).map((o, oi) => {
+                              const pct = Math.round(o.prob * 100);
+                              const colors = [t.bl, t.go, t.gr, t.pu, t.rd];
+                              const col = colors[oi % colors.length];
+                              return (
+                                <div key={oi} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                                  <span style={{ fontFamily:FB, fontSize:10, color:t.mu, minWidth:80, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{o.label}</span>
+                                  <div style={{ flex:1, height:12, background:t.alt, borderRadius:4, overflow:"hidden" }}>
+                                    <div style={{ width:`${pct}%`, height:"100%", background:col, borderRadius:4, transition:"width .6s" }} />
+                                  </div>
+                                  <span style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:col, minWidth:35, textAlign:"right" }}>{pct}%</span>
+                                </div>
+                              );
+                            })}
+                            <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:4 }}>
+                              Vol: ${m.volume >= 1e6 ? (m.volume/1e6).toFixed(1)+"M" : m.volume >= 1000 ? (m.volume/1000).toFixed(0)+"K" : Math.round(m.volume)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+              {argNote && (
+                <div style={{ marginTop:8, padding:"8px 12px", background:t.alt, borderRadius:7, fontFamily:FB, fontSize:9, color:t.fa, borderLeft:`2px solid ${t.go}44` }}>
+                  ⚖️ {argNote}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══════ SECTION 3: Tracked Elections ══════ */}
           {Object.keys(trackedGroups).length > 0 && (
             <div style={{ marginBottom:24 }}>
               <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
@@ -1301,7 +1431,7 @@ function PolymarketPanel({ t }) {
             </div>
           )}
 
-          {/* ══════ SECTION 2: Curated Indicators ══════ */}
+          {/* ══════ SECTION 4: Curated Indicators ══════ */}
           <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:10 }}>
             INDICADORES MACRO Y GEOPOLÍTICOS
           </div>
@@ -1558,9 +1688,38 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
       {/* ── INFORMES ── */}
       {sub === "informes" && (
         <div>
-          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:16, lineHeight:1.6 }}>
-            Análisis fundamental de empresas con perspectiva de inversión. Research Desk.
+          <p style={{ fontFamily:FB, fontSize:11, color:t.mu, marginBottom:20, lineHeight:1.6 }}>
+            Análisis fundamental de empresas y contexto de mercado. Research Desk · The Big Long.
           </p>
+
+          {/* ── Informes de contexto (3 reports del NOTICIAS array) ── */}
+          {NOTICIAS.filter(n => n.seccion === "Informes").map((n, ni) => {
+            const acColors = { blue:t.bl, red:t.rd, gold:t.go, green:t.gr, purple:t.pu };
+            const ac = acColors[n.catColor] || t.go;
+            return (
+              <div key={n.id} style={{
+                background:t.srf, border:`1px solid ${t.brd}`, borderLeft:`4px solid ${ac}`,
+                borderRadius:14, marginBottom:16, overflow:"hidden",
+              }}>
+                <div style={{ padding:"20px 24px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
+                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase",
+                      letterSpacing:".08em", color:ac, background:ac+"18", padding:"3px 10px", borderRadius:20 }}>{n.cat}</span>
+                    <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{n.fecha}</span>
+                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:t.rd, background:t.rdBg,
+                      padding:"2px 7px", borderRadius:20, display:"flex", alignItems:"center", gap:2 }}>
+                      🔴 ALTA RELEVANCIA
+                    </span>
+                  </div>
+                  <h2 style={{ fontFamily:FH, fontSize:22, fontWeight:700, color:t.tx, marginBottom:16, lineHeight:1.3 }}>{n.titulo}</h2>
+                  <div style={{ fontFamily:FB, fontSize:13, color:t.tx, lineHeight:1.85 }}
+                    dangerouslySetInnerHTML={{ __html: n.cuerpo }} />
+                </div>
+              </div>
+            );
+          })}
+
+          {/* ── Informe empresa: VIST ── */}
           <VISTInformeCard t={t} />
         </div>
       )}
@@ -2040,6 +2199,57 @@ const EQUITIES = [
   {t:"SLV",  e:"iShares Silver",       p:66.8,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:4.12, m1:null,  a1:null,   ytd:null},
   {t:"EWZ",  e:"iShares Brazil",       p:40.24,   mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
   {t:"SMH",  e:"VanEck Semiconductors",p:195.0,  mkt:"ETF",tg:null,   an:null,  fpe:null,  fpg:null, rw:null,  ma:null,   up:null,       cal:null,       val:null,       mom:"FUERTE",    sc:null, s1:null, m1:null,  a1:null,   ytd:null},
+  // ── ENERGÍA — Rally post-conflicto Irán (feb-mar 2026) ──────
+  {t:"COP",  e:"ConocoPhillips",         p:116.8,  mkt:"US", tg:130.0,  an:"BUY", fpe:13.2,  fpg:1.8,  rw:14.5,  ma:12.3,   up:"MEDIO",    cal:"ALTA",     val:"RAZONABLE", mom:"MUY FUERTE",sc:72.1, s1:4.1,  m1:18.3,  a1:28.5,  ytd:24.7},
+  {t:"EOG",  e:"EOG Resources",          p:134.2,  mkt:"US", tg:155.0,  an:"BUY", fpe:10.4,  fpg:1.2,  rw:16.8,  ma:8.9,    up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"MUY FUERTE",sc:74.5, s1:3.8,  m1:21.4,  a1:31.2,  ytd:27.3},
+  {t:"OXY",  e:"Occidental Petroleum",   p:69.8,   mkt:"US", tg:73.0,   an:"HOLD",fpe:11.1,  fpg:1.5,  rw:9.2,   ma:6.4,    up:"BAJO",     cal:"BAJA",     val:"RAZONABLE", mom:"MUY FUERTE",sc:55.3, s1:2.9,  m1:22.1,  a1:36.0,  ytd:31.5},
+  {t:"SLB",  e:"SLB (Schlumberger)",     p:47.8,   mkt:"US", tg:58.0,   an:"BUY", fpe:14.2,  fpg:1.1,  rw:11.3,  ma:10.2,   up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"MUY FUERTE",sc:68.4, s1:3.4,  m1:16.7,  a1:22.4,  ytd:19.8},
+  {t:"HAL",  e:"Halliburton Co.",        p:29.1,   mkt:"US", tg:38.0,   an:"BUY", fpe:12.8,  fpg:0.9,  rw:8.7,   ma:14.3,   up:"MUY ALTO", cal:"ALTA",     val:"BARATA",   mom:"FUERTE",    sc:66.2, s1:2.7,  m1:14.5,  a1:18.9,  ytd:16.4},
+  {t:"PSX",  e:"Phillips 66",            p:147.5,  mkt:"US", tg:162.0,  an:"BUY", fpe:10.9,  fpg:2.1,  rw:7.4,   ma:5.8,    up:"MEDIO",    cal:"MEDIA",    val:"RAZONABLE", mom:"FUERTE",    sc:61.8, s1:2.1,  m1:12.3,  a1:19.7,  ytd:15.6},
+  {t:"DVN",  e:"Devon Energy",           p:44.9,   mkt:"US", tg:55.0,   an:"BUY", fpe:9.1,   fpg:0.8,  rw:12.4,  ma:17.6,   up:"ALTO",     cal:"MEDIA",    val:"BARATA",   mom:"MUY FUERTE",sc:63.7, s1:4.5,  m1:19.8,  a1:14.3,  ytd:18.2},
+  // ── DEFENSA — Beneficiaria directa del conflicto Irán ───────
+  {t:"LMT",  e:"Lockheed Martin",        p:528.4,  mkt:"US", tg:620.0,  an:"BUY", fpe:18.3,  fpg:2.4,  rw:null,  ma:3.2,    up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"MUY FUERTE",sc:76.3, s1:5.8,  m1:14.2,  a1:22.1,  ytd:18.9},
+  {t:"NOC",  e:"Northrop Grumman",       p:543.7,  mkt:"US", tg:650.0,  an:"BUY", fpe:19.8,  fpg:2.6,  rw:null,  ma:2.4,    up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"MUY FUERTE",sc:74.1, s1:5.2,  m1:15.8,  a1:26.4,  ytd:21.7},
+  // ── INDUSTRIALS ─────────────────────────────────────────────
+  {t:"HON",  e:"Honeywell Intl.",        p:201.8,  mkt:"US", tg:228.0,  an:"BUY", fpe:22.1,  fpg:2.8,  rw:14.2,  ma:-4.3,   up:"MEDIO",    cal:"EXCELENTE",val:"RAZONABLE", mom:"DÉBIL",    sc:58.4, s1:-2.1, m1:-3.8,  a1:4.2,   ytd:-3.1},
+  {t:"BA",   e:"Boeing Co.",             p:168.2,  mkt:"US", tg:210.0,  an:"HOLD",fpe:null,  fpg:null, rw:null,  ma:-18.4,  up:"ALTO",     cal:"BAJA",     val:"RAZONABLE", mom:"DÉBIL",    sc:34.2, s1:-1.4, m1:-8.2,  a1:-12.3, ytd:-9.7},
+  {t:"DE",   e:"John Deere & Co.",       p:387.6,  mkt:"US", tg:430.0,  an:"BUY", fpe:17.8,  fpg:2.1,  rw:18.4,  ma:-6.2,   up:"MEDIO",    cal:"EXCELENTE",val:"RAZONABLE", mom:"DÉBIL",    sc:52.7, s1:-1.8, m1:-5.3,  a1:3.8,   ytd:-4.2},
+  {t:"MMM",  e:"3M Company",             p:117.4,  mkt:"US", tg:130.0,  an:"HOLD",fpe:14.8,  fpg:1.9,  rw:6.3,   ma:-8.4,   up:"MEDIO",    cal:"MEDIA",    val:"RAZONABLE", mom:"DÉBIL",    sc:41.5, s1:-3.2, m1:-7.1,  a1:-4.8,  ytd:-5.9},
+  // ── HEALTHCARE ADICIONAL ─────────────────────────────────────
+  {t:"ABT",  e:"Abbott Laboratories",   p:121.8,  mkt:"US", tg:145.0,  an:"BUY", fpe:22.3,  fpg:2.4,  rw:15.7,  ma:-2.8,   up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"DÉBIL",    sc:59.8, s1:-1.9, m1:-4.2,  a1:8.7,   ytd:-2.4},
+  {t:"MDT",  e:"Medtronic PLC",          p:87.9,   mkt:"US", tg:95.0,   an:"HOLD",fpe:15.8,  fpg:2.1,  rw:8.4,   ma:-3.7,   up:"BAJO",     cal:"ALTA",     val:"RAZONABLE", mom:"NEUTRO",    sc:44.8, s1:-0.8, m1:-2.4,  a1:1.3,   ytd:-1.8},
+  {t:"CVS",  e:"CVS Health Corp.",       p:78.3,   mkt:"US", tg:102.0,  an:"BUY", fpe:8.2,   fpg:0.6,  rw:3.8,   ma:-24.8,  up:"MUY ALTO", cal:"BAJA",     val:"BARATA",   mom:"FUERTE",    sc:60.2, s1:6.8,  m1:12.4,  a1:-8.4,  ytd:9.7},
+  {t:"BMY",  e:"Bristol-Myers Squibb",   p:47.8,   mkt:"US", tg:62.0,   an:"BUY", fpe:7.1,   fpg:0.5,  rw:5.2,   ma:-19.4,  up:"MUY ALTO", cal:"ALTA",     val:"BARATA",   mom:"NEUTRO",    sc:54.3, s1:-0.6, m1:4.8,   a1:-14.2, ytd:3.2},
+  // ── TECH/CIBERSEGURIDAD (selloff 2026 = zona de entrada) ────
+  {t:"CRWD", e:"CrowdStrike Holdings",   p:309.8,  mkt:"US", tg:380.0,  an:"BUY", fpe:64.8,  fpg:2.1,  rw:18.4,  ma:-12.3,  up:"ALTO",     cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:62.4, s1:4.2,  m1:-3.8,  a1:38.4,  ytd:-9.7},
+  {t:"PANW", e:"Palo Alto Networks",     p:165.7,  mkt:"US", tg:220.0,  an:"BUY", fpe:44.8,  fpg:1.8,  rw:22.4,  ma:-11.8,  up:"MUY ALTO", cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:60.8, s1:3.8,  m1:-4.2,  a1:12.4,  ytd:-7.8},
+  {t:"NET",  e:"Cloudflare Inc.",        p:89.4,   mkt:"US", tg:120.0,  an:"BUY", fpe:null,  fpg:null, rw:8.4,   ma:-24.8,  up:"MUY ALTO", cal:"ALTA",     val:"CARA",     mom:"DÉBIL",    sc:47.8, s1:2.4,  m1:-8.4,  a1:-18.4, ytd:-14.2},
+  {t:"SNOW", e:"Snowflake Inc.",         p:135.4,  mkt:"US", tg:175.0,  an:"BUY", fpe:null,  fpg:null, rw:4.2,   ma:-28.4,  up:"MUY ALTO", cal:"MEDIA",    val:"CARA",     mom:"DÉBIL",    sc:42.3, s1:1.8,  m1:-12.4, a1:-22.4, ytd:-18.7},
+  {t:"NOW",  e:"ServiceNow Inc.",        p:948.7,  mkt:"US", tg:1100.0, an:"BUY", fpe:57.8,  fpg:2.8,  rw:32.4,  ma:-8.4,   up:"ALTO",     cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:63.4, s1:-1.2, m1:-6.8,  a1:24.8,  ytd:-7.4},
+  {t:"DDOG", e:"Datadog Inc.",           p:118.4,  mkt:"US", tg:148.0,  an:"BUY", fpe:null,  fpg:null, rw:12.4,  ma:-22.4,  up:"ALTO",     cal:"ALTA",     val:"CARA",     mom:"DÉBIL",    sc:51.2, s1:3.2,  m1:-9.4,  a1:4.8,   ytd:-12.4},
+  // ── CONSUMER ADICIONAL ───────────────────────────────────────
+  {t:"SBUX", e:"Starbucks Corp.",        p:90.8,   mkt:"US", tg:115.0,  an:"BUY", fpe:20.4,  fpg:1.8,  rw:null,  ma:-4.8,   up:"ALTO",     cal:"ALTA",     val:"CARA",     mom:"FUERTE",    sc:56.8, s1:3.4,  m1:8.2,   a1:2.8,   ytd:6.4},
+  {t:"TGT",  e:"Target Corp.",           p:95.8,   mkt:"US", tg:110.0,  an:"HOLD",fpe:12.8,  fpg:1.4,  rw:4.2,   ma:-28.4,  up:"MEDIO",    cal:"MEDIA",    val:"RAZONABLE", mom:"DÉBIL",    sc:36.8, s1:-3.8, m1:-14.2, a1:-32.4, ytd:-18.7},
+  {t:"CMG",  e:"Chipotle Mexican Grill", p:51.2,   mkt:"US", tg:65.0,   an:"BUY", fpe:39.8,  fpg:2.2,  rw:28.4,  ma:-16.4,  up:"MUY ALTO", cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:55.4, s1:-0.8, m1:-8.4,  a1:-12.4, ytd:-9.8},
+  {t:"LOW",  e:"Lowe's Companies",       p:219.4,  mkt:"US", tg:255.0,  an:"BUY", fpe:18.8,  fpg:1.9,  rw:null,  ma:-8.4,   up:"ALTO",     cal:"ALTA",     val:"RAZONABLE", mom:"DÉBIL",    sc:51.4, s1:-2.4, m1:-6.4,  a1:-4.8,  ytd:-5.2},
+  {t:"YUM",  e:"Yum! Brands",            p:134.8,  mkt:"US", tg:148.0,  an:"BUY", fpe:21.8,  fpg:2.4,  rw:null,  ma:-4.2,   up:"MEDIO",    cal:"ALTA",     val:"CARA",     mom:"NEUTRO",    sc:49.8, s1:-1.4, m1:-2.8,  a1:4.8,   ytd:1.2},
+  // ── FINANCIERO/ALTERNATIVO ───────────────────────────────────
+  {t:"BX",   e:"Blackstone Inc.",        p:121.8,  mkt:"US", tg:148.0,  an:"BUY", fpe:22.4,  fpg:1.6,  rw:null,  ma:-12.4,  up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"DÉBIL",    sc:56.4, s1:-2.8, m1:-8.4,  a1:-4.8,  ytd:-7.4},
+  {t:"KKR",  e:"KKR & Co. Inc.",         p:117.4,  mkt:"US", tg:148.0,  an:"BUY", fpe:24.8,  fpg:1.8,  rw:null,  ma:-14.8,  up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"DÉBIL",    sc:54.8, s1:-3.2, m1:-9.8,  a1:4.2,   ytd:-8.4},
+  {t:"SCHW", e:"Charles Schwab Corp.",   p:77.2,   mkt:"US", tg:94.0,   an:"BUY", fpe:17.8,  fpg:1.2,  rw:null,  ma:-8.4,   up:"ALTO",     cal:"ALTA",     val:"RAZONABLE", mom:"DÉBIL",    sc:48.4, s1:-2.4, m1:-4.2,  a1:-8.4,  ytd:-3.8},
+  {t:"SPGI", e:"S&P Global Inc.",        p:471.8,  mkt:"US", tg:530.0,  an:"BUY", fpe:29.8,  fpg:2.4,  rw:34.8,  ma:-8.4,   up:"MEDIO",    cal:"EXCELENTE",val:"CARA",     mom:"DÉBIL",    sc:57.4, s1:-1.8, m1:-5.4,  a1:8.4,   ytd:-4.8},
+  {t:"C",    e:"Citigroup Inc.",          p:70.4,   mkt:"US", tg:88.0,   an:"BUY", fpe:9.8,   fpg:0.7,  rw:null,  ma:-12.4,  up:"ALTO",     cal:"BAJA",     val:"RAZONABLE", mom:"DÉBIL",    sc:46.4, s1:-3.8, m1:-8.4,  a1:-4.8,  ytd:-6.8},
+  // ── UTILITIES / INFRAESTRUCTURA ──────────────────────────────
+  {t:"NEE",  e:"NextEra Energy",         p:62.8,   mkt:"US", tg:78.0,   an:"BUY", fpe:20.8,  fpg:2.1,  rw:6.4,   ma:-4.8,   up:"ALTO",     cal:"EXCELENTE",val:"RAZONABLE", mom:"NEUTRO",    sc:53.4, s1:-0.8, m1:2.4,   a1:-8.4,  ytd:3.8},
+  {t:"SO",   e:"Southern Company",       p:82.4,   mkt:"US", tg:90.0,   an:"BUY", fpe:19.8,  fpg:2.8,  rw:4.8,   ma:-2.4,   up:"MEDIO",    cal:"ALTA",     val:"CARA",     mom:"NEUTRO",    sc:47.8, s1:-0.4, m1:1.8,   a1:4.8,   ytd:3.2},
+  // ── TELECOM / MEDIA ──────────────────────────────────────────
+  {t:"T",    e:"AT&T Inc.",              p:21.8,   mkt:"US", tg:26.0,   an:"BUY", fpe:9.8,   fpg:1.2,  rw:1.4,   ma:-2.4,   up:"ALTO",     cal:"BAJA",     val:"BARATA",   mom:"FUERTE",    sc:48.2, s1:1.8,  m1:4.8,   a1:22.4,  ytd:18.4},
+  {t:"VZ",   e:"Verizon Comm.",          p:38.8,   mkt:"US", tg:44.0,   an:"HOLD",fpe:9.2,   fpg:1.8,  rw:0.8,   ma:-4.8,   up:"MEDIO",    cal:"BAJA",     val:"BARATA",   mom:"NEUTRO",    sc:39.8, s1:-0.4, m1:2.4,   a1:8.4,   ytd:6.2},
+  {t:"CMCSA",e:"Comcast Corp.",          p:38.4,   mkt:"US", tg:48.0,   an:"BUY", fpe:9.8,   fpg:1.1,  rw:8.4,   ma:-14.8,  up:"ALTO",     cal:"ALTA",     val:"BARATA",   mom:"DÉBIL",    sc:52.4, s1:-2.4, m1:-4.8,  a1:-18.4, ytd:-8.4},
+  // ── ARG ADRs ADICIONALES ─────────────────────────────────────
+  {t:"CRESY",e:"Cresud S.A.",            p:11.2,   mkt:"ARG",tg:14.0,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:-8.4,   up:"ALTO",     cal:"MEDIA",    val:null,       mom:"DÉBIL",    sc:null, s1:-2.4, m1:-4.8,  a1:null,  ytd:null},
+  {t:"IRS",  e:"IRSA Inversiones",       p:8.8,    mkt:"ARG",tg:12.0,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:-4.8,   up:"ALTO",     cal:"MEDIA",    val:null,       mom:"FUERTE",    sc:null, s1:3.8,  m1:8.4,   a1:null,  ytd:null},
+  {t:"TX",   e:"Ternium S.A.",           p:27.8,   mkt:"ARG",tg:38.0,   an:"BUY", fpe:null,  fpg:null, rw:null,  ma:-18.4,  up:"MUY ALTO", cal:"MEDIA",    val:null,       mom:"DÉBIL",    sc:null, s1:-4.8, m1:-12.4, a1:null,  ytd:null},
 ];
 
 const calColor  = {EXCELENTE:"green",ALTA:"blue",MEDIA:"gold",BAJA:"red"};
@@ -4414,6 +4624,52 @@ const CEDEARS_LIST = [
   {t:"EWZ",n:"Brasil ETF",s:"ETF"},{t:"XLE",n:"Energy ETF",s:"ETF"},
   {t:"GLD",n:"Gold ETF",s:"ETF"},{t:"DIA",n:"Dow Jones ETF",s:"ETF"},
   {t:"ARKK",n:"ARK Innovation",s:"ETF"},{t:"ASML",n:"ASML Holding",s:"Semis"},
+  // ── ENERGÍA ──
+  {t:"COP",n:"ConocoPhillips",s:"Energía"},{t:"EOG",n:"EOG Resources",s:"Energía"},
+  {t:"OXY",n:"Occidental Petroleum",s:"Energía"},{t:"SLB",n:"Schlumberger",s:"Energía"},
+  {t:"HAL",n:"Halliburton",s:"Energía"},{t:"PSX",n:"Phillips 66",s:"Energía"},
+  {t:"DVN",n:"Devon Energy",s:"Energía"},{t:"MPC",n:"Marathon Petroleum",s:"Energía"},
+  // ── DEFENSA ──
+  {t:"LMT",n:"Lockheed Martin",s:"Defensa"},{t:"NOC",n:"Northrop Grumman",s:"Defensa"},
+  {t:"GD",n:"General Dynamics",s:"Defensa"},{t:"RTX",n:"RTX Corp.",s:"Defensa"},
+  // ── INDUSTRIALES ──
+  {t:"HON",n:"Honeywell",s:"Industrial"},{t:"BA",n:"Boeing",s:"Industrial"},
+  {t:"DE",n:"John Deere",s:"Industrial"},{t:"MMM",n:"3M Company",s:"Industrial"},
+  {t:"CAT",n:"Caterpillar",s:"Industrial"},{t:"UPS",n:"UPS",s:"Industrial"},
+  {t:"FDX",n:"FedEx Corp.",s:"Industrial"},
+  // ── SALUD ──
+  {t:"LLY",n:"Eli Lilly",s:"Salud"},{t:"ABT",n:"Abbott Labs",s:"Salud"},
+  {t:"MDT",n:"Medtronic",s:"Salud"},{t:"CVS",n:"CVS Health",s:"Salud"},
+  {t:"BMY",n:"Bristol-Myers",s:"Salud"},{t:"MRK",n:"Merck",s:"Salud"},
+  // ── TECH/CLOUD ──
+  {t:"CRWD",n:"CrowdStrike",s:"Tech"},{t:"PANW",n:"Palo Alto Networks",s:"Tech"},
+  {t:"NET",n:"Cloudflare",s:"Tech"},{t:"SNOW",n:"Snowflake",s:"Tech"},
+  {t:"NOW",n:"ServiceNow",s:"Tech"},{t:"DDOG",n:"Datadog",s:"Tech"},
+  {t:"SHOP",n:"Shopify",s:"Tech"},{t:"HOOD",n:"Robinhood",s:"Financiero"},
+  // ── FINANCIERO/ALT ──
+  {t:"BX",n:"Blackstone",s:"Financiero"},{t:"KKR",n:"KKR & Co.",s:"Financiero"},
+  {t:"SCHW",n:"Charles Schwab",s:"Financiero"},{t:"SPGI",n:"S&P Global",s:"Financiero"},
+  {t:"C",n:"Citigroup",s:"Financiero"},{t:"MS",n:"Morgan Stanley",s:"Financiero"},
+  {t:"BRK.B",n:"Berkshire Hathaway B",s:"Financiero"},
+  // ── CONSUMO ──
+  {t:"SBUX",n:"Starbucks",s:"Consumo"},{t:"TGT",n:"Target Corp.",s:"Consumo"},
+  {t:"CMG",n:"Chipotle",s:"Consumo"},{t:"LOW",n:"Lowe's",s:"Consumo"},
+  {t:"YUM",n:"Yum! Brands",s:"Consumo"},{t:"TJX",n:"TJX Companies",s:"Consumo"},
+  {t:"HD",n:"Home Depot",s:"Consumo"},
+  // ── UTILITIES ──
+  {t:"NEE",n:"NextEra Energy",s:"Utilities"},{t:"SO",n:"Southern Co.",s:"Utilities"},
+  {t:"DUK",n:"Duke Energy",s:"Utilities"},
+  // ── ETFs ADICIONALES ──
+  {t:"IVV",n:"iShares S&P 500 ETF",s:"ETF"},{t:"VTI",n:"Vanguard Total Market",s:"ETF"},
+  {t:"TLT",n:"iShares 20Y Treasury",s:"ETF"},{t:"HYG",n:"iShares High Yield Bond",s:"ETF"},
+  {t:"COPX",n:"Global X Copper Miners",s:"ETF"},{t:"ILF",n:"iShares Latin America 40",s:"ETF"},
+  {t:"XLI",n:"Industrial Sector SPDR",s:"ETF"},{t:"XLU",n:"Utilities Sector SPDR",s:"ETF"},
+  // ── TELECOM ──
+  {t:"T",n:"AT&T Inc.",s:"Telecom"},{t:"VZ",n:"Verizon",s:"Telecom"},
+  {t:"CMCSA",n:"Comcast Corp.",s:"Telecom"},
+  // ── LATAM ──
+  {t:"EC",n:"Ecopetrol S.A.",s:"Energía"},{t:"BRFS",n:"BRF S.A.",s:"Consumo"},
+  {t:"TX",n:"Ternium S.A.",s:"Industrial"},
 ];
 
 function CEDEARsPanel({ t }) {

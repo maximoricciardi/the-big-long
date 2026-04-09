@@ -4272,10 +4272,9 @@ function ONsPanel({ t }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const r = await fetch("https://data912.com/live/arg_corp", { headers:{"Accept":"application/json"} });
+        const r = await fetch("/api/equities?type=corp");
         const json = await r.json();
-        const map = {};
-        if (Array.isArray(json)) json.forEach(d => { if (d.symbol && d.c) map[d.symbol] = { price:d.c, pct:d.pct_change||0 }; });
+        const map = json.map || {};
         setCorpPrices(map);
         setStatus(Object.keys(map).length > 0 ? "ok" : "empty");
       } catch { setStatus("error"); }
@@ -4722,18 +4721,11 @@ function CEDEARsPanel({ t }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const r = await fetch("https://data912.com/live/arg_cedears", { headers:{"Accept":"application/json"} });
+        // Usar proxy /api/cedears en lugar de llamar DATA912 directamente
+        // (evita CORS y normaliza símbolos server-side)
+        const r = await fetch("/api/cedears");
         const json = await r.json();
-        const map = {};
-        if (Array.isArray(json)) json.forEach(d => {
-          if (!d.symbol || !d.c) return;
-          const sym = d.symbol;
-          const val = { price: d.c, pct: d.pct_change || 0 };
-          map[sym] = val;
-          if (sym.endsWith("D") && sym.length > 1) map[sym.slice(0,-1)] = val;
-          map[sym.toUpperCase()] = val;
-          if (sym.endsWith("D")) map[sym.slice(0,-1).toUpperCase()] = val;
-        });
+        const map = json.map || {};
         setPrices(map);
         setLastUpdate(new Date());
         setStatus(Object.keys(map).length > 0 ? "ok" : "empty");
@@ -5163,34 +5155,27 @@ function InstrumentosView({ t }) {
   useEffect(() => {
     const load = async () => {
       try {
-        // arg_bonds: soberanos USD + BONCAPs + Duales + CER + DL
-        const rb = await fetch("https://data912.com/live/arg_bonds", {
-          headers: { "User-Agent": "Mozilla/5.0" }
-        });
-        const bonds = await rb.json();
-        const prices = {};
-        bonds.forEach(b => {
+        // arg_bonds via proxy (evita CORS)
+        const rb = await fetch("/api/equities?type=bonds");
+        const bondsJson = await rb.json();
+        const prices = bondsJson.map || {};
+        // también indexar sin sufijo para compatibilidad
+        (bondsJson.raw || []).forEach(b => {
           if (!b.symbol || b.c == null) return;
           prices[b.symbol] = { price: b.c, pct: b.pct_change };
         });
         const matched = SOBERANOS.filter(s => prices[s.t]).length;
-        setBondPrices(prices); // ahora guarda {price, pct} en vez de solo precio
+        setBondPrices(prices);
         setBondStatus(matched > 0 ? "ok" : "error");
       } catch {
         setBondStatus("error");
       }
 
       try {
-        // arg_notes: LECAPs S-prefix + X-prefix (LECAP DL)
-        const rn = await fetch("https://data912.com/live/arg_notes", {
-          headers: { "User-Agent": "Mozilla/5.0" }
-        });
-        const notes = await rn.json();
-        const lp = {};
-        notes.forEach(n => {
-          if (!n.symbol || n.c == null) return;
-          lp[n.symbol] = { price: n.c, pct: n.pct_change };
-        });
+        // arg_notes via proxy (LECAPs)
+        const rn = await fetch("/api/equities?type=notes");
+        const notesJson = await rn.json();
+        const lp = notesJson.map || {};
         setLecapLive(lp);
       } catch {}
 

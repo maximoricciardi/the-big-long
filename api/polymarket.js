@@ -48,6 +48,13 @@ const ARG_KEYS = [
   "arg monthly","indec","dolariz",
 ];
 
+// Slugs/titles bloqueados explícitamente (pasados o duplicados)
+const BLOCKED_TITLES = [
+  "argentina monthly inflation - march",
+  "argentina monthly inflation march",
+  "argentina inflation march 2026",
+];
+
 function scoreEvent(q, vol) {
   const low = q.toLowerCase();
   let rel = 0, imp = 0;
@@ -126,11 +133,11 @@ export default async function handler(req, res) {
     const argSlugs = [
       "milei-out-as-president-of-argentina-before-2027",
       "will-argentina-dollarize-by-june-30-2026",
-      "argentina-monthly-inflation-march",       // resuelve 14 ABR con dato INDEC
-      "argentina-monthly-inflation-april",       // próximo
+      // "argentina-monthly-inflation-march" — BLOQUEADO: resuelve 14 ABR, duplicado
+      "argentina-monthly-inflation-april",
       "argentina-annual-inflation-2026",
       "will-argentina-lift-the-cepo-in-2026",
-      "argentina-monthly-inflation-2026",        // fallback genérico
+      "argentina-monthly-inflation-2026",
     ];
 
     // ══════════════════════════════════════════════════════
@@ -196,6 +203,9 @@ export default async function handler(req, res) {
       if (!ev || !ev.markets) continue;
       // Saltar si ya está resuelto
       if (ev.closed || ev.resolved) continue;
+      // Saltar si está en la lista de bloqueados
+      const evTitle = (ev.title || "").toLowerCase();
+      if (BLOCKED_TITLES.some(b => evTitle.includes(b))) continue;
       for (const m of ev.markets) {
         if (seenIds.has(m.id)) continue;
         seenIds.add(m.id);

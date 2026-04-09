@@ -807,8 +807,46 @@ const BALANZ_ETPS = [
 
 const NOTICIAS = [
   // ════════════════════════════════════════════════════════
-  //  INFORMES DE CONTEXTO — ABR 2026
+  //  INFORMES ESTRELLA — 08 ABR 2026
   // ════════════════════════════════════════════════════════
+  {
+    id:"inf_qqq", fecha:"08 ABR 2026", cat:"ESTRATEGIA · ETFs", catColor:"blue", seccion:"Informes", estrella:true,
+    titulo:"De SPY a QQQ: la rotación que pocos hacen y más deberían",
+    subtitulo:"El Nasdaq 100 tiene un upside estructuralmente mayor que el S&P 500 para el mediano plazo. Esta es la tesis.",
+    emoji:"🔄",
+    relevancia:"alta",
+    cuerpo:`Cuando el mercado corrige, el instinto es refugiarse en lo más amplio y diversificado: el <strong>SPY</strong>. Pero en las recuperaciones de ciclos tecnológicos, esa lógica sale cara. El <strong>QQQ</strong> —que replica el Nasdaq 100— históricamente le lleva tres a cinco puntos porcentuales anuales al S&P 500 en períodos de diez años, y en ciclos de inteligencia artificial esa brecha se ensancha.
+
+<strong>¿Por qué el QQQ gana más?</strong> El SPY incluye 500 empresas —bancos, utilities, supermercados, tabacaleras. El QQQ tiene 100, todas de crecimiento, con concentración en las seis empresas que más gasto en IA ejecutan en el mundo: Apple, Microsoft, NVIDIA, Amazon, Meta y Alphabet. En un ciclo donde el capex tecnológico sigue creciendo a doble dígito, el QQQ captura más de esa ola.
+
+<strong>El contexto de hoy lo hace más interesante:</strong> el QQQ cayó ~12% en lo que va del año, mientras el SPY bajó ~8%. Esa diferencia de beta es exactamente la ventana. El mercado vendió el QQQ más fuerte por sus múltiplos altos, pero los fundamentos de las empresas del índice no cambiaron: siguen generando más caja libre, creciendo más rápido y reinvirtiendo más que el promedio del S&P.
+
+<em>Dato histórico concreto:</em> en los últimos 15 años, el QQQ generó un retorno anualizado del 19,8% vs 13,6% del SPY. Con reinversión de dividendos, $10.000 invertidos en QQQ en 2010 equivalen a $155.000 hoy; los mismos $10.000 en SPY, a $64.000. La diferencia no es trivial.
+
+<strong>Para un inversor argentino:</strong> ambos están disponibles como CEDEARs en BYMA. El QQQ en pesos se ajusta por CCL —sirve como cobertura cambiaria Y como apuesta de crecimiento en el índice tecnológico más importante del mundo. La relación riesgo/retorno en este momento, con el QQQ cerca de mínimos de 2026, es de las mejores entradas de los últimos años.
+
+<em>Único riesgo real:</em> una recesión global que comprima los múltiplos de tech en forma prolongada. Pero incluso en ese escenario, el QQQ tiende a recuperar más rápido que el SPY por la calidad de sus componentes. La tesis es de mediano plazo —18 a 36 meses— no para tradear la semana.`,
+  },
+  {
+    id:"inf_rot", fecha:"08 ABR 2026", cat:"ESTRATEGIA · ROTACIÓN", catColor:"green", seccion:"Informes", estrella:true,
+    titulo:"La rotación de la semana: del petróleo a la tecnología",
+    subtitulo:"El rally del crudo está cediendo. El dinero que sale de energía tiene un destino lógico: tech en zona de compra.",
+    emoji:"⚡",
+    relevancia:"alta",
+    cuerpo:`El <strong>WTI cayó de $108 a $100 en menos de 48 horas</strong> después de que Irán señaló disposición a negociar el ceasefire. Eso es suficiente para que el dinero que entró en energía buscando el shock de oferta empiece a rotar hacia donde el riesgo/retorno es más atractivo en el nuevo escenario.
+
+<strong>La secuencia que está pasando:</strong> desde la semana del 1 de abril, XOM, CVX, OXY y SLB empezaron a distribuir después de subidas del 30-36%. Al mismo tiempo, PANW y CRWD tocaron fondo y rebotaron hoy más de 4%. MSFT, que bajó 19% en lo que va del año, cotiza a 27x ganancias forward —por primera vez en dos años está en zona "razonable" por sus estándares históricos.
+
+<strong>La lógica de la rotación:</strong> los fondos que sobreponderon energía por el conflicto iraní ahora tienen dos opciones —tomar ganancias y quedar en cash, o rotar hacia el sector que más corrigió y tiene el mayor leverage al siguiente ciclo. Tech gana ese debate por tres razones:
+
+<em>1. Earnings en cuatro semanas:</em> Tesla el 22 ABR, Amazon el 23, Meta el 29, Apple el 30 y NVIDIA el 20 de mayo. Si los balances confirman que el gasto en IA no se frenó, el re-rating puede ser rápido y violento al alza.
+
+<em>2. Los grandes nombres siguen generando caja a ritmo récord:</em> Microsoft generó $74B de free cash flow en los últimos doce meses. Meta generó $52B. NVIDIA duplicó su FCF año sobre año. Estas empresas no necesitan que el Brent esté a $100 para funcionar.
+
+<em>3. Los CEDEARs de tech están en zona de acumulación:</em> MSFTD, AMZND, METAD y NVDAD bajaron entre 8% y 19% en pesos en 2026. Para un inversor argentino, esta corrección amplifica la ventana de entrada considerando que el CCL sigue estable.
+
+<strong>Cómo ejecutar:</strong> no hace falta vender toda la energía —XOM y CVX siguen siendo nombres sólidos con dividendo. La idea es reducir exposición a los nombres más volátiles al precio del crudo (OXY, DVN, HAL) y rotar esos pesos hacia MSFT, META o el propio QQQD como forma de capturar la recuperación del sector.`,
+  },
   {
     id:"inf3", fecha:"08 ABR 2026", cat:"INFORME · TECNOLOGÍA", catColor:"blue", seccion:"Informes",
     titulo:"Tecnológicas: el fondo del selloff o una trampa de valor",
@@ -4676,9 +4714,10 @@ function CEDEARsPanel({ t }) {
   const [prices, setPrices] = useState({});
   const [status, setStatus] = useState("loading");
   const [search, setSearch] = useState("");
-  const [sortCol, setSortCol] = useState("t");
-  const [sortDir, setSortDir] = useState(1);
   const [fSector, setFSector] = useState("Todos");
+  const [view, setView] = useState("grid"); // "grid" | "heat" | "table"
+  const [sortBy, setSortBy] = useState("pct"); // "pct" | "t" | "price"
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -4687,154 +4726,412 @@ function CEDEARsPanel({ t }) {
         const json = await r.json();
         const map = {};
         if (Array.isArray(json)) json.forEach(d => {
-          if (d.symbol && d.c) map[d.symbol] = { price:d.c, pct:d.pct_change||0 };
+          if (!d.symbol || !d.c) return;
+          const sym = d.symbol;
+          const val = { price: d.c, pct: d.pct_change || 0 };
+          map[sym] = val;
+          if (sym.endsWith("D") && sym.length > 1) map[sym.slice(0,-1)] = val;
+          map[sym.toUpperCase()] = val;
+          if (sym.endsWith("D")) map[sym.slice(0,-1).toUpperCase()] = val;
         });
         setPrices(map);
+        setLastUpdate(new Date());
         setStatus(Object.keys(map).length > 0 ? "ok" : "empty");
       } catch { setStatus("error"); }
     };
     load();
-    const id = setInterval(load, 120000); // 2 min
+    const id = setInterval(load, 120000);
     return () => clearInterval(id);
   }, []);
 
-  const sort = (col) => { if(sortCol===col) setSortDir(d=>-d); else { setSortCol(col); setSortDir(1); } };
+  const sectors = ["Todos", ...new Set(CEDEARS_LIST.map(c=>c.s))].sort((a,b)=>a==="Todos"?-1:b==="Todos"?1:a.localeCompare(b));
 
-  const sectors = ["Todos", ...new Set(CEDEARS_LIST.map(c=>c.s))];
+  const enriched = CEDEARS_LIST.map(c => {
+    const live = prices[c.t] || prices[c.t+"D"] || prices[c.t.toUpperCase()] || prices[c.t.toUpperCase()+"D"] || prices[c.t+".BA"] || null;
+    return { ...c, price: live?.price ?? null, pct: live?.pct ?? null, hasLive: !!live };
+  });
 
-  const filtered = CEDEARS_LIST.filter(c => {
+  const filtered = enriched.filter(c => {
     if (fSector !== "Todos" && c.s !== fSector) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      return c.t.toLowerCase().includes(q) || c.n.toLowerCase().includes(q);
+      return c.t.toLowerCase().includes(q) || c.n.toLowerCase().includes(q) || c.s.toLowerCase().includes(q);
     }
     return true;
-  }).map(c => {
-    const live = prices[c.t] || prices[c.t+"D"] || prices[c.t+".BA"] || null;
-    return { ...c, price:live?.price||null, pct:live?.pct||null };
   }).sort((a,b) => {
-    let av = a[sortCol], bv = b[sortCol];
-    if (sortCol === "price" || sortCol === "pct") {
-      av = av ?? -Infinity; bv = bv ?? -Infinity;
+    if (sortBy === "pct") {
+      if (a.pct === null && b.pct === null) return a.t.localeCompare(b.t);
+      if (a.pct === null) return 1;
+      if (b.pct === null) return -1;
+      return b.pct - a.pct;
     }
-    if (av === null) return 1;
-    if (bv === null) return -1;
-    return (av > bv ? 1 : -1) * sortDir;
+    if (sortBy === "price") {
+      if (a.price === null && b.price === null) return 0;
+      if (a.price === null) return 1;
+      if (b.price === null) return -1;
+      return b.price - a.price;
+    }
+    return a.t.localeCompare(b.t);
   });
 
-  const matchCount = Object.keys(prices).filter(k => CEDEARS_LIST.some(c=>c.t===k || c.t+"D"===k)).length;
+  const liveCount = enriched.filter(c=>c.hasLive).length;
+  const withPct = filtered.filter(c=>c.pct!==null);
+  const topGainers = [...withPct].sort((a,b)=>b.pct-a.pct).slice(0,3);
+  const topLosers  = [...withPct].sort((a,b)=>a.pct-b.pct).slice(0,3);
+  const maxAbsPct  = Math.max(...withPct.map(c=>Math.abs(c.pct||0)), 1);
+
+  const secColor = {
+    "Tech":t.bl,"Semis":t.pu,"Energía":t.go,"Financiero":t.gr,"Salud":t.rd,
+    "Consumo":"#f97316","Industrial":"#6366f1","ETF":"#0ea5e9","Autos":"#a78bfa",
+    "Media":"#ec4899","Defensa":"#dc2626","Materiales":"#84cc16","Utilities":"#14b8a6",
+    "Telecom":"#64748b","Cripto":"#f59e0b","Inmob.":"#8b5cf6",
+  };
+  const secBg = {
+    "Tech":t.blBg,"Semis":t.puBg,"Energía":t.goBg,"Financiero":t.grBg,"Salud":t.rdBg,
+    "Consumo":"#fff7ed","Industrial":"#eef2ff","ETF":"#f0f9ff","Autos":"#f5f3ff",
+    "Media":"#fdf2f8","Defensa":"#fef2f2","Materiales":"#f7fee7","Utilities":"#f0fdfa",
+    "Telecom":"#f8fafc","Cripto":"#fffbeb","Inmob.":"#faf5ff",
+  };
+
+  const getSC = s => secColor[s] || t.mu;
+  const getSB = s => secBg[s] || t.alt;
+
+  const heatColor = (pct) => {
+    if (pct === null) return t.alt;
+    if (pct >= 3)    return "#14532d";
+    if (pct >= 2)    return "#166534";
+    if (pct >= 1)    return "#15803d";
+    if (pct >= 0.5)  return "#16a34a";
+    if (pct >= 0)    return "#22c55e33";
+    if (pct >= -0.5) return "#fca5a533";
+    if (pct >= -1)   return "#ef4444";
+    if (pct >= -2)   return "#dc2626";
+    return "#991b1b";
+  };
+  const heatText = (pct) => {
+    if (pct === null) return t.mu;
+    return pct >= 0 ? (pct >= 0.5 ? "#fff" : t.gr) : (pct <= -0.5 ? "#fff" : t.rd);
+  };
+
+  const secEmoji = s => ({"Tech":"💻","Energía":"⚡","Financiero":"🏦","Salud":"⚕️","Defensa":"🛡️","ETF":"📊","Semis":"🔬","Consumo":"🛒","Industrial":"⚙️","Cripto":"₿","Utilities":"🔌","Telecom":"📡","Media":"🎬","Autos":"🚗"}[s] || "📈");
 
   return (
     <div className="fade-up">
-      {/* Header */}
+      {/* ═══ HEADER ═══ */}
       <div style={{
-        background:`linear-gradient(135deg, ${t.go}08 0%, ${t.bl}08 100%)`,
-        border:`1px solid ${t.brd}`, borderRadius:14, padding:"18px 22px", marginBottom:16,
-        display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12,
+        background:"linear-gradient(135deg,#0a1628 0%,#0d2137 50%,#0a1628 100%)",
+        borderRadius:20, padding:"28px 32px", marginBottom:20,
+        border:"1px solid rgba(255,255,255,.06)", position:"relative", overflow:"hidden",
       }}>
-        <div>
-          <div style={{ fontFamily:FH, fontSize:17, fontWeight:700, color:t.tx, marginBottom:3, display:"flex", alignItems:"center", gap:8 }}>
-            <Globe size={18} color={t.go} /> CEDEARs · Mercado Argentino
+        <div style={{ position:"absolute", right:-60, top:-60, width:240, height:240, borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(14,165,233,.12) 0%,transparent 70%)", pointerEvents:"none" }} />
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:16 }}>
+          <div>
+            <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:"rgba(255,255,255,.35)",
+              letterSpacing:".15em", textTransform:"uppercase", marginBottom:6 }}>
+              BYMA · CERTIFICADOS DE DEPÓSITO ARGENTINO
+            </div>
+            <h2 style={{ fontFamily:FD, fontSize:32, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-.02em" }}>
+              CEDEARs <span style={{color:"#0ea5e9"}}>Market</span>
+            </h2>
+            <p style={{ fontFamily:FB, fontSize:12, color:"rgba(255,255,255,.4)", margin:"8px 0 0" }}>
+              {CEDEARS_LIST.length} activos internacionales · Precios en ARS · Ajustados por CCL
+            </p>
           </div>
-          <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>50 activos internacionales cotizando en BYMA · Precios en ARS</div>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8,
+              background:"rgba(255,255,255,.06)", borderRadius:10, padding:"8px 16px",
+              border:"1px solid rgba(255,255,255,.08)" }}>
+              <span style={{ width:8, height:8, borderRadius:"50%", display:"inline-block",
+                background: status==="ok" ? "#22c55e" : "#f59e0b",
+                boxShadow: status==="ok" ? "0 0 8px #22c55e" : "none",
+                animation: status==="loading" ? "blink 1.2s infinite" : "none" }} />
+              <span style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:"rgba(255,255,255,.8)" }}>
+                {status==="ok" ? `${liveCount} precios en vivo` : status==="error" ? "API offline" : "Conectando..."}
+              </span>
+            </div>
+            {lastUpdate && (
+              <span style={{ fontFamily:FB, fontSize:9, color:"rgba(255,255,255,.3)" }}>
+                Act. {lastUpdate.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}
+              </span>
+            )}
+          </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",
-            background:status==="ok"?"#22c55e":"#94a3b8",
-            boxShadow:status==="ok"?"0 0 6px #22c55e":"none"}}/>
-          <span style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:status==="ok"?t.gr:t.fa }}>
-            {status==="ok" ? `${matchCount} precios live` : status==="error" ? "Sin datos" : "Cargando..."}
-          </span>
-        </div>
+
+        {/* Live movers bar */}
+        {(topGainers.length > 0 || topLosers.length > 0) && (
+          <div style={{ marginTop:20, display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+            <span style={{ fontFamily:FB, fontSize:9, color:"rgba(255,255,255,.3)", marginRight:4, textTransform:"uppercase", letterSpacing:".08em" }}>HOY</span>
+            {topGainers.map((c,i)=>(
+              <div key={"g"+i} style={{ background:"rgba(34,197,94,.15)", border:"1px solid rgba(34,197,94,.25)",
+                borderRadius:8, padding:"4px 10px", display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, color:"#4ade80" }}>{c.t}</span>
+                <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:"#22c55e" }}>+{c.pct.toFixed(2)}%</span>
+              </div>
+            ))}
+            <span style={{ color:"rgba(255,255,255,.15)", fontSize:12 }}>|</span>
+            {topLosers.map((c,i)=>(
+              <div key={"l"+i} style={{ background:"rgba(239,68,68,.15)", border:"1px solid rgba(239,68,68,.25)",
+                borderRadius:8, padding:"4px 10px", display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, color:"#f87171" }}>{c.t}</span>
+                <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:"#ef4444" }}>{c.pct.toFixed(2)}%</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
-        <div style={{ position:"relative" }}>
-          <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker..."
-            style={{ fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10, width:170,
-              border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
+      {/* ═══ CONTROLS BAR ═══ */}
+      <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
+        <div style={{ position:"relative", flex:"0 0 auto" }}>
+          <Search size={14} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker, empresa..."
+            style={{ fontFamily:FB, fontSize:12, padding:"9px 12px 9px 32px", borderRadius:12, width:220,
+              border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none", transition:"border-color .15s" }}
+            onFocus={e=>e.target.style.borderColor=t.bl}
+            onBlur={e=>e.target.style.borderColor=t.brd} />
         </div>
-        <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-          {sectors.map(s=>(
-            <button key={s} onClick={()=>setFSector(s)} style={{
-              padding:"5px 10px", borderRadius:7, fontFamily:FB, fontSize:10, cursor:"pointer",
-              border:`1.5px solid ${fSector===s?t.go:t.brd}`,
-              background:fSector===s?t.go+"15":"transparent",
-              color:fSector===s?t.go:t.mu, fontWeight:fSector===s?700:400,
-            }}>{s}</button>
+
+        <div style={{ display:"flex", background:t.alt, borderRadius:10, padding:3, border:`1px solid ${t.brd}`, gap:2 }}>
+          {[{id:"grid",label:"▦ Grid"},{id:"heat",label:"⬛ Mapa"},{id:"table",label:"≡ Tabla"}].map(v=>(
+            <button key={v.id} onClick={()=>setView(v.id)} style={{
+              padding:"5px 13px", borderRadius:8, fontFamily:FB, fontSize:10, fontWeight:600, cursor:"pointer",
+              border:"none", transition:"all .15s",
+              background:view===v.id?t.bl:"transparent",
+              color:view===v.id?"#fff":t.mu,
+            }}>{v.label}</button>
           ))}
         </div>
-        <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, color:t.fa }}>{filtered.length} de {CEDEARS_LIST.length}</span>
+
+        <div style={{ display:"flex", background:t.alt, borderRadius:10, padding:3, border:`1px solid ${t.brd}`, gap:2 }}>
+          {[{id:"pct",label:"% Var."},{id:"price",label:"Precio"},{id:"t",label:"A–Z"}].map(s=>(
+            <button key={s.id} onClick={()=>setSortBy(s.id)} style={{
+              padding:"5px 13px", borderRadius:8, fontFamily:FB, fontSize:10, fontWeight:600, cursor:"pointer",
+              border:"none", transition:"all .15s",
+              background:sortBy===s.id?t.go:"transparent",
+              color:sortBy===s.id?"#fff":t.mu,
+            }}>{s.label}</button>
+          ))}
+        </div>
+
+        <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:10, color:t.fa }}>
+          {filtered.filter(c=>c.hasLive).length} live / {filtered.length} mostrados
+        </span>
       </div>
 
-      <Card t={t}>
-        <div style={{ overflowX:"auto", maxHeight:"65vh", overflowY:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:11 }}>
-            <thead><tr>
-              {[
-                {h:"Ticker",col:"t",r:false},{h:"Empresa",col:"n",r:false},{h:"Sector",col:"s",r:false},
-                {h:"Precio ARS",col:"price",r:true},{h:"Var. día",col:"pct",r:true},{h:"",col:"_tv",r:false}
-              ].map(({h,col,r},i)=>(
-                <th key={i} onClick={()=>col!=="_tv"&&sort(col)} style={{
-                  padding:"8px 10px", textAlign:r?"right":"left", fontSize:9, fontWeight:700,
-                  color:sortCol===col?t.go:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`,
-                  background:t.alt, position:"sticky", top:0, zIndex:5, cursor:col!=="_tv"?"pointer":"default",
-                  whiteSpace:"nowrap"
-                }}>{h}{sortCol===col?(sortDir===1?" ↑":" ↓"):""}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {filtered.map((c,i) => {
-                const hasLive = c.price !== null;
-                return (
-                  <tr key={i} style={{ borderBottom:`1px solid ${t.brd}33`, transition:"background .1s" }}
-                    onMouseEnter={e=>e.currentTarget.style.background=t.alt}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <td style={{ padding:"6px 10px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                        <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 5px", borderRadius:4,
-                          background:t.go+"12", color:t.go, border:`1px solid ${t.go}33` }}>{c.t}</span>
-                        {hasLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block",boxShadow:"0 0 4px #22c55e"}}/>}
+      {/* ═══ SECTOR PILLS ═══ */}
+      <div style={{ display:"flex", gap:5, marginBottom:20, flexWrap:"wrap" }}>
+        {sectors.map(s=>{
+          const sc = getSC(s);
+          const isActive = fSector===s;
+          const count = s==="Todos" ? CEDEARS_LIST.length : CEDEARS_LIST.filter(c=>c.s===s).length;
+          return (
+            <button key={s} onClick={()=>setFSector(s)} style={{
+              padding:"6px 14px", borderRadius:20, fontFamily:FB, fontSize:10, fontWeight:700, cursor:"pointer",
+              border:`1.5px solid ${isActive?sc:t.brd}`,
+              background:isActive?sc:"transparent",
+              color:isActive?"#fff":(s==="Todos"?t.mu:sc),
+              transition:"all .18s", display:"flex", alignItems:"center", gap:5,
+            }}>
+              {s !== "Todos" && <span style={{fontSize:11}}>{secEmoji(s)}</span>}
+              {s} <span style={{ opacity:.65, fontSize:8 }}>({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ═══ GRID VIEW ═══ */}
+      {view === "grid" && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(195px,1fr))", gap:10 }}>
+          {filtered.map((c,i) => {
+            const sc = getSC(c.s);
+            const isUp = c.pct !== null && c.pct >= 0;
+            const pctColor = c.pct === null ? t.mu : c.pct >= 0 ? t.gr : t.rd;
+            return (
+              <div key={i} style={{
+                background:t.srf, border:`1px solid ${t.brd}`,
+                borderTop:`3px solid ${sc}`,
+                borderRadius:14, padding:"16px 16px 13px",
+                cursor:"pointer", transition:"all .18s", position:"relative", overflow:"hidden",
+              }}
+              onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow=`0 8px 28px ${sc}22`;e.currentTarget.style.borderColor=sc;}}
+              onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.borderTopColor=sc;}}
+              onClick={()=>window.__goChart?.(c.t)}>
+                <div style={{ position:"absolute", right:-6, bottom:-14, fontSize:56, opacity:.04, pointerEvents:"none", userSelect:"none" }}>
+                  {secEmoji(c.s)}
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                  <div style={{ fontFamily:"monospace", fontSize:13, fontWeight:800, color:sc,
+                    background:sc+"15", padding:"3px 8px", borderRadius:6, border:`1px solid ${sc}30` }}>
+                    {c.t}
+                  </div>
+                  <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:sc,
+                    background:getSB(c.s), padding:"2px 7px", borderRadius:10 }}>{c.s}</span>
+                </div>
+                <div style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:t.tx, marginBottom:12,
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.n}</div>
+                {c.hasLive ? (
+                  <div>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:8 }}>
+                      <div style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:t.tx, lineHeight:1 }}>
+                        ${c.price.toLocaleString("es-AR",{maximumFractionDigits:0})}
                       </div>
-                    </td>
-                    <td style={{ padding:"6px 10px", fontSize:10, color:t.tx, fontWeight:500, maxWidth:140, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.n}</td>
-                    <td style={{ padding:"6px 10px" }}>
-                      <span style={{ fontSize:9, fontWeight:600, padding:"1px 6px", borderRadius:4,
-                        background:c.s==="Tech"?t.blBg:c.s==="Financiero"?t.goBg:c.s==="Energía"?t.grBg:c.s==="Salud"?t.rdBg:c.s==="ETF"?t.puBg:t.alt,
-                        color:c.s==="Tech"?t.bl:c.s==="Financiero"?t.go:c.s==="Energía"?t.gr:c.s==="Salud"?t.rd:c.s==="ETF"?t.pu:t.mu
-                      }}>{c.s}</span>
-                    </td>
-                    <td style={{ padding:"6px 10px", textAlign:"right", fontWeight:700, fontFamily:"monospace", color:hasLive?t.tx:t.fa }}>
-                      {hasLive ? `$${c.price.toLocaleString("es-AR",{maximumFractionDigits:0})}` : "—"}
-                    </td>
-                    <td style={{ padding:"6px 10px", textAlign:"right" }}>
-                      {c.pct !== null ? <span style={{ fontWeight:600, color:c.pct>=0?t.gr:t.rd }}>{c.pct>=0?"+":""}{c.pct.toFixed(2)}%</span> : <span style={{color:t.fa}}>—</span>}
-                    </td>
-                    <td style={{ padding:"6px 6px" }}>
-                      <button onClick={()=>window.__goChart?.(c.t)}
-                        style={{ width:24, height:24, borderRadius:5, display:"inline-flex", alignItems:"center", justifyContent:"center",
-                          background:t.alt, border:`1px solid ${t.brd}`, color:t.mu, transition:"all .15s", cursor:"pointer" }}
-                        onMouseEnter={e=>{e.currentTarget.style.background=t.goBg;e.currentTarget.style.borderColor=t.go;e.currentTarget.style.color=t.go;}}
-                        onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.color=t.mu;}}>
-                        <LineChart size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:pctColor }}>
+                        {isUp?"+":""}{c.pct.toFixed(2)}%
+                      </div>
+                    </div>
+                    <div style={{ height:4, background:t.alt, borderRadius:4, overflow:"hidden", marginBottom:6 }}>
+                      <div style={{
+                        width:`${50 + (c.pct||0)/maxAbsPct*50}%`,
+                        height:"100%", borderRadius:4,
+                        background:`linear-gradient(90deg,${isUp?t.gr:t.rd}66,${isUp?t.gr:t.rd})`,
+                        transition:"width .6s",
+                      }} />
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",
+                        display:"inline-block",boxShadow:"0 0 5px #22c55e"}}/>
+                      <span style={{ fontFamily:FB, fontSize:8, color:t.fa }}>EN VIVO</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontFamily:FB, fontSize:10, color:t.fa, padding:"8px 0",
+                    borderTop:`1px solid ${t.brd}44`, fontStyle:"italic" }}>
+                    Sin precio · sin cobertura DATA912
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div style={{ padding:"8px 14px", borderTop:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:6 }}>
-          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            Precios en ARS · Refresh automático
-          </span>
-          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
-            {filtered.length} de {CEDEARS_LIST.length} · Click columnas para ordenar
-          </span>
+      )}
+
+      {/* ═══ HEAT MAP VIEW ═══ */}
+      {view === "heat" && (
+        <div>
+          <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginBottom:14 }}>
+            Verde oscuro = mayor suba del día · Rojo oscuro = mayor baja · Gris = sin precio disponible
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(85px,1fr))", gap:4 }}>
+            {filtered.map((c,i) => {
+              const bg = heatColor(c.pct);
+              const fg = heatText(c.pct);
+              return (
+                <button key={i} onClick={()=>window.__goChart?.(c.t)} style={{
+                  background:bg, borderRadius:8, padding:"10px 8px 8px",
+                  border:"1px solid rgba(0,0,0,.08)", cursor:"pointer", textAlign:"center",
+                  transition:"transform .12s",
+                }}
+                title={`${c.n} · ${c.pct!==null?(c.pct>=0?"+":"")+c.pct.toFixed(2)+"%":"sin dato"}`}
+                onMouseEnter={e=>e.currentTarget.style.transform="scale(1.07)"}
+                onMouseLeave={e=>e.currentTarget.style.transform="none"}>
+                  <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:fg, marginBottom:2 }}>{c.t}</div>
+                  {c.pct !== null
+                    ? <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:fg }}>{c.pct>=0?"+":""}{c.pct.toFixed(1)}%</div>
+                    : <div style={{ fontFamily:FB, fontSize:8, color:"rgba(128,128,128,.5)" }}>—</div>
+                  }
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:16, alignItems:"center" }}>
+            <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>Escala:</span>
+            {[["#14532d",">3%"],["#166534","2-3%"],["#15803d","1-2%"],["#22c55e33","0-1%"],
+              ["#fca5a533","-1-0%"],["#ef4444","-2--1%"],["#dc2626","-3--2%"],["#991b1b","<-3%"]
+            ].map(([bg,label],i)=>(
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:3 }}>
+                <div style={{ width:12,height:12,borderRadius:3,background:bg,border:"1px solid rgba(0,0,0,.1)" }}/>
+                <span style={{ fontFamily:FB, fontSize:8, color:t.mu }}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </Card>
+      )}
+
+      {/* ═══ TABLE VIEW ═══ */}
+      {view === "table" && (
+        <Card t={t}>
+          <div style={{ overflowX:"auto", maxHeight:"65vh", overflowY:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:11 }}>
+              <thead><tr>
+                {["Ticker","Empresa","Sector","Precio ARS","Var. %",""].map((h,i)=>(
+                  <th key={i} style={{ padding:"10px 12px", textAlign:i>2?"right":"left",
+                    fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".06em",
+                    borderBottom:`2px solid ${t.brd}`, whiteSpace:"nowrap", position:"sticky", top:0,
+                    zIndex:2, background:t.alt }}>
+                    {h}
+                  </th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {filtered.map((c,i) => {
+                  const sc = getSC(c.s);
+                  const isUp = c.pct !== null && c.pct >= 0;
+                  return (
+                    <tr key={i} style={{ borderBottom:`1px solid ${t.brd}22`, transition:"background .1s" }}
+                      onMouseEnter={e=>e.currentTarget.style.background=t.alt}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <td style={{ padding:"8px 12px" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontFamily:"monospace", fontSize:10, fontWeight:700,
+                            background:sc+"15", color:sc, padding:"2px 7px", borderRadius:5,
+                            border:`1px solid ${sc}30` }}>{c.t}</span>
+                          {c.hasLive && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 4px #22c55e"}}/>}
+                        </div>
+                      </td>
+                      <td style={{ padding:"8px 12px", color:t.tx, fontWeight:500,
+                        maxWidth:160, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.n}</td>
+                      <td style={{ padding:"8px 12px" }}>
+                        <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, padding:"2px 8px",
+                          borderRadius:12, background:sc+"18", color:sc }}>{c.s}</span>
+                      </td>
+                      <td style={{ padding:"8px 12px", textAlign:"right", fontFamily:"monospace",
+                        fontWeight:700, color:c.hasLive?t.tx:t.fa }}>
+                        {c.price ? `$${c.price.toLocaleString("es-AR",{maximumFractionDigits:0})}` : "—"}
+                      </td>
+                      <td style={{ padding:"8px 12px", textAlign:"right" }}>
+                        {c.pct !== null
+                          ? <span style={{ fontWeight:700, fontSize:12, color:isUp?t.gr:t.rd }}>
+                              {isUp?"+":""}{c.pct.toFixed(2)}%
+                            </span>
+                          : <span style={{color:t.fa}}>—</span>}
+                      </td>
+                      <td style={{ padding:"8px 8px", textAlign:"right" }}>
+                        <button onClick={()=>window.__goChart?.(c.t)} style={{
+                          width:28,height:28,borderRadius:8,display:"inline-flex",alignItems:"center",
+                          justifyContent:"center",background:t.alt,border:`1px solid ${t.brd}`,
+                          color:t.mu,cursor:"pointer",transition:"all .15s",
+                        }}
+                        onMouseEnter={e=>{e.currentTarget.style.background=sc+"15";e.currentTarget.style.color=sc;e.currentTarget.style.borderColor=sc;}}
+                        onMouseLeave={e=>{e.currentTarget.style.background=t.alt;e.currentTarget.style.color=t.mu;e.currentTarget.style.borderColor=t.brd;}}>
+                          <LineChart size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ padding:"10px 16px", borderTop:`1px solid ${t.brd}`,
+            display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:4 }}>
+            <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>
+              Fuente: DATA912 · BYMA · Refresh 2 min
+            </span>
+            <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>
+              {filtered.filter(c=>c.hasLive).length} live / {filtered.length} total
+            </span>
+          </div>
+        </Card>
+      )}
+
+      <div style={{ marginTop:20, padding:"12px 16px", background:t.alt, borderRadius:10, border:`1px solid ${t.brd}` }}>
+        <p style={{ fontFamily:FB, fontSize:9, color:t.fa, margin:0, lineHeight:1.7 }}>
+          Precios en ARS · Ajustados por CCL implícito · Fuente: DATA912 / BYMA ·
+          Cada CEDEAR representa una fracción de la acción subyacente según ratio de conversión Banco Comafi ·
+          Los rendimientos pasados no garantizan resultados futuros
+        </p>
+      </div>
     </div>
   );
 }
@@ -6978,6 +7275,48 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
           </div>
         </div>
       )}
+
+      {/* ── INFORMES ESTRELLA · Acceso directo ── */}
+      {(() => {
+        const stars = NOTICIAS.filter(n => n.estrella);
+        if (!stars.length) return null;
+        const acMap = { blue:t.bl, green:t.gr, gold:t.go, red:t.rd };
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)", gap:10, marginBottom:16 }}>
+            {stars.map((n, i) => {
+              const ac = acMap[n.catColor] || t.go;
+              return (
+                <button key={n.id} onClick={()=>goResearch("informes")} style={{
+                  background:t.srf, border:`1px solid ${t.brd}`,
+                  borderTop:`3px solid ${ac}`,
+                  borderRadius:14, padding:"18px 20px", textAlign:"left", cursor:"pointer",
+                  transition:"all .18s", display:"flex", flexDirection:"column", gap:10,
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=ac;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 6px 20px ${ac}20`;}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=t.brd;e.currentTarget.style.borderTopColor=ac;e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:20 }}>{n.emoji}</span>
+                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase",
+                      letterSpacing:".1em", color:ac, background:ac+"18", padding:"2px 8px", borderRadius:10 }}>
+                      {n.cat}
+                    </span>
+                    <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:8, fontWeight:700,
+                      color:"#fff", background:t.rd, padding:"2px 7px", borderRadius:8 }}>
+                      🔴 INFORME HOY
+                    </span>
+                  </div>
+                  <div style={{ fontFamily:FH, fontSize:isMobile?15:17, fontWeight:700, color:t.tx, lineHeight:1.3 }}>{n.titulo}</div>
+                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }}>{n.subtitulo}</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:2 }}>
+                    <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:ac }}>Leer informe completo</span>
+                    <ChevronRight size={14} color={ac} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ── QUICK NAV ── */}
       <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:8, marginBottom:16 }}>

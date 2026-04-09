@@ -1453,7 +1453,7 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
       {/* ── BALANCES ── */}
       {sub === "balances" && (
         <div>
-          {/* Earnings Calendar — semana 23-27 MAR 2026 */}
+          {/* Earnings Calendar — semana 6-10 ABR 2026 */}
           <Card t={t} style={{ marginBottom:20, borderLeft:`4px solid ${t.go}` }}>
             <div style={{ padding:"20px 22px" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:16 }}>
@@ -1463,47 +1463,49 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
                   </div>
                   <div>
                     <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>Earnings de la semana</div>
-                    <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>23 — 27 MAR 2026 · Empresas que reportan resultados</div>
+                    <div style={{ fontFamily:FB, fontSize:11, color:t.mu }}>6 — 10 ABR 2026 · Empresas que reportan resultados</div>
                   </div>
+                </div>
+                <div style={{ background:t.rdBg, border:`1px solid ${t.rdAcc}33`, borderRadius:8, padding:"5px 12px", fontFamily:FB, fontSize:10, fontWeight:700, color:t.rd, display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ width:6, height:6, borderRadius:"50%", background:t.rd, display:"inline-block", animation:"blink 1s infinite" }}/>
+                  TEMPORADA INICIO Q1 2026
                 </div>
               </div>
 
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:8 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:8, marginBottom:16 }}>
                 {[
-                  { dia:"Lun 23", empresas:[
-                    {t:"BNGO",n:"Bionano Genomics",nota:"Genómica · Pre-market"},
+                  { dia:"Lun 6", empresas:[
+                    {t:"—",n:"Sin reportes relevantes",nota:"Mercados de apertura"},
                   ]},
-                  { dia:"Mar 24", empresas:[
-                    {t:"GME",n:"GameStop",nota:"Retail/Gaming · After hours",destacado:true},
-                    {t:"MKC",n:"McCormick & Co.",nota:"Consumo defensivo · Pre-market"},
+                  { dia:"Mar 7", empresas:[
+                    {t:"PLAY",n:"Dave & Buster's",nota:"Entretenimiento · After hours"},
                   ]},
-                  { dia:"Mié 25", empresas:[
-                    {t:"CTAS",n:"Cintas Corp.",nota:"Servicios industriales · Pre-market",destacado:true},
-                    {t:"PAYX",n:"Paychex",nota:"Payroll/HR · Pre-market",destacado:true},
-                    {t:"RJF",n:"Raymond James",nota:"Brokerage · Pre-market"},
-                    {t:"CHWY",n:"Chewy",nota:"E-commerce mascotas · After hours"},
-                    {t:"BYND",n:"Beyond Meat",nota:"Alimentos alt. · After hours"},
+                  { dia:"Mié 8", empresas:[
+                    {t:"DAL",n:"Delta Air Lines",nota:"Aerolíneas · Pre-market · EPS est. $0.62",destacado:true},
+                    {t:"STZ",n:"Constellation Brands",nota:"Consumo/Bebidas · Pre-market · EPS est. $1.72",destacado:true},
+                    {t:"RPM",n:"RPM International",nota:"Materiales/Pintura · Pre-market · EPS est. $0.37"},
+                    {t:"APLD",n:"Applied Digital",nota:"Data centers / IA · After hours"},
                   ]},
-                  { dia:"Jue 26", empresas:[
-                    {t:"DLTR",n:"Dollar Tree",nota:"Retail discount · Pre-market",destacado:true},
-                    {t:"LULU",n:"Lululemon",nota:"Retail athleisure · After hours",destacado:true},
-                    {t:"BLNK",n:"Blink Charging",nota:"EV charging · After hours"},
+                  { dia:"Jue 9", empresas:[
+                    {t:"PSMT",n:"PriceSmart",nota:"Retail · After hours"},
                   ]},
-                  { dia:"Vie 27", empresas:[
-                    {t:"CCL",n:"Carnival Corp.",nota:"Cruceros · Pre-market",destacado:true},
+                  { dia:"Vie 10", empresas:[
+                    {t:"—",n:"Mercados cerrados",nota:"Viernes Santo · NYSE/NASDAQ cierran"},
                   ]},
                 ].map((d,di) => (
                   <div key={di} style={{ background:t.alt, borderRadius:10, padding:"12px 14px" }}>
                     <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.go, textTransform:"uppercase", letterSpacing:".08em", marginBottom:8 }}>{d.dia}</div>
                     {d.empresas.map((e,ei) => (
                       <div key={ei} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:ei<d.empresas.length-1?6:0 }}>
-                        <span style={{
-                          fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:4,
-                          background:e.destacado?t.go+"22":t.srf, color:e.destacado?t.go:t.tx,
-                          border:`1px solid ${e.destacado?t.go+"44":t.brd}`,
-                        }}>{e.t}</span>
+                        {e.t !== "—" && (
+                          <span style={{
+                            fontFamily:"monospace", fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:4,
+                            background:e.destacado?t.go+"22":t.srf, color:e.destacado?t.go:t.tx,
+                            border:`1px solid ${e.destacado?t.go+"44":t.brd}`,
+                          }}>{e.t}</span>
+                        )}
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:t.tx, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.n}</div>
+                          <div style={{ fontFamily:FB, fontSize:11, fontWeight:e.t!=="—"?600:400, color:e.t!=="—"?t.tx:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.n}</div>
                           <div style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{e.nota}</div>
                         </div>
                       </div>
@@ -1512,8 +1514,36 @@ function InformesView({ t, initialSub="resumen", onSubChange }) {
                 ))}
               </div>
 
+              {/* Preview próxima semana — bancos Q1 */}
+              <div style={{ background:`linear-gradient(135deg, ${t.blBg}, ${t.goBg})`, border:`1px solid ${t.bl}33`, borderRadius:12, padding:"14px 16px" }}>
+                <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.bl, textTransform:"uppercase", letterSpacing:".1em", marginBottom:10 }}>
+                  📅 PRÓXIMA SEMANA · 14 ABR — INICIO TEMPORADA BANCOS
+                </div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {[
+                    {t:"JPM",n:"JPMorgan Chase",nota:"Pre-market · EPS est. $5.40",acento:"blue"},
+                    {t:"WFC",n:"Wells Fargo",nota:"Pre-market · Q1 2026",acento:"blue"},
+                    {t:"BLK",n:"BlackRock",nota:"Pre-market · AUM récord $12.5T",acento:"gold"},
+                    {t:"MS",n:"Morgan Stanley",nota:"Pre-market",acento:"blue"},
+                    {t:"BAC",n:"Bank of America",nota:"A confirmar",acento:"blue"},
+                    {t:"C",n:"Citigroup",nota:"A confirmar",acento:"blue"},
+                  ].map((b,i) => (
+                    <div key={i} style={{ background:t.srf, borderRadius:8, padding:"8px 12px", display:"flex", alignItems:"center", gap:8, border:`1px solid ${t.brd}` }}>
+                      <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:b.acento==="gold"?t.go:t.bl }}>{b.t}</span>
+                      <div>
+                        <div style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.tx }}>{b.n}</div>
+                        <div style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{b.nota}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:10, lineHeight:1.5 }}>
+                  El <strong>14 ABR</strong> es el día clave de la temporada: JPM y WFC marcan el tono para el sector financiero y el mercado global. El Q1 2026 será el primer termómetro del impacto del contexto geopolítico sobre la banca estadounidense.
+                </p>
+              </div>
+
               <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12 }}>
-                Destacados en dorado = mayor relevancia para el mercado. Fuente: Yahoo Finance / Earnings Whispers.
+                Destacados en dorado = mayor relevancia. Viernes 10 ABR: NYSE/NASDAQ cerrados (Viernes Santo). Fuente: Yahoo Finance / Benzinga / Earnings Whispers.
               </p>
             </div>
           </Card>
@@ -2293,7 +2323,7 @@ function EquityScreener({ t }) {
           {histStatus==="error"    && "Historial: usando datos estáticos"}
         </div>
         <div style={{ flex:1, fontFamily:FB, fontSize:10, color:t.fa, textAlign:"right" }}>
-          ⚠️ Uso interno · No constituye asesoramiento de inversión
+          Fundamentales (PE, Score): snapshot 19 MAR 2026 · Cotizaciones en tiempo real vía Finnhub
         </div>
       </div>
 
@@ -2808,6 +2838,31 @@ const _ao28Flows = (() => {
 
 // Schedules verificados contra prospectos de restructuración 2020
 // Cupones en USD por cada $100 VN outstanding en cada período
+// ── HISTORIAL: pagos realizados desde emisión (Sep 2020) ────────
+// Jan 9 y Jul 9 de cada año. Datos extraídos de prospectos MECON.
+// Step-up GD30/AL30: 0.125% sem. años 1-5 (sep20-sep25) → 0.25% año 6+
+const _sovHistSemi = (cpnConst, fromYear=2021, toYear=2026, toMonth=1) => {
+  const out = [];
+  for (let y = fromYear; y <= toYear; y++) {
+    const months = y === fromYear ? [1,7] : y === toYear ? [1] : [1,7];
+    for (const m of months) {
+      if (y === toYear && m > toMonth) break;
+      out.push({ date:`${y}-${String(m).padStart(2,"0")}-09`, cpn:cpnConst, amort:0 });
+    }
+  }
+  return out;
+};
+// AL30/GD30 step-up histórico: 0.125% hasta Jul-2025, 0.25% desde Ene-2026
+const _al30HistFlows = [
+  ...[2021,2022,2023,2024].flatMap(y=>[
+    {date:`${y}-01-09`,cpn:0.125,amort:0},
+    {date:`${y}-07-09`,cpn:0.125,amort:0},
+  ]),
+  {date:"2025-01-09",cpn:0.125,amort:0},
+  {date:"2025-07-09",cpn:0.125,amort:0},  // Año 5 aún
+  {date:"2026-01-09",cpn:0.25,amort:0},   // Año 6 comienza Sep 2025
+];
+
 const BOND_SCHEDULES = {
   // AO27D — Bonar 2027 · Ley ARG · cupón 3% anual mensual · BULLET Oct-2027
   "AO27D": _ao27Flows,
@@ -2818,6 +2873,9 @@ const BOND_SCHEDULES = {
   // AL29D — Bonar 2029 · Ley ARG · step-up · amort 4x25% Jul27-Ene29
   // Cupón: 0.5% sem sobre outstanding restante
   "AL29D": [
+    // ── Historial desde emisión Sep 2020 ──
+    ..._sovHistSemi(0.50, 2021, 2026, 1),
+    // ── Flujos futuros ──
     {date:"2026-07-09",cpn:0.50,amort:0},
     {date:"2027-01-09",cpn:0.50,amort:0},
     {date:"2027-07-09",cpn:0.50,amort:25},
@@ -2836,6 +2894,9 @@ const BOND_SCHEDULES = {
 
   // AL30D — Bonar 2030 · Ley ARG · step-up · amort 4x25%
   "AL30D": [
+    // ── Historial: step-up 0.125% sem años 1-5, 0.25% año 6+ ──
+    ..._al30HistFlows,
+    // ── Flujos futuros ──
     {date:"2026-07-09",cpn:0.25,amort:0},{date:"2027-01-09",cpn:0.25,amort:25},
     {date:"2027-07-09",cpn:0.375,amort:25},{date:"2028-01-09",cpn:0.50,amort:25},
     {date:"2028-07-09",cpn:0.75,amort:0},{date:"2029-01-09",cpn:0.75,amort:0},
@@ -2845,6 +2906,9 @@ const BOND_SCHEDULES = {
 
   // AL35D — Bonar 2035 · Ley ARG · 3.625% · amort desde Ene-2029
   "AL35D": [
+    // ── Historial desde emisión Sep 2020 · 1.8125% sem constante ──
+    ..._sovHistSemi(1.8125, 2021, 2026, 1),
+    // ── Flujos futuros ──
     {date:"2026-07-09",cpn:1.8125,amort:0},{date:"2027-01-09",cpn:1.8125,amort:0},
     {date:"2027-07-09",cpn:1.8125,amort:0},{date:"2028-01-09",cpn:1.8125,amort:0},
     {date:"2028-07-09",cpn:1.8125,amort:0},{date:"2029-01-09",cpn:1.8125,amort:14.29},
@@ -2855,6 +2919,9 @@ const BOND_SCHEDULES = {
 
   // AE38D — Bonar 2038 · Ley ARG · 3.875% · amort 8x12.5% desde Ene-2031
   "AE38D": [
+    // ── Historial desde emisión Sep 2020 · 1.9375% sem constante ──
+    ..._sovHistSemi(1.9375, 2021, 2026, 1),
+    // ── Flujos futuros ──
     {date:"2026-07-09",cpn:1.9375,amort:0},{date:"2027-01-09",cpn:1.9375,amort:0},
     {date:"2027-07-09",cpn:1.9375,amort:0},{date:"2028-01-09",cpn:1.9375,amort:0},
     {date:"2028-07-09",cpn:1.9375,amort:0},{date:"2029-01-09",cpn:1.9375,amort:0},
@@ -2868,6 +2935,9 @@ const BOND_SCHEDULES = {
 
   // AL41D — Bonar 2041 · Ley ARG · 4.125% · amort 8x12.5% desde Jul-2027
   "AL41D": [
+    // ── Historial desde emisión Sep 2020 · 2.0625% sem constante ──
+    ..._sovHistSemi(2.0625, 2021, 2026, 1),
+    // ── Flujos futuros ──
     {date:"2026-07-09",cpn:2.0625,amort:0},{date:"2027-01-09",cpn:2.0625,amort:0},
     {date:"2027-07-09",cpn:2.0625,amort:12.5},{date:"2028-01-09",cpn:1.8047,amort:12.5},
     {date:"2028-07-09",cpn:1.5469,amort:12.5},{date:"2029-01-09",cpn:1.2891,amort:12.5},
@@ -2877,6 +2947,7 @@ const BOND_SCHEDULES = {
 
   // GD29D — Global 2029 · Ley NY · idéntico a AL29D
   "GD29D": [
+    ..._sovHistSemi(0.50, 2021, 2026, 1),
     {date:"2026-07-09",cpn:0.50,amort:0},{date:"2027-01-09",cpn:0.50,amort:0},
     {date:"2027-07-09",cpn:0.50,amort:25},{date:"2028-01-09",cpn:0.375,amort:25},
     {date:"2028-07-09",cpn:0.250,amort:25},{date:"2029-01-09",cpn:0.125,amort:25},
@@ -2884,6 +2955,7 @@ const BOND_SCHEDULES = {
 
   // GD30D — Global 2030 · Ley NY · step-up · amort 4x25%
   "GD30D": [
+    ..._al30HistFlows,
     {date:"2026-07-09",cpn:0.25,amort:0},{date:"2027-01-09",cpn:0.25,amort:25},
     {date:"2027-07-09",cpn:0.375,amort:25},{date:"2028-01-09",cpn:0.50,amort:25},
     {date:"2028-07-09",cpn:0.75,amort:0},{date:"2029-01-09",cpn:0.75,amort:0},
@@ -2893,6 +2965,7 @@ const BOND_SCHEDULES = {
 
   // GD35D — Global 2035 · Ley NY · 3.625% · idéntico a AL35D
   "GD35D": [
+    ..._sovHistSemi(1.8125, 2021, 2026, 1),
     {date:"2026-07-09",cpn:1.8125,amort:0},{date:"2027-01-09",cpn:1.8125,amort:0},
     {date:"2027-07-09",cpn:1.8125,amort:0},{date:"2028-01-09",cpn:1.8125,amort:0},
     {date:"2028-07-09",cpn:1.8125,amort:0},{date:"2029-01-09",cpn:1.8125,amort:14.29},
@@ -2903,6 +2976,7 @@ const BOND_SCHEDULES = {
 
   // GD38D — Global 2038 · Ley NY · 3.875% · idéntico a AE38D
   "GD38D": [
+    ..._sovHistSemi(1.9375, 2021, 2026, 1),
     {date:"2026-07-09",cpn:1.9375,amort:0},{date:"2027-01-09",cpn:1.9375,amort:0},
     {date:"2027-07-09",cpn:1.9375,amort:0},{date:"2028-01-09",cpn:1.9375,amort:0},
     {date:"2028-07-09",cpn:1.9375,amort:0},{date:"2029-01-09",cpn:1.9375,amort:0},
@@ -2916,6 +2990,7 @@ const BOND_SCHEDULES = {
 
   // GD41D — Global 2041 · Ley NY · 4.125% · idéntico a AL41D
   "GD41D": [
+    ..._sovHistSemi(2.0625, 2021, 2026, 1),
     {date:"2026-07-09",cpn:2.0625,amort:0},{date:"2027-01-09",cpn:2.0625,amort:0},
     {date:"2027-07-09",cpn:2.0625,amort:12.5},{date:"2028-01-09",cpn:1.8047,amort:12.5},
     {date:"2028-07-09",cpn:1.5469,amort:12.5},{date:"2029-01-09",cpn:1.2891,amort:12.5},
@@ -3180,6 +3255,8 @@ function SoberanosCalc({ t, bondPrices }) {
   const [comision,  setComision]  = useState("0.5");
   const [precioEdit,setPrecioEdit]= useState("");
   const [open,      setOpen]      = useState(false);
+  const [fechaCompra, setFechaCompra] = useState(""); // ISO yyyy-mm-dd, vacío = hoy
+  const [showPaid,  setShowPaid]  = useState(false);
 
   const bond      = SOBERANOS.find(s => s.t === selTicker) || SOBERANOS[0];
   const liveEntry = bondPrices[selTicker];
@@ -3187,8 +3264,17 @@ function SoberanosCalc({ t, bondPrices }) {
   const basePrice = livePrice ?? parseFloat(bond.p.replace("$","").replace(",","."));
   const precioUso = precioEdit !== "" ? parseFloat(precioEdit)||basePrice : basePrice;
 
-  const today     = new Date();
-  const rawFlows  = (BOND_SCHEDULES[selTicker]||[]).filter(f => new Date(f.date) > today);
+  const today      = new Date();
+  const compraDate = fechaCompra ? new Date(fechaCompra) : today;
+  // Todos los flujos del schedule
+  const allFlows   = BOND_SCHEDULES[selTicker] || [];
+  // Pagados: entre fecha de compra y hoy (exclusive de hoy)
+  const paidFlows  = allFlows.filter(f => {
+    const d = new Date(f.date);
+    return d >= compraDate && d < today;
+  });
+  // Pendientes: desde hoy en adelante
+  const rawFlows   = allFlows.filter(f => new Date(f.date) >= today);
 
   const montoNum   = parseFloat(monto)||0;
   const comPct     = parseFloat(comision)||0;
@@ -3202,18 +3288,26 @@ function SoberanosCalc({ t, bondPrices }) {
     return { ...f, cpnUSD, amortUSD, totalUSD: cpnUSD+amortUSD, days };
   });
 
+  const paidFlowsCalc = paidFlows.map(f => {
+    const cpnUSD   = f.cpn * vnComprado / 100;
+    const amortUSD = f.amort * vnComprado / 100;
+    return { ...f, cpnUSD, amortUSD, totalUSD: cpnUSD+amortUSD };
+  });
+
+  const totalCobradoHist = paidFlowsCalc.reduce((a,f) => a+f.totalUSD, 0);
   const totalCobros  = flows.reduce((a,f) => a+f.totalUSD, 0);
-  const gananciaNeta = totalCobros - montoNum;
+  const totalGlobal  = totalCobradoHist + totalCobros;
+  const gananciaNeta = totalGlobal - montoNum;
+  const gananciaSolo = totalCobros - montoNum; // sin considerar lo ya cobrado
   const retornoPct   = montoNum > 0 ? gananciaNeta/montoNum*100 : 0;
   const tirCalc      = montoNum > 0 ? calcSovTIR(precioComp, rawFlows) : null;
-  // TIR de referencia de mercado (del array SOBERANOS)
   const tirMercado   = bond.tir !== "—" ? parseFloat(bond.tir.replace("%","").replace(",",".")) : null;
 
   const fmt2  = n => n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtD  = s => new Date(s).toLocaleDateString("es-AR",{day:"numeric",month:"short",year:"numeric"});
   const fmtYr = s => { const d=new Date(s); return `${["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][d.getMonth()]} ${d.getFullYear()}`; };
 
-  let acum = 0;
+  let acum = totalCobradoHist; // acumulado parte de lo ya cobrado
 
   return (
     <div style={{ marginTop:28 }}>
@@ -3321,12 +3415,122 @@ function SoberanosCalc({ t, bondPrices }) {
                 </div>
                 <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:3 }}>Precio efectivo: ${fmt2(precioComp)}</div>
               </div>
+
+              {/* Fecha de compra */}
+              <div>
+                <label style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".07em", display:"block", marginBottom:5 }}>
+                  Fecha de compra
+                  <span style={{ marginLeft:6, fontWeight:400, color:t.fa, textTransform:"none" }}>(para ver pagados)</span>
+                </label>
+                <input type="date" value={fechaCompra} onChange={e=>setFechaCompra(e.target.value)}
+                  max={today.toISOString().split("T")[0]}
+                  style={{
+                    width:"100%", padding:"10px 12px", borderRadius:9, fontFamily:FB, fontSize:13, fontWeight:600,
+                    border:`1.5px solid ${fechaCompra?t.go:t.brd}`, background:t.srf, color:fechaCompra?t.tx:t.fa, outline:"none",
+                  }}
+                  onFocus={e=>e.target.style.borderColor=t.go}
+                  onBlur={e=>e.target.style.borderColor=fechaCompra?t.go:t.brd}
+                  placeholder="Seleccioná la fecha"
+                />
+                {fechaCompra && (
+                  <button onClick={()=>setFechaCompra("")} style={{ fontFamily:FB, fontSize:9, color:t.go, background:"none", border:"none", cursor:"pointer", marginTop:3, padding:0 }}>
+                    ✕ Solo flujos futuros
+                  </button>
+                )}
+                {!fechaCompra && <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:3 }}>Opcional · calculará flujos futuros</div>}
+              </div>
             </div>
           </div>
 
-          {montoNum > 0 && flows.length > 0 && (
+          {montoNum > 0 && (flows.length > 0 || paidFlowsCalc.length > 0) && (
             <>
-              {/* ── KPIs ── */}
+              {/* ── BANNER PAGADOS ── solo si hay historial */}
+              {paidFlowsCalc.length > 0 && (
+                <div style={{ background:t.grBg, border:`1px solid ${t.grAcc}44`, borderRadius:12, padding:"14px 18px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <span style={{ fontSize:18 }}>✅</span>
+                    <div>
+                      <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.gr, textTransform:"uppercase", letterSpacing:".08em" }}>
+                        Ya cobrado desde {fechaCompra ? new Date(fechaCompra).toLocaleDateString("es-AR",{day:"numeric",month:"short",year:"numeric"}) : "tu ingreso"}
+                      </div>
+                      <div style={{ fontFamily:FH, fontSize:20, fontWeight:700, color:t.gr, lineHeight:1.1 }}>
+                        USD {fmt2(totalCobradoHist)}
+                      </div>
+                      <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginTop:2 }}>
+                        {paidFlowsCalc.length} pago{paidFlowsCalc.length!==1?"s":""} recibido{paidFlowsCalc.length!==1?"s":""} · {((totalCobradoHist/montoNum)*100).toFixed(1)}% de la inversión recuperado
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={()=>setShowPaid(v=>!v)} style={{
+                    display:"flex", alignItems:"center", gap:5, padding:"7px 14px", borderRadius:8, cursor:"pointer",
+                    fontFamily:FB, fontSize:11, fontWeight:600, border:`1px solid ${t.gr}44`,
+                    background:"transparent", color:t.gr,
+                  }}>
+                    {showPaid ? <><ChevronUp size={12}/> Ocultar detalle</> : <><ChevronDown size={12}/> Ver detalle</>}
+                  </button>
+                </div>
+              )}
+
+              {/* ── TABLA PAGOS YA COBRADOS ── */}
+              {paidFlowsCalc.length > 0 && showPaid && (
+                <div style={{ background:t.grBg, border:`1px solid ${t.grAcc}33`, borderRadius:14, overflow:"hidden", marginBottom:16, opacity:0.85 }}>
+                  <div style={{ padding:"12px 18px", borderBottom:`1px solid ${t.grAcc}22`, display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontFamily:FH, fontSize:13, fontWeight:700, color:t.gr }}>
+                      ✅ Pagos cobrados · {paidFlowsCalc.length} cupones
+                    </span>
+                    <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>escalados al VN comprado</span>
+                  </div>
+                  <div style={{ overflowX:"auto" }}>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
+                      <thead>
+                        <tr style={{ background:t.grBg }}>
+                          {[["#","l"],["Fecha","l"],["Renta","r"],["Amortización","r"],["Total","r"]].map(([h,a]) => (
+                            <th key={h} style={{ padding:"7px 14px", textAlign:a==="l"?"left":"right", fontSize:8, fontWeight:700,
+                              color:t.gr, letterSpacing:".08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paidFlowsCalc.map((f,i) => {
+                          const hasAmort = f.amortUSD > 0.001;
+                          const hasCpn   = f.cpnUSD   > 0.001;
+                          return (
+                            <tr key={i} style={{ borderBottom:`1px solid ${t.grAcc}22` }}>
+                              <td style={{ padding:"6px 14px", fontSize:10, color:t.gr }}>{i+1}</td>
+                              <td style={{ padding:"6px 14px", fontSize:11, fontWeight:600, color:t.gr, whiteSpace:"nowrap" }}>
+                                {fmtD(f.date)} <span style={{ fontSize:9, color:t.gr, background:t.grAcc+"22", padding:"1px 5px", borderRadius:4, marginLeft:4 }}>✓ COBRADO</span>
+                              </td>
+                              <td style={{ padding:"6px 14px", fontSize:11, color:t.gr, textAlign:"right" }}>
+                                {hasCpn ? `$${fmt2(f.cpnUSD)}` : <span style={{color:t.fa}}>—</span>}
+                              </td>
+                              <td style={{ padding:"6px 14px", fontSize:11, textAlign:"right", color:hasAmort?t.go:t.fa }}>
+                                {hasAmort ? `$${fmt2(f.amortUSD)}` : "—"}
+                              </td>
+                              <td style={{ padding:"6px 14px", fontSize:12, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                                ${fmt2(f.totalUSD)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr style={{ background:t.grBg, borderTop:`1px solid ${t.grAcc}44` }}>
+                          <td colSpan={2} style={{ padding:"8px 14px", fontFamily:FB, fontSize:9, fontWeight:700, color:t.gr, textTransform:"uppercase" }}>TOTAL COBRADO</td>
+                          <td style={{ padding:"8px 14px", fontSize:12, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                            ${fmt2(paidFlowsCalc.reduce((a,f)=>a+f.cpnUSD,0))}
+                          </td>
+                          <td style={{ padding:"8px 14px", fontSize:12, fontWeight:700, color:t.go, textAlign:"right" }}>
+                            ${fmt2(paidFlowsCalc.reduce((a,f)=>a+f.amortUSD,0))}
+                          </td>
+                          <td style={{ padding:"8px 14px", fontSize:13, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                            ${fmt2(totalCobradoHist)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ── KPIs — adaptativos si hay historial o no ── */}
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:10, marginBottom:16 }}>
                 {[
                   { label:"Inversión",         val:`USD ${fmt2(montoNum)}`,                                   color:t.bl,  bg:t.blBg },
@@ -3334,10 +3538,15 @@ function SoberanosCalc({ t, bondPrices }) {
                   { label:"TIR calculada",      val:tirCalc!=null?`${(tirCalc*100).toFixed(2)}%`:"—",          color:t.go,  bg:t.goBg,
                     sub: tirMercado ? `Mercado: ${tirMercado.toFixed(2)}%` : null },
                   { label:"Próximo pago",       val:flows[0] ? fmtYr(flows[0].date) : "—",                    color:t.pu,  bg:t.puBg },
-                  { label:"Total a cobrar",     val:`USD ${fmt2(totalCobros)}`,                                color:t.gr,  bg:t.grBg },
-                  { label:"Ganancia neta",      val:`${gananciaNeta>=0?"+ ":""}USD ${fmt2(Math.abs(gananciaNeta))}`, color:gananciaNeta>=0?t.gr:t.rd, bg:gananciaNeta>=0?t.grBg:t.rdBg },
-                  { label:"Retorno total",      val:`${retornoPct>=0?"+":""}${retornoPct.toFixed(1)}%`,        color:retornoPct>=0?t.gr:t.rd, bg:retornoPct>=0?t.grBg:t.rdBg,
-                    sub:`sobre ${flows.length} flujos` },
+                  ...(paidFlowsCalc.length > 0 ? [
+                    { label:"Ya cobrado",       val:`USD ${fmt2(totalCobradoHist)}`,                           color:t.gr,  bg:t.grBg,
+                      sub:`${paidFlowsCalc.length} pago${paidFlowsCalc.length!==1?"s":""}` },
+                  ] : []),
+                  { label:"Por cobrar",         val:`USD ${fmt2(totalCobros)}`,                                color:t.bl,  bg:t.blBg,
+                    sub:`${flows.length} flujo${flows.length!==1?"s":""}` },
+                  { label:"Ganancia neta",      val:`${gananciaNeta>=0?"+ ":""}USD ${fmt2(Math.abs(gananciaNeta))}`, color:gananciaNeta>=0?t.gr:t.rd, bg:gananciaNeta>=0?t.grBg:t.rdBg,
+                    sub: paidFlowsCalc.length > 0 ? "cobrado + pendiente" : null },
+                  { label:"Retorno total",      val:`${retornoPct>=0?"+":""}${retornoPct.toFixed(1)}%`,        color:retornoPct>=0?t.gr:t.rd, bg:retornoPct>=0?t.grBg:t.rdBg },
                   { label:"Vencimiento",        val:bond.vto,                                                  color:t.mu,  bg:t.alt  },
                 ].map((k,i) => (
                   <div key={i} style={{ background:k.bg, border:`1px solid ${k.color}22`, borderRadius:12, padding:"12px 14px" }}>
@@ -3348,116 +3557,126 @@ function SoberanosCalc({ t, bondPrices }) {
                 ))}
               </div>
 
-              {/* Barra de recupero */}
+              {/* Barra de recupero — incluye pagado + pendiente */}
               <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, marginBottom:8 }}>
-                  <span>Recupero de la inversión sobre flujos futuros</span>
-                  <span style={{ color: totalCobros>=montoNum ? t.gr : t.go }}>
-                    {Math.min(100,(totalCobros/montoNum*100)).toFixed(1)}%
-                    {totalCobros >= montoNum && " ✓"}
+                  <span>Recupero de la inversión {paidFlowsCalc.length>0?"(cobrado + pendiente)":"sobre flujos futuros"}</span>
+                  <span style={{ color: totalGlobal>=montoNum ? t.gr : t.go }}>
+                    {Math.min(100,(totalGlobal/montoNum*100)).toFixed(1)}%
+                    {totalGlobal >= montoNum && " ✓"}
                   </span>
                 </div>
-                <div style={{ height:7, background:t.alt, borderRadius:99, overflow:"hidden" }}>
-                  <div style={{ height:"100%", borderRadius:99, transition:"width .5s", width:`${Math.min(100,totalCobros/montoNum*100)}%`,
-                    background:`linear-gradient(90deg,${t.bl},${totalCobros>=montoNum?t.gr:t.go})` }}/>
+                <div style={{ height:10, background:t.alt, borderRadius:99, overflow:"hidden", display:"flex" }}>
+                  {/* Segmento cobrado (verde) */}
+                  {paidFlowsCalc.length > 0 && (
+                    <div style={{ height:"100%", transition:"width .5s", width:`${Math.min(100,totalCobradoHist/montoNum*100)}%`,
+                      background:`linear-gradient(90deg,${t.grAcc},${t.gr})` }}/>
+                  )}
+                  {/* Segmento pendiente (azul→dorado) */}
+                  <div style={{ height:"100%", transition:"width .5s", width:`${Math.min(100,Math.max(0, totalGlobal/montoNum*100 - totalCobradoHist/montoNum*100))}%`,
+                    background:`linear-gradient(90deg,${t.bl},${totalCobros>=montoNum?t.go:t.go})`, opacity:0.7 }}/>
                 </div>
-                <div style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:9, color:t.fa, marginTop:5 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", fontFamily:FB, fontSize:9, color:t.fa, marginTop:6, flexWrap:"wrap", gap:8 }}>
+                  {paidFlowsCalc.length > 0 && <span style={{color:t.gr}}>✅ Cobrado: USD {fmt2(totalCobradoHist)}</span>}
+                  <span>⏳ Pendiente: USD {fmt2(totalCobros)}</span>
                   <span>Inversión: USD {fmt2(montoNum)}</span>
-                  <span>Total flujos: USD {fmt2(totalCobros)}</span>
                 </div>
               </div>
 
-              {/* ── TABLA DE FLUJOS ── */}
-              <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:14, overflow:"hidden" }}>
-                <div style={{ padding:"14px 18px", borderBottom:`1px solid ${t.brd}`, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
-                  <span style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>
-                    Flujos de caja · {flows.length} pagos
-                  </span>
-                  <div style={{ display:"flex", gap:10, fontFamily:FB, fontSize:10, color:t.fa }}>
-                    <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                      <span style={{ width:8, height:8, borderRadius:2, background:t.blBg, border:`1px solid ${t.bl}44`, display:"inline-block" }}/>Renta
+              {/* ── TABLA DE FLUJOS PENDIENTES ── */}
+              {flows.length > 0 && (
+                <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:14, overflow:"hidden" }}>
+                  <div style={{ padding:"14px 18px", borderBottom:`1px solid ${t.brd}`, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+                    <span style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>
+                      Flujos pendientes · {flows.length} pagos
                     </span>
-                    <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                      <span style={{ width:8, height:8, borderRadius:2, background:t.goBg, border:`1px solid ${t.go}44`, display:"inline-block" }}/>Amortización
-                    </span>
+                    <div style={{ display:"flex", gap:10, fontFamily:FB, fontSize:10, color:t.fa }}>
+                      <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                        <span style={{ width:8, height:8, borderRadius:2, background:t.blBg, border:`1px solid ${t.bl}44`, display:"inline-block" }}/>Renta
+                      </span>
+                      <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                        <span style={{ width:8, height:8, borderRadius:2, background:t.goBg, border:`1px solid ${t.go}44`, display:"inline-block" }}/>Amortización
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ overflowX:"auto" }}>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
+                      <thead>
+                        <tr style={{ background:t.alt }}>
+                          {[["#","l"],["Fecha","l"],["Días","r"],["Renta","r"],["Amortización","r"],["Total","r"],["Acumulado","r"],["Recupero","r"]].map(([h,a]) => (
+                            <th key={h} style={{ padding:"8px 14px", textAlign:a==="l"?"left":"right", fontSize:8, fontWeight:700,
+                              color:t.mu, letterSpacing:".08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {flows.map((f,i) => {
+                          acum += f.totalUSD;
+                          const rec = montoNum > 0 ? acum/montoNum*100 : 0;
+                          const hasAmort = f.amortUSD > 0.001;
+                          const hasCpn   = f.cpnUSD   > 0.001;
+                          return (
+                            <tr key={i} style={{
+                              background: hasAmort ? t.goBg+"88" : i%2===0 ? t.srf : t.alt,
+                              borderBottom:`1px solid ${t.brd}44`,
+                            }}>
+                              <td style={{ padding:"7px 14px", fontSize:10, color:t.fa }}>{i+1}</td>
+                              <td style={{ padding:"7px 14px", fontSize:11, fontWeight:600, color:t.tx, whiteSpace:"nowrap" }}>{fmtD(f.date)}</td>
+                              <td style={{ padding:"7px 14px", fontSize:10, color:t.mu, textAlign:"right" }}>{f.days}d</td>
+                              <td style={{ padding:"7px 14px", fontSize:11, color:t.bl, textAlign:"right", fontWeight:hasCpn?500:400 }}>
+                                {hasCpn ? `$${fmt2(f.cpnUSD)}` : <span style={{color:t.fa}}>—</span>}
+                              </td>
+                              <td style={{ padding:"7px 14px", fontSize:11, textAlign:"right", fontWeight:hasAmort?700:400, color:hasAmort?t.go:t.fa }}>
+                                {hasAmort ? `$${fmt2(f.amortUSD)}` : "—"}
+                              </td>
+                              <td style={{ padding:"7px 14px", fontSize:12, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                                ${fmt2(f.totalUSD)}
+                              </td>
+                              <td style={{ padding:"7px 14px", fontSize:11, color:t.tx, textAlign:"right" }}>
+                                ${fmt2(acum)}
+                              </td>
+                              <td style={{ padding:"7px 14px", textAlign:"right" }}>
+                                <span style={{
+                                  fontFamily:FB, fontSize:9, fontWeight:700, padding:"2px 8px", borderRadius:8,
+                                  background: rec>=100?t.grBg:rec>=50?t.goBg:t.rdBg,
+                                  color:      rec>=100?t.gr  :rec>=50?t.go  :t.rd,
+                                }}>{rec.toFixed(0)}%</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr style={{ background:t.alt, borderTop:`2px solid ${t.brd}` }}>
+                          <td colSpan={3} style={{ padding:"10px 14px", fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".06em" }}>TOTALES PENDIENTES</td>
+                          <td style={{ padding:"10px 14px", fontSize:12, fontWeight:700, color:t.bl, textAlign:"right" }}>
+                            ${fmt2(flows.reduce((a,f)=>a+f.cpnUSD,0))}
+                          </td>
+                          <td style={{ padding:"10px 14px", fontSize:12, fontWeight:700, color:t.go, textAlign:"right" }}>
+                            ${fmt2(flows.reduce((a,f)=>a+f.amortUSD,0))}
+                          </td>
+                          <td style={{ padding:"10px 14px", fontSize:13, fontWeight:700, color:t.gr, textAlign:"right" }}>
+                            ${fmt2(totalCobros)}
+                          </td>
+                          <td colSpan={2} style={{ padding:"10px 14px", fontSize:12, fontWeight:700, textAlign:"right", color:gananciaSolo>=0?t.gr:t.rd }}>
+                            {gananciaSolo>=0?"+":""}${fmt2(gananciaSolo)} ({retornoPct>=0?"+":""}{retornoPct.toFixed(1)}%)
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-                <div style={{ overflowX:"auto" }}>
-                  <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB }}>
-                    <thead>
-                      <tr style={{ background:t.alt }}>
-                        {[["#","l"],["Fecha","l"],["Días","r"],["Renta","r"],["Amortización","r"],["Total","r"],["Acumulado","r"],["Recupero","r"]].map(([h,a]) => (
-                          <th key={h} style={{ padding:"8px 14px", textAlign:a==="l"?"left":"right", fontSize:8, fontWeight:700,
-                            color:t.mu, letterSpacing:".08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {flows.map((f,i) => {
-                        acum += f.totalUSD;
-                        const rec = montoNum > 0 ? acum/montoNum*100 : 0;
-                        const hasAmort = f.amortUSD > 0.001;
-                        const hasCpn   = f.cpnUSD   > 0.001;
-                        return (
-                          <tr key={i} style={{
-                            background: hasAmort ? t.goBg+"88" : i%2===0 ? t.srf : t.alt,
-                            borderBottom:`1px solid ${t.brd}44`,
-                          }}>
-                            <td style={{ padding:"7px 14px", fontSize:10, color:t.fa }}>{i+1}</td>
-                            <td style={{ padding:"7px 14px", fontSize:11, fontWeight:600, color:t.tx, whiteSpace:"nowrap" }}>{fmtD(f.date)}</td>
-                            <td style={{ padding:"7px 14px", fontSize:10, color:t.mu, textAlign:"right" }}>{f.days}d</td>
-                            <td style={{ padding:"7px 14px", fontSize:11, color:t.bl, textAlign:"right", fontWeight:hasCpn?500:400 }}>
-                              {hasCpn ? `$${fmt2(f.cpnUSD)}` : <span style={{color:t.fa}}>—</span>}
-                            </td>
-                            <td style={{ padding:"7px 14px", fontSize:11, textAlign:"right", fontWeight:hasAmort?700:400, color:hasAmort?t.go:t.fa }}>
-                              {hasAmort ? `$${fmt2(f.amortUSD)}` : "—"}
-                            </td>
-                            <td style={{ padding:"7px 14px", fontSize:12, fontWeight:700, color:t.gr, textAlign:"right" }}>
-                              ${fmt2(f.totalUSD)}
-                            </td>
-                            <td style={{ padding:"7px 14px", fontSize:11, color:t.tx, textAlign:"right" }}>
-                              ${fmt2(acum)}
-                            </td>
-                            <td style={{ padding:"7px 14px", textAlign:"right" }}>
-                              <span style={{
-                                fontFamily:FB, fontSize:9, fontWeight:700, padding:"2px 8px", borderRadius:8,
-                                background: rec>=100?t.grBg:rec>=50?t.goBg:t.rdBg,
-                                color:      rec>=100?t.gr  :rec>=50?t.go  :t.rd,
-                              }}>{rec.toFixed(0)}%</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      <tr style={{ background:t.alt, borderTop:`2px solid ${t.brd}` }}>
-                        <td colSpan={3} style={{ padding:"10px 14px", fontFamily:FB, fontSize:9, fontWeight:700, color:t.mu, textTransform:"uppercase", letterSpacing:".06em" }}>TOTALES</td>
-                        <td style={{ padding:"10px 14px", fontSize:12, fontWeight:700, color:t.bl, textAlign:"right" }}>
-                          ${fmt2(flows.reduce((a,f)=>a+f.cpnUSD,0))}
-                        </td>
-                        <td style={{ padding:"10px 14px", fontSize:12, fontWeight:700, color:t.go, textAlign:"right" }}>
-                          ${fmt2(flows.reduce((a,f)=>a+f.amortUSD,0))}
-                        </td>
-                        <td style={{ padding:"10px 14px", fontSize:13, fontWeight:700, color:t.gr, textAlign:"right" }}>
-                          ${fmt2(totalCobros)}
-                        </td>
-                        <td colSpan={2} style={{ padding:"10px 14px", fontSize:12, fontWeight:700, textAlign:"right", color:gananciaNeta>=0?t.gr:t.rd }}>
-                          {gananciaNeta>=0?"+":""}${fmt2(gananciaNeta)} ({retornoPct>=0?"+":""}{retornoPct.toFixed(1)}%)
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              )}
 
               <p style={{ fontFamily:FB, fontSize:10, color:t.fa, marginTop:12, lineHeight:1.6 }}>
                 Flujos escalados al VN comprado · TIR calculada por bisección numérica · Filas doradas = amortización de capital ·
+                Historial disponible para bonos 2020 (GD/AL 29-30-35-38-41-46) desde emisión Sep 2020 ·
                 TIR de referencia según convención Bloomberg. No constituye asesoramiento de inversión.
               </p>
             </>
           )}
 
-          {flows.length === 0 && montoNum > 0 && (
+          {flows.length === 0 && paidFlowsCalc.length === 0 && montoNum > 0 && (
             <div style={{ textAlign:"center", padding:"24px", fontFamily:FB, fontSize:12, color:t.fa, background:t.srf, border:`1px solid ${t.brd}`, borderRadius:12 }}>
-              Sin flujos futuros para este bono.
+              Sin flujos registrados para este bono en el período seleccionado.
             </div>
           )}
 

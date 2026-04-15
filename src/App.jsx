@@ -128,10 +128,33 @@ function useWindowSize() {
 ════════════════════════════════════════════════════════════════ */
 // Breaking News — set to null when no active alert
 // {text:"...", icon:"...", color:"red"|"gold"|"green", link:{tab,sub}} 
-const BREAKING_NEWS = null;
-// Example: { text:"Fallo YPF: la Cámara de Apelaciones de NY suspende la ejecución. Impacto positivo en ADR.", icon:"⚖️", color:"gold" }
+const BREAKING_NEWS = { text:"FMI: acuerdo con Argentina por USD 20.000M aprobado. Merval +6%, bonos soberanos suben hasta +4% en la rueda.", icon:"🏦", color:"green", link:{tab:"mercados"} };
 
 const SUMMARIES = [
+  {
+    id:"s10abr", date:"10 ABR 2026", label:"CIERRE DE MERCADO",
+    kpis:[
+      {k:"SPOT ARS/USD",    v:"$1.405",       b:"banda inf.",     bc:"blue"},
+      {k:"DÓLAR MEP",       v:"$1.412",       b:"estable",        bc:"green"},
+      {k:"RIESGO PAÍS",     v:"618 pb",       b:"mín. 2021",      bc:"green"},
+      {k:"CCL",             v:"$1.455",       b:"brechas <4%",    bc:"green"},
+      {k:"WTI",             v:"USD 100",      b:"-2% ceasefire",  bc:"gold"},
+      {k:"MERVAL USD",      v:"~2.050",       b:"sube c/FMI",     bc:"green"},
+    ],
+    dato:"📊 <b>Claves del día:</b> Rueda marcada por el acuerdo con el FMI ($20B), riesgo país perforando los 620 pb y el petróleo cediendo ante señales iraníes de negociación. Tecnológicas globales recuperaron terreno: PANW y CRWD +4%.",
+    cards:[
+      {
+        icon:"🏦", cat:"DEUDA · FMI", ac:"#22c55e",
+        title:"Acuerdo FMI por USD 20.000 millones: impacto sobre soberanos y reservas",
+        note:"El directorio del FMI aprobó el programa. El primer desembolso fortalece reservas brutas y comprime el riesgo país. Los soberanos <b>GD30 y GD35 lideran con +3,5% y +4%</b> respectivamente en la jornada.",
+      },
+      {
+        icon:"🛢️", cat:"ENERGÍA · IRÁN", ac:"#f59e0b",
+        title:"WTI cede a USD 100: Irán señala apertura al diálogo",
+        note:"El presidente Pezeshkian dijo que Irán está dispuesto a negociar un cese del fuego con garantías de seguridad. <b>WTI -2%</b> en la jornada. Rotación desde energía hacia tecnología en curso.",
+      },
+    ],
+  },
   {
     id:"s27", date:"27 MAR 2026", label:"CIERRE DE MERCADO",
     kpis:[
@@ -2442,17 +2465,38 @@ function EquityScreener({ t }) {
     const lp   = livePrices[e.t];
     const hist = liveHistory[e.t];
     const price = lp?.price ?? e.p;
-    const upside = e.tg ? (e.tg / price - 1) * 100 : null;
+
+    // Upside vs precio objetivo (analyst target)
+    const upsideVsTarget = e.tg ? (e.tg / price - 1) * 100 : null;
+
+    // Upside/downside vs máximo 52 semanas (calculado desde candles en vivo)
+    // Si está en máximos (distHi52 > -5%), mostramos potencial de corrección
+    const dist52 = hist?.distHi52 ?? e.ma;
+    const isAtHigh = dist52 !== null && dist52 > -8;
+    const upsideVs52H = dist52 !== null
+      ? (isAtHigh
+        // En máximos: mostrar corrección estimada basada en beta (si disponible)
+        ? (e.sc ? -(e.sc > 70 ? 15 : e.sc > 50 ? 10 : 5) : dist52)
+        // Alejado de máximos: potencial de suba hasta 52H high
+        : Math.abs(dist52))
+      : null;
+
+    // Upside final: usa target analyst si hay, sino 52H
+    const upside = upsideVsTarget ?? upsideVs52H;
+
     return {
       ...e,
-      p:    price,
-      _1d:  lp?.changePct ?? null,
-      s1:   hist?.s1   ?? e.s1,
-      m1:   hist?.m1   ?? e.m1,
-      ytd:  hist?.ytd  ?? e.ytd,
-      _d52: hist?.distHi52 ?? e.ma,
-      _up:  upside,
-      up:   upside !== null ? getUpCategory(upside) : e.up,
+      p:       price,
+      _1d:     lp?.changePct ?? null,
+      s1:      hist?.s1   ?? e.s1,
+      m1:      hist?.m1   ?? e.m1,
+      ytd:     hist?.ytd  ?? e.ytd,
+      _d52:    dist52,
+      _isAtHigh: isAtHigh,
+      _upsideVsTarget: upsideVsTarget,
+      _upsideVs52H:    upsideVs52H,
+      _up:     upside,
+      up:      upside !== null ? getUpCategory(upside) : e.up,
     };
   });
 
@@ -2693,6 +2737,8 @@ function EquityScreener({ t }) {
                 const ud      = e._up;
                 const udStr   = ud !== null ? `${ud >= 0 ? "+" : ""}${ud.toFixed(1)}%` : null;
                 const upCat   = e.up;
+                const isAtHigh = e._isAtHigh;
+                const udLabel = e._upsideVsTarget !== null ? "vs target" : (isAtHigh ? "correc. est." : "vs máx 52S");
 
                 return (
                   <tr key={e.t}
@@ -2767,7 +2813,8 @@ function EquityScreener({ t }) {
                         {udStr ? (
                           <div>
                             <span style={{ fontSize:12, fontWeight:700, color:ud>=0?t.gr:t.rd }}>{udStr}</span>
-                            {upCat && <div style={{ fontSize:9, color:t.mu, marginTop:1 }}>{upCat}</div>}
+                            <div style={{ fontSize:8, color:t.fa, marginTop:1 }}>{udLabel}</div>
+                            {upCat && <div style={{ fontSize:9, color:t.mu }}>{upCat}</div>}
                           </div>
                         ) : <span style={{ color:t.fa }}>—</span>}
                       </td>
@@ -2780,7 +2827,10 @@ function EquityScreener({ t }) {
                       {/* Potencial */}
                       <td style={{ padding:"7px 10px", textAlign:"right" }}>
                         {udStr ? (
-                          <span style={{ fontSize:12, fontWeight:700, color:ud>=0?t.gr:t.rd }}>{udStr}</span>
+                          <div>
+                            <span style={{ fontSize:12, fontWeight:700, color:ud>=0?t.gr:t.rd }}>{udStr}</span>
+                            <div style={{ fontSize:8, color:t.fa, marginTop:1 }}>{udLabel}</div>
+                          </div>
                         ) : <span style={{ color:t.fa }}>—</span>}
                       </td>
                       {/* Fwd P/E */}
@@ -3344,16 +3394,37 @@ function SovYieldCurve({ t, bondPrices }) {
   const ttX = hp ? Math.min(sx(hp.dur)+14, W-145) : 0;
   const ttY = hp ? Math.max(sy(hp.tir)-55, 5) : 0;
 
+  const [sovFs, setSovFs] = useState(false);
+  const sovFsRef = useRef(null);
+  useEffect(() => {
+    const h = () => { if (!document.fullscreenElement) setSovFs(false); };
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
+
   return (
+    <div ref={sovFsRef} style={{
+      background: sovFs ? t.bg : "transparent",
+      padding: sovFs ? 32 : 0,
+    }}>
     <Card t={t} style={{ marginBottom:16 }}>
       <div style={{ padding:"18px 22px 10px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, flexWrap:"wrap" }}>
           <Activity size={16} color={t.go} />
           <span style={{ fontFamily:FH, fontSize:15, fontWeight:700, color:t.tx }}>Curva de Rendimiento</span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>Soberanos USD · TIR vs Duration</span>
-          <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
             <span style={{ fontSize:9, fontFamily:FB, color:t.go, background:t.goBg, padding:"3px 10px", borderRadius:10, fontWeight:600 }}>● Ley ARG</span>
             <span style={{ fontSize:9, fontFamily:FB, color:t.bl, background:t.blBg, padding:"3px 10px", borderRadius:10, fontWeight:600 }}>● Ley NY</span>
+            <button onClick={()=>{
+              if (!sovFs) { sovFsRef.current?.requestFullscreen?.(); setSovFs(true); }
+              else { document.exitFullscreen?.(); setSovFs(false); }
+            }} style={{
+              padding:"3px 10px", borderRadius:6, fontFamily:FB, fontSize:9, fontWeight:600,
+              border:`1px solid ${t.brd}`, background:t.alt, color:t.mu, cursor:"pointer",
+            }}>
+              {sovFs ? "⊠ Cerrar" : "⛶ Pantalla completa"}
+            </button>
           </div>
         </div>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", maxHeight:320, fontFamily:FB }}>
@@ -3405,6 +3476,7 @@ function SovYieldCurve({ t, bondPrices }) {
         </svg>
       </div>
     </Card>
+    </div>
   );
 }
 
@@ -3413,6 +3485,13 @@ function SovYieldCurve({ t, bondPrices }) {
 ════════════════════════════════════════════════════════════════ */
 function LecapYieldCurve({ t, points }) {
   const [hover, setHover] = useState(null);
+  const [lecFs, setLecFs] = useState(false);
+  const lecFsRef = useRef(null);
+  useEffect(() => {
+    const h = () => { if (!document.fullscreenElement) setLecFs(false); };
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
   if (!points || points.length < 3) return null;
 
   const W=700, H=300, pad={t:35,r:35,b:52,l:56};
@@ -3451,16 +3530,26 @@ function LecapYieldCurve({ t, points }) {
   const ttY = hp ? Math.max(sy(hp.tna)-50, 5) : 0;
 
   return (
+    <div ref={lecFsRef} style={{ background: lecFs ? t.bg : "transparent", padding: lecFs ? 32 : 0 }}>
     <Card t={t} style={{ marginTop:16, marginBottom:16 }}>
       <div style={{ padding:"18px 22px 10px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, flexWrap:"wrap" }}>
           <Activity size={16} color={t.go} />
           <span style={{ fontFamily:FH, fontSize:15, fontWeight:700, color:t.tx }}>Curva de Tasas</span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>Renta Fija ARS · TNA vs Días</span>
-          <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
+          <div style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center" }}>
             {Object.entries(typeLabel).map(([k,l])=>(
               <span key={k} style={{ fontSize:9, fontFamily:FB, color:typeColor[k], background:typeColor[k]+"12", padding:"3px 10px", borderRadius:10, fontWeight:600 }}>● {l}</span>
             ))}
+            <button onClick={()=>{
+              if (!lecFs) { lecFsRef.current?.requestFullscreen?.(); setLecFs(true); }
+              else { document.exitFullscreen?.(); setLecFs(false); }
+            }} style={{
+              padding:"3px 10px", borderRadius:6, fontFamily:FB, fontSize:9, fontWeight:600,
+              border:`1px solid ${t.brd}`, background:t.alt, color:t.mu, cursor:"pointer",
+            }}>
+              {lecFs ? "⊠ Cerrar" : "⛶ Pantalla completa"}
+            </button>
           </div>
         </div>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", maxHeight:300, fontFamily:FB }}>
@@ -3506,6 +3595,7 @@ function LecapYieldCurve({ t, points }) {
         </svg>
       </div>
     </Card>
+    </div>
   );
 }
 
@@ -4270,6 +4360,158 @@ function CalendarioPanel({ t }) {
    ONs PANEL — Obligaciones Negociables con DATA912 live
    PIN locked · Fetch arg_corp · Agrupadas por ley y emisor
 ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   CURVA DE RENDIMIENTOS ONs — Ley ARG + Ley NY
+════════════════════════════════════════════════════════════════ */
+function CurvaChart({ data, color, label, t, corpPrices }) {
+  const [fs, setFs] = useState(false);
+  const fsRef = useRef(null);
+
+  useEffect(() => {
+    const h = () => { if (!document.fullscreenElement) setFs(false); };
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
+
+  const toggleFs = () => {
+    if (!fs) { fsRef.current?.requestFullscreen?.().catch(()=>{}); setFs(true); }
+    else { document.exitFullscreen?.().catch(()=>{}); setFs(false); }
+  };
+
+  if (!data || data.length < 2) return (
+    <div style={{ fontFamily:FB, fontSize:12, color:t.mu, padding:"24px 0" }}>Sin datos suficientes para esta curva.</div>
+  );
+
+  const W = 560, H = 280;
+  const PAD = { l:52, r:20, t:28, b:48 };
+  const cW = W - PAD.l - PAD.r, cH = H - PAD.t - PAD.b;
+
+  const maxDur = Math.max(...data.map(d=>d.dur), 1);
+  const minTir = Math.min(...data.map(d=>d.tir));
+  const maxTir = Math.max(...data.map(d=>d.tir));
+  const tirRange = Math.max(maxTir - minTir, 0.5);
+  const yPad = tirRange * 0.15;
+
+  const xS = d => (d.dur / maxDur) * cW;
+  const yS = d => cH - ((d.tir - minTir + yPad) / (tirRange + 2*yPad)) * cH;
+
+  const pts = data.map(d => [xS(d), yS(d)]);
+  let path = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [px,py] = pts[i-1], [cx,cy] = pts[i];
+    const cpx = (px + cx) / 2;
+    path += ` C${cpx},${py} ${cpx},${cy} ${cx},${cy}`;
+  }
+
+  const yTicks = 5;
+  const gridLines = Array.from({length:yTicks}, (_,i) => {
+    const v = minTir - yPad + i * (tirRange + 2*yPad) / (yTicks-1);
+    return { tir: v.toFixed(1), y: cH - (i/(yTicks-1))*cH };
+  });
+  const xTicks = [0.5,1,2,3,4,5,7].filter(d => d <= maxDur + 0.3);
+
+  return (
+    <div ref={fsRef} style={{ background:fs?t.bg:"transparent", padding:fs?32:0 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+        <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color, letterSpacing:".1em", textTransform:"uppercase" }}>
+          {label} · TIR vs Duration · {data.length} instrumentos
+        </div>
+        <button onClick={toggleFs} style={{
+          padding:"3px 10px", borderRadius:6, fontFamily:FB, fontSize:9, fontWeight:600,
+          border:`1px solid ${t.brd}`, background:t.alt, color:t.mu, cursor:"pointer",
+        }}>
+          {fs ? "⊠ Cerrar" : "⛶ Pantalla completa"}
+        </button>
+      </div>
+      <svg width={W} height={H} style={{ overflow:"visible", fontFamily:FB, maxWidth:"100%" }}>
+        <defs>
+          <linearGradient id={`onfill${label.replace(/\s/g,"")}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.15"/>
+            <stop offset="100%" stopColor={color} stopOpacity="0.01"/>
+          </linearGradient>
+        </defs>
+        <g transform={`translate(${PAD.l},${PAD.t})`}>
+          {gridLines.map(({tir,y},i) => (
+            <g key={i}>
+              <line x1={0} y1={y} x2={cW} y2={y} stroke={t.brd} strokeWidth={1} strokeDasharray="3,4" opacity={.5}/>
+              <text x={-6} y={y+4} textAnchor="end" fontSize={9} fill={t.fa}>{tir}%</text>
+            </g>
+          ))}
+          {xTicks.map((d,i) => {
+            const x = (d/maxDur)*cW;
+            return <g key={i}>
+              <line x1={x} y1={cH} x2={x} y2={cH+4} stroke={t.mu} strokeWidth={1}/>
+              <text x={x} y={cH+16} textAnchor="middle" fontSize={9} fill={t.fa}>{d}a</text>
+            </g>;
+          })}
+          <text x={cW/2} y={cH+36} textAnchor="middle" fontSize={9} fill={t.mu}>Duration (años)</text>
+          <text transform={`rotate(-90) translate(${-cH/2},${-40})`} textAnchor="middle" fontSize={9} fill={t.mu}>TIR (%)</text>
+          <path d={path + ` L${pts[pts.length-1][0]},${cH} L${pts[0][0]},${cH} Z`}
+            fill={`url(#onfill${label.replace(/\s/g,"")})`}/>
+          <path d={path} stroke={color} strokeWidth={2.5} fill="none" strokeLinecap="round"/>
+          {data.map((d,i) => {
+            const live = corpPrices?.[d.t];
+            return (
+              <g key={i}>
+                <circle cx={xS(d)} cy={yS(d)} r={live?5:4}
+                  fill={live?color:t.bg} stroke={color} strokeWidth={live?0:1.5}/>
+                {live && <circle cx={xS(d)} cy={yS(d)} r={2.5} fill="#fff" opacity={.8}/>}
+                <title>{d.t} · TIR: {d.tir.toFixed(2)}% · Dur: {d.dur.toFixed(1)}a · {d.em}</title>
+                {(i===0||i===data.length-1||i%3===0) && (
+                  <text x={xS(d)} y={yS(d)-9} textAnchor="middle" fontSize={8} fontWeight={700} fill={color}>
+                    {d.t.replace(/D$/,"")}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+      <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
+        {data.map((d,i) => {
+          const live = corpPrices?.[d.t];
+          return (
+            <div key={i} style={{
+              background:t.alt, border:`1px solid ${color}22`, borderRadius:7,
+              padding:"4px 9px", minWidth:80,
+            }}>
+              <div style={{ display:"flex", alignItems:"center", gap:4, marginBottom:2 }}>
+                <span style={{ fontFamily:"monospace", fontSize:9, fontWeight:700, color }}>{d.t.replace(/D$/,"")}</span>
+                {live && <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>}
+              </div>
+              <div style={{ fontFamily:FH, fontSize:12, fontWeight:700, color:d.tir>=7?t.gr:d.tir>=5?t.go:t.mu }}>
+                {d.tir.toFixed(2)}%
+              </div>
+              <div style={{ fontFamily:FB, fontSize:8, color:t.fa }}>{d.dur.toFixed(1)}a · {d.vto}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ONsCurvaPanel({ t, corpPrices }) {
+  const all  = [...ONS_ARG_DATA, ...ONS_NY_DATA].filter(o => o.tir > 0 && o.dur > 0).sort((a,b) => a.dur - b.dur);
+  const argD = all.filter(o => ONS_ARG_DATA.some(x => x.t === o.t));
+  const nyD  = all.filter(o => ONS_NY_DATA.some(x => x.t === o.t));
+  return (
+    <div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(540px,1fr))", gap:16 }}>
+        <Card t={t}><div style={{ padding:"18px 20px" }}>
+          <CurvaChart data={argD} color={t.go} label="LEY ARGENTINA" t={t} corpPrices={corpPrices}/>
+        </div></Card>
+        <Card t={t}><div style={{ padding:"18px 20px" }}>
+          <CurvaChart data={nyD} color={t.bl} label="LEY NUEVA YORK" t={t} corpPrices={corpPrices}/>
+        </div></Card>
+      </div>
+      <p style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:10 }}>
+        TIR calculada sobre precio de mercado · Puntos con relleno = precio live · Hover para detalle · No constituye asesoramiento.
+      </p>
+    </div>
+  );
+}
+
 function ONsPanel({ t }) {
   const [corpPrices, setCorpPrices] = useState({});
   const [status, setStatus] = useState("loading");
@@ -4418,7 +4660,7 @@ function ONsPanel({ t }) {
 
       {/* Sub-tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
-        {[{id:"cotiz",label:"Cotizaciones",Icon:BarChart3},{id:"calc",label:"Calculadora",Icon:PieChart},{id:"sell",label:"Señales de Venta",Icon:AlertTriangle}].map(s=>(
+        {[{id:"cotiz",label:"Cotizaciones",Icon:BarChart3},{id:"curva",label:"Curva de Rendimientos",Icon:LineChart},{id:"calc",label:"Calculadora",Icon:PieChart},{id:"sell",label:"Señales de Venta",Icon:AlertTriangle}].map(s=>(
           <button key={s.id} onClick={()=>setOnSub(s.id)} style={{
             padding:"7px 16px", borderRadius:8, fontFamily:FB, fontSize:11, fontWeight:600, cursor:"pointer",
             border:`1.5px solid ${onSub===s.id?t.go:t.brd}`,
@@ -4574,7 +4816,9 @@ function ONsPanel({ t }) {
         );
       })()}
 
-      {/* ── TAB: Señales de Venta (TIR < 5.3%) ── */}
+      {/* ── TAB: Curva de Rendimientos ONs ── */}
+      {onSub === "curva" && <ONsCurvaPanel t={t} corpPrices={corpPrices} />}
+      {/* ── TAB: Señales de Venta (TIR &lt; 5.3%) ── */}
       {onSub === "sell" && (() => {
         const TIR_THRESHOLD = 5.3;
         const allONs = [...ONS_ARG_DATA.map(o=>({...o,ley:"ARG"})), ...ONS_NY_DATA.map(o=>({...o,ley:"NY"}))];
@@ -7116,6 +7360,8 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
   const mervalARS = liveMarket.mervalARS;
   const latest = SUMMARIES[0];
 
+  const topStk = liveMarket.topArgStock;
+
   // Best LECAP TNA ≤ 6 months
   const bestLec = LECAP.filter(l=>l.dias<=180).sort((a,b)=>parseFloat(b.rows[0].tna)-parseFloat(a.rows[0].tna))[0];
 
@@ -7181,7 +7427,11 @@ function InicioView({ dolar, riesgoPais, t, setTab, goResearch, isMobile=false, 
         {[
           { label:"Dólar MEP", value:mep?`$${Math.round(mep.venta).toLocaleString("es-AR")}`:"—", sub:"tiempo real", accent:t.bl },
           { label:"Riesgo País", value:rp?`${rp.toLocaleString("es-AR")} pb`:"—", sub:"EMBI+ JP Morgan", accent:rp?(rp<600?t.gr:t.rd):t.mu, color:rp?(rp<600?t.gr:t.rd):null },
-          { label:"Merval", value:mervalARS?`$${(mervalARS.value/1000).toFixed(0)}K`:"—", sub:mervalARS?.changePct!=null?`${mervalARS.changePct>=0?"+":""}${mervalARS.changePct.toFixed(2)}% hoy`:"BYMA", accent:t.gr },
+          { label: topStk ? topStk.ticker : "Mejor ARG",
+            value: topStk ? `$${topStk.price.toFixed(2)}` : "—",
+            sub: topStk?.changePct != null ? `${topStk.changePct >= 0 ? "+" : ""}${topStk.changePct.toFixed(2)}% hoy · USD` : "ADR NYSE",
+            accent: topStk?.changePct >= 0 ? t.gr : t.rd,
+            color: topStk?.changePct != null ? (topStk.changePct >= 0 ? t.gr : t.rd) : null },
           { label:"Mejor LECAP", value:bestLec?bestLec.rows[0].tna:"—", sub:bestLec?`${bestLec.rows[0].t} · ${bestLec.dias}d`:"", accent:t.go },
         ].map((k,i)=>(
           <div key={i} style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`3px solid ${k.accent}`, borderRadius:14, padding:isMobile?"14px 12px":"18px 18px" }}>
@@ -7973,7 +8223,30 @@ function AIChatWidget({ t, isMobile }) {
 ════════════════════════════════════════════════════════════════ */
 export default function App() {
   const [dark, setDark] = useState(false);
-  const [tab, setTab] = useState("inicio");
+
+  // ── Back/Forward browser navigation ──────────────────────────
+  const [tab, setTabRaw] = useState(() => {
+    const hash = window.location.hash.replace("#","");
+    const valid = ["inicio","mercados","rentafija","rentavariable","productos","research"];
+    return valid.includes(hash) ? hash : "inicio";
+  });
+
+  const setTab = useCallback((newTab) => {
+    setTabRaw(newTab);
+    window.history.pushState({ tab: newTab }, "", `#${newTab}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    const onPop = (e) => {
+      const t = e.state?.tab || window.location.hash.replace("#","") || "inicio";
+      setTabRaw(t);
+    };
+    window.addEventListener("popstate", onPop);
+    // Set initial history state
+    window.history.replaceState({ tab }, "", `#${tab}`);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [chartTickerGlobal, setChartTickerGlobal] = useState(null);
 
   // Global function: any component can call goChart("AAPL") to open chart tab
@@ -8009,15 +8282,15 @@ export default function App() {
 
   // ── Live FX: dolarapi.com directo con fallback a valores del día ──
   useEffect(() => {
-    // Valores verificados 20 MAR 2026 — Fuente: La Nación / El Cronista / c5n
+    // Valores verificados 09 ABR 2026 — Fuente: dolarapi.com / La Nación
     const FALLBACK = {
-      oficial:          { compra: 1365, venta: 1415 },
-      blue:             { compra: 1410, venta: 1430 },
-      bolsa:            { compra: 1418, venta: 1421 },
-      contadoconliqui:  { compra: 1462, venta: 1478 },
-      mayorista:        { compra: 1392, venta: 1394 },
+      oficial:          { compra: 1395, venta: 1420 },
+      blue:             { compra: 1415, venta: 1440 },
+      bolsa:            { compra: 1405, venta: 1412 },
+      contadoconliqui:  { compra: 1430, venta: 1455 },
+      mayorista:        { compra: 1380, venta: 1382 },
     };
-    const FALLBACK_RP = { valor: 640, fecha: "20 MAR 2026" };
+    const FALLBACK_RP = { valor: 618, fecha: "09 ABR 2026" };
 
     async function loadLiveData() {
       try {
@@ -8080,11 +8353,21 @@ export default function App() {
         if (db.c > 0) updates.brent = { price: db.c, changePct: db.dp };
       } catch {}
       try {
-        // Merval — ArgentinaDatos (no CORS, no auth, real ARS price)
-        const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/merval");
-        const d = await r.json();
-        const val = d?.valor || d?.ultimo || (Array.isArray(d) ? d[d.length-1]?.valor : null);
-        if (val > 0) updates.mervalARS = { value: val, changePct: d?.variacion ?? null };
+        // Acción ARG destacada — GGAL como proxy del panel Merval (ADR en Finnhub)
+        // Intentamos las 3 principales: GGAL, YPF, PAM
+        const ARG_STARS = ["GGAL","YPFD","PAM","BMA","BBAR"];
+        const hits = await Promise.allSettled(
+          ARG_STARS.map(async t => {
+            const r = await fetch(`${FINNHUB_PROXY}=${t}`);
+            const d = await r.json();
+            return { t, c: d.c, dp: d.dp };
+          })
+        );
+        const best = hits
+          .filter(h => h.status === "fulfilled" && h.value.c > 0)
+          .map(h => h.value)
+          .sort((a,b) => (b.dp||0) - (a.dp||0))[0];
+        if (best) updates.topArgStock = { ticker: best.t, price: best.c, changePct: best.dp };
       } catch {}
       if (!cancelled && Object.keys(updates).length > 0) {
         setLiveMarket(prev => {

@@ -1,0 +1,58 @@
+import type { ETP } from "@/types";
+
+export const BALANZ_ETPS: ETP[] = [
+  {
+    id:"income", nombre:"Balanz Income", tipo:"Renta Fija", perfil:"Ultra Conservador",
+    color:"blue", tagline:"Bonos del Tesoro de EE.UU. — la inversión más segura del mundo",
+    desc:"Preservación de capital invirtiendo en T-Bills de corta duración. Ideal para quien quiere estar en dólares, fuera del riesgo argentino, con la máxima seguridad.",
+    aum:"84.9", nav:"108.48", ytm:"3.68%", duration:"0.16", fee:"0.85%", rating:"AA", isin:"XS2621330369", inicio:"15/09/2023",
+    rend:{m1:0.2, m3:0.7, m6:1.4, y1:2.9, ytd:0.4, y2024:3.8, sinceInc:8.5},
+    top3:[{n:"US Treasury Bill Jun-26",w:"34.9%"},{n:"US Treasury Bill Mar-26",w:"33.6%"},{n:"US Treasury Bill Abr-26",w:"31.2%"}],
+    highlight:"100% US Treasuries · Rating AA · Duration 0.16 años",
+  },
+  {
+    id:"short", nombre:"Balanz Short Duration", tipo:"Renta Fija", perfil:"Conservador+",
+    color:"blue", tagline:"Renta fija global de corta duración con gestión activa",
+    desc:"Portafolio diversificado de RF de corta duración. Alta calidad crediticia con exposición selectiva a mayor rendimiento para optimizar el carry.",
+    aum:"5.0", nav:"100.17", ytm:"5.17%", duration:"1.44", fee:"0.85%", rating:"A", isin:"XS3281861446", inicio:"02/02/2026",
+    rend:{m1:0.2, m3:null, m6:null, y1:null, ytd:0.2, y2024:null, sinceInc:0.2},
+    top3:[{n:"Deuda corporativa global",w:"36.6%"},{n:"Deuda securitizada",w:"29.7%"},{n:"T-Bills",w:"12.5%"}],
+    highlight:"64% EE.UU. · 23% Europa · Rating A · Nuevo (Feb 2026)",
+  },
+  {
+    id:"latam", nombre:"Balanz Fixed Income LATAM", tipo:"Renta Fija", perfil:"Moderado",
+    color:"gold", tagline:"+50 bonos corporativos LatAm con ley New York",
+    desc:"Exposición diversificada a renta fija corporativa latinoamericana. Fuera del riesgo argentino, con rendimientos superiores al 7% anual y 53 emisores en cartera.",
+    aum:"80.0", nav:"119.29", ytm:"6.86%", duration:"3.23", fee:"1.25%", rating:"BB+", isin:"XS2707193509", inicio:"20/11/2023",
+    rend:{m1:0.6, m3:2.7, m6:4.0, y1:7.6, ytd:1.6, y2024:7.0, sinceInc:19.3},
+    top3:[{n:"Ecopetrol",w:"4.5%"},{n:"Samarco Mineracao",w:"3.1%"},{n:"Engie Energía Chile",w:"2.9%"}],
+    highlight:"53 emisores · 6 países · YTM 6.86% · Duration 3.23",
+  },
+  {
+    id:"balanced", nombre:"Balanz Balanced", tipo:"Multi Activo", perfil:"Moderado",
+    color:"gold", tagline:"50% renta fija + 50% renta variable — diversificación ideal",
+    desc:"Asignación dinámica y diversificada. Gestión activa que combina crecimiento de capital con ingresos. El instrumento más equilibrado para inversores moderados.",
+    aum:"37.8", nav:"121.86", ytm:"4.73%", duration:"0.94", fee:"1.50%", rating:null, isin:"XS2707193418", inicio:"18/01/2024",
+    rend:{m1:-0.6, m3:0.3, m6:4.2, y1:9.0, ytd:0.6, y2024:8.9, sinceInc:21.9},
+    top3:[{n:"SPDR S&P 500 ETF",w:"36.2%"},{n:"T-Bills",w:"17.6%"},{n:"Deuda securitizada",w:"12.5%"}],
+    highlight:"54% RV + 45% RF · +21.9% desde inicio · NAV $121.86",
+  },
+  {
+    id:"equity", nombre:"Balanz Global Equity", tipo:"Renta Variable", perfil:"Agresivo",
+    color:"purple", tagline:"Superar al S&P 500 cuando sube, amortiguar cuando baja",
+    desc:"Cartera global de renta variable con gestión activa profesional. Busca alfa sobre el benchmark, menor volatilidad en caídas y exposición a los mejores sectores del momento.",
+    aum:"22.4", nav:"114.05", ytm:null, duration:null, fee:"1.50%", rating:null, isin:"XS3067937642", inicio:"19/05/2025",
+    rend:{m1:-1.4, m3:0.4, m6:6.2, y1:null, ytd:0.5, y2024:null, sinceInc:14.1},
+    top3:[{n:"SPDR S&P 500 ETF",w:"49.6%"},{n:"Fundstrat Granny Shots",w:"14.1%"},{n:"MSCI ACWI",w:"10.0%"}],
+    highlight:"+14.1% desde inicio · Gestión activa · Exposición global",
+  },
+  {
+    id:"crypto", nombre:"Balanz Crypto", tipo:"Criptoactivos", perfil:"Agresivo",
+    color:"purple", tagline:"Bitcoin, Ethereum y el ecosistema cripto en un solo instrumento",
+    desc:"Exposición diversificada al ecosistema de criptoactivos. Combina activos digitales directos con acciones de empresas del sector. Horizonte largo plazo, alta volatilidad.",
+    aum:"3.8", nav:"51.20", ytm:null, duration:null, fee:"2.00%", rating:null, isin:"XS3146740496", inicio:"18/08/2025",
+    rend:{m1:-23.0, m3:-32.0, m6:-47.3, y1:null, ytd:-28.5, y2024:null, sinceInc:-48.8},
+    top3:[{n:"iShares Bitcoin Trust ETF",w:"59.6%"},{n:"iShares Ethereum Trust ETF",w:"28.7%"},{n:"BitMine Immersion",w:"4.3%"}],
+    highlight:"88% cripto directo · Alta volatilidad · Largo plazo",
+  },
+];

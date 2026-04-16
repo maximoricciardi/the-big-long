@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens: Light mode ─────────────────────────────── */
+:root {
+  --bg:      #FAF9F6;
+  --srf:     #FFFFFF;
+  --alt:     #F3F1EB;
+  --brd:     #E6E2D9;
+  --tx:      #0C1B30;
+  --mu:      #64748B;
+  --fa:      #94A3B8;
+  --go:      #B0782A;
+  --go-bg:   #FEF9EC;
+  --go-acc:  #F59E0B;
+  --gr:      #166534;
+  --gr-bg:   #F0FDF4;
+  --gr-acc:  #22C55E;
+  --rd:      #B91C1C;
+  --rd-bg:   #FEF2F2;
+  --rd-acc:  #EF4444;
+  --bl:      #1E40AF;
+  --bl-bg:   #EFF6FF;
+  --bl-acc:  #3B82F6;
+  --pu:      #6D28D9;
+  --pu-bg:   #F5F3FF;
+  --hdr:     #FFFFFF;
+  --tick:    #0C1B30;
+  --ft:      #0C1B30;
+  --sh:      0 1px 3px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05);
+  --sk1:     #E2E8F0;
+  --sk2:     #F1F5F9;
+}
+
+/* ── Design tokens: Dark mode ──────────────────────────────── */
+.dark {
+  --bg:      #0D1117;
+  --srf:     #161B22;
+  --alt:     #1C2128;
+  --brd:     #30363D;
+  --tx:      #E6EDF3;
+  --mu:      #8B949E;
+  --fa:      #6E7681;
+  --go:      #D4A853;
+  --go-bg:   #1A1500;
+  --go-acc:  #F59E0B;
+  --gr:      #3FB950;
+  --gr-bg:   #0A2012;
+  --gr-acc:  #22C55E;
+  --rd:      #F85149;
+  --rd-bg:   #1F0D0D;
+  --rd-acc:  #F87171;
+  --bl:      #58A6FF;
+  --bl-bg:   #0B1A30;
+  --bl-acc:  #60A5FA;
+  --pu:      #A371F7;
+  --pu-bg:   #1A1240;
+  --hdr:     #161B22;
+  --tick:    #010409;
+  --ft:      #010409;
+  --sh:      0 1px 3px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.2);
+  --sk1:     #21262D;
+  --sk2:     #30363D;
+}
+
+/* ── Base resets ───────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--tx);
+  transition: background 0.3s, color 0.3s;
+  font-family: var(--font-ibm-plex-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Custom scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--sk1) 25%, var(--sk2) 50%, var(--sk1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* ── Marquee ticker ────────────────────────────────────────── */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  animation: marquee 50s linear infinite;
+  width: max-content;
+}
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes logoSpin {
+  0%   { transform: rotate(0deg)   scale(1); }
+  50%  { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .85; }
+}
+
+.fade-up   { animation: fadeUp .45s ease both; }
+.fade-up-1 { animation-delay: .05s; }
+.fade-up-2 { animation-delay: .10s; }
+.fade-up-3 { animation-delay: .15s; }
+.fade-up-4 { animation-delay: .20s; }
+.logo-spin { animation: logoSpin .5s cubic-bezier(.4,0,.2,1); }
+.blink     { animation: blink 1.2s step-end infinite; }
+
+/* ── Focus visible ─────────────────────────────────────────── */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--go);
+  outline-offset: 2px;
+}
+
+/* ── Mobile nav ────────────────────────────────────────────── */
+.mobile-bottom-nav { display: none; }
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav { display: flex !important; }
+  .desktop-tabs      { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  .hide-mobile    { display: none !important; }
+  .mobile-px      { padding-left: 14px !important; padding-right: 14px !important; }
+  .mobile-stack   { flex-direction: column !important; }
+  .mobile-full    { width: 100% !important; min-width: 0 !important; }
+  .mobile-text-sm { font-size: 11px !important; }
+}

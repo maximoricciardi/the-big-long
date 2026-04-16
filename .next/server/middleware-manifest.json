@@ -1,0 +1,152 @@
+{
+  "version": 3,
+  "middleware": {},
+  "functions": {
+    "/api/quote/route": {
+      "files": [
+        "server/server-reference-manifest.js",
+        "server/app/api/quote/route_client-reference-manifest.js",
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/quote/route.js"
+      ],
+      "name": "app/api/quote/route",
+      "page": "/api/quote/route",
+      "matchers": [
+        {
+          "regexp": "^/api/quote$",
+          "originalSource": "/api/quote"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "lCGJQM2nx8fBGVAM7r/6gcBW7scFUtjJeQNzn8SL68c=",
+        "__NEXT_PREVIEW_MODE_ID": "9195d1f78ed45fae98f78ac4a979e86a",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "33846f7d7725236ac4c00061e378fb543005859ae7ea25bdfb18a5bead30701b",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "6b01c956f8eeaf28ea9f4d976984af741911df1dcf23aee53aefdd979c0d2893"
+      }
+    },
+    "/api/equities/route": {
+      "files": [
+        "server/server-reference-manifest.js",
+        "server/app/api/equities/route_client-reference-manifest.js",
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/equities/route.js"
+      ],
+      "name": "app/api/equities/route",
+      "page": "/api/equities/route",
+      "matchers": [
+        {
+          "regexp": "^/api/equities$",
+          "originalSource": "/api/equities"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "lCGJQM2nx8fBGVAM7r/6gcBW7scFUtjJeQNzn8SL68c=",
+        "__NEXT_PREVIEW_MODE_ID": "9195d1f78ed45fae98f78ac4a979e86a",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "33846f7d7725236ac4c00061e378fb543005859ae7ea25bdfb18a5bead30701b",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "6b01c956f8eeaf28ea9f4d976984af741911df1dcf23aee53aefdd979c0d2893"
+      }
+    },
+    "/api/cedears/route": {
+      "files": [
+        "server/server-reference-manifest.js",
+        "server/app/api/cedears/route_client-reference-manifest.js",
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/cedears/route.js"
+      ],
+      "name": "app/api/cedears/route",
+      "page": "/api/cedears/route",
+      "matchers": [
+        {
+          "regexp": "^/api/cedears$",
+          "originalSource": "/api/cedears"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "lCGJQM2nx8fBGVAM7r/6gcBW7scFUtjJeQNzn8SL68c=",
+        "__NEXT_PREVIEW_MODE_ID": "9195d1f78ed45fae98f78ac4a979e86a",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "33846f7d7725236ac4c00061e378fb543005859ae7ea25bdfb18a5bead30701b",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "6b01c956f8eeaf28ea9f4d976984af741911df1dcf23aee53aefdd979c0d2893"
+      }
+    },
+    "/api/batch/route": {
+      "files": [
+        "server/server-reference-manifest.js",
+        "server/app/api/batch/route_client-reference-manifest.js",
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/batch/route.js"
+      ],
+      "name": "app/api/batch/route",
+      "page": "/api/batch/route",
+      "matchers": [
+        {
+          "regexp": "^/api/batch$",
+          "originalSource": "/api/batch"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "lCGJQM2nx8fBGVAM7r/6gcBW7scFUtjJeQNzn8SL68c=",
+        "__NEXT_PREVIEW_MODE_ID": "9195d1f78ed45fae98f78ac4a979e86a",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "33846f7d7725236ac4c00061e378fb543005859ae7ea25bdfb18a5bead30701b",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "6b01c956f8eeaf28ea9f4d976984af741911df1dcf23aee53aefdd979c0d2893"
+      }
+    },
+    "/api/candle/route": {
+      "files": [
+        "server/server-reference-manifest.js",
+        "server/app/api/candle/route_client-reference-manifest.js",
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/candle/route.js"
+      ],
+      "name": "app/api/candle/route",
+      "page": "/api/candle/route",
+      "matchers": [
+        {
+          "regexp": "^/api/candle$",
+          "originalSource": "/api/candle"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "lCGJQM2nx8fBGVAM7r/6gcBW7scFUtjJeQNzn8SL68c=",
+        "__NEXT_PREVIEW_MODE_ID": "9195d1f78ed45fae98f78ac4a979e86a",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "33846f7d7725236ac4c00061e378fb543005859ae7ea25bdfb18a5bead30701b",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "6b01c956f8eeaf28ea9f4d976984af741911df1dcf23aee53aefdd979c0d2893"
+      }
+    }
+  },
+  "sortedMiddleware": []
+}

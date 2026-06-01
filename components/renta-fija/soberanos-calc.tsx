@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * components/renta-fija/soberanos-calc.tsx
- * Calculadora de soberanos USD con flujos pagados/pendientes
- */
-
 import { useState, useMemo } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
@@ -25,25 +20,28 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
   const [fechaComp, setFechaComp] = useState("");
   const [showPaid,  setShowPaid]  = useState(false);
 
-  const sel = soberanos.find(s => s.t === selTicker) ?? soberanos[0];
-  if (!sel) return null;
-
-  const liveData   = bondPrices[sel.t];
-  const precioUso  = liveData?.price ?? sel.p;
+  // ── Todos los hooks ANTES de cualquier early return ──────────
+  const sel      = soberanos.find(s => s.t === selTicker) ?? soberanos[0];
+  const liveData = sel ? bondPrices[sel.t] : undefined;
+  const precioUso  = liveData?.price ?? sel?.p ?? 0;
   const montoNum   = parseFloat(monto.replace(/\./g, "").replace(",", ".")) || 0;
   const comPct     = parseFloat(comision.replace(",", ".")) || 0;
   const precioComp = precioUso * (1 + comPct / 100);
+  const vnComprado = montoNum > 0 && precioComp > 0 ? montoNum / (precioComp / 100) : 0;
 
-  // Nominal comprado en USD por $100 VN
-  const vnComprado = montoNum > 0 ? montoNum / (precioComp / 100) : 0;
+  const allFlows = useMemo(
+    () => (sel ? BOND_SCHEDULES[sel.t] ?? [] : []),
+    [sel]
+  );
 
-  const allFlows = BOND_SCHEDULES[sel.t] ?? [];
-  const today    = new Date();
-  const compDate = fechaComp ? new Date(fechaComp) : null;
+  const today    = useMemo(() => new Date(), []);
+  const compDate = useMemo(
+    () => (fechaComp ? new Date(fechaComp) : null),
+    [fechaComp]
+  );
 
-  // Paid flows: from purchaseDate (or start) until today
   const paidFlows = useMemo(() => {
-    if (!vnComprado) return [];
+    if (!vnComprado || !allFlows.length) return [];
     return allFlows
       .filter(f => {
         const d = new Date(f.date);
@@ -57,9 +55,8 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
       }));
   }, [allFlows, vnComprado, today, compDate]);
 
-  // Pending flows: from today onwards
   const flows = useMemo(() => {
-    if (!vnComprado) return [];
+    if (!vnComprado || !allFlows.length) return [];
     return allFlows
       .filter(f => new Date(f.date) > today)
       .map(f => ({
@@ -70,105 +67,74 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
       }));
   }, [allFlows, vnComprado, today]);
 
-  const totalPendiente  = flows.reduce((s, f) => s + f.totalUSD, 0);
-  const totalPagado     = paidFlows.reduce((s, f) => s + f.totalUSD, 0);
-  const capitalInv      = vnComprado * precioComp / 100;
-  const ganancia        = totalPendiente - capitalInv + totalPagado;
-  const retPct          = capitalInv > 0 ? (ganancia / capitalInv) * 100 : 0;
+  // ── Early return DESPUÉS de todos los hooks ───────────────────
+  if (!sel) return null;
 
-  const tirCalc = flows.length
+  const totalPendiente = flows.reduce((s, f) => s + f.totalUSD, 0);
+  const totalPagado    = paidFlows.reduce((s, f) => s + f.totalUSD, 0);
+  const capitalInv     = vnComprado * precioComp / 100;
+  const ganancia       = totalPendiente - capitalInv + totalPagado;
+  const retPct         = capitalInv > 0 ? (ganancia / capitalInv) * 100 : 0;
+  const tirCalc        = flows.length
     ? calcSovTIR(precioComp, allFlows.filter(f => new Date(f.date) > today)) * 100
     : 0;
 
-  // Recovery bar
   const totalTodo    = totalPagado + totalPendiente;
   const paidWidth    = totalTodo > 0 ? (totalPagado / totalTodo) * 100 : 0;
   const pendingWidth = totalTodo > 0 ? (totalPendiente / totalTodo) * 100 : 0;
 
   const fmtUSD = (n: number) => `$${n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const fmtDate = (s: string) => {
-    const d = new Date(s);
-    return d.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
-  };
+  const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
-    <div className="fade-up">
+    <div>
       {/* Controls */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginBottom: 16 }}>
-        {/* Bond selector */}
         <div>
-          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>
-            Bono
-          </label>
-          <select
-            value={selTicker}
-            onChange={e => setSelTicker(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: "monospace", fontSize: 13, fontWeight: 700, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}
-          >
+          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Bono</label>
+          <select value={selTicker} onChange={e => setSelTicker(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: "monospace", fontSize: 13, fontWeight: 700, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}>
             {soberanos.filter(s => BOND_SCHEDULES[s.t]).map(s => (
               <option key={s.t} value={s.t}>{s.t.replace(/D$/, "")} — {s.vto ?? ""}</option>
             ))}
           </select>
         </div>
-
-        {/* Monto */}
         <div>
-          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>
-            Inversión (USD)
-          </label>
-          <input
-            type="text"
+          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Inversión (USD)</label>
+          <input type="text"
             value={Number(monto.replace(/\./g, "")).toLocaleString("es-AR")}
             onChange={e => setMonto(e.target.value.replace(/\./g, "").replace(/[^0-9]/g, ""))}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 14, fontWeight: 600, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}
-          />
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 14, fontWeight: 600, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }} />
         </div>
-
-        {/* Comisión */}
         <div>
-          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>
-            Comisión (%)
-          </label>
-          <input
-            type="text"
-            value={comision}
-            onChange={e => setComision(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 14, fontWeight: 600, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}
-          />
+          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Comisión (%)</label>
+          <input type="text" value={comision} onChange={e => setComision(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 14, fontWeight: 600, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }} />
         </div>
-
-        {/* Fecha compra */}
         <div>
-          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>
-            Fecha compra (opcional)
-          </label>
-          <input
-            type="date"
-            value={fechaComp}
-            onChange={e => setFechaComp(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 13, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}
-          />
+          <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Fecha compra (opcional)</label>
+          <input type="date" value={fechaComp} onChange={e => setFechaComp(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 13, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }} />
         </div>
       </div>
 
-      {/* Bond info */}
       <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, marginBottom: 14 }}>
         <strong style={{ color: t.tx }}>{sel.t}</strong> · Precio: <strong style={{ color: liveData ? t.gr : t.mu }}>${precioUso.toFixed(2)}</strong>
         {liveData && <span style={{ marginLeft: 6, fontSize: 9, background: "#22c55e", color: "#fff", padding: "1px 5px", borderRadius: 3 }}>LIVE</span>}
-        {" "}· Precio + com: ${precioComp.toFixed(2)} · VN comprado: {vnComprado.toFixed(2)}
+        {" "}· Precio+com: ${precioComp.toFixed(2)} · VN: {vnComprado.toFixed(2)}
       </div>
 
-      {/* KPIs */}
       {vnComprado > 0 && (
         <>
+          {/* KPIs */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8, marginBottom: 16 }}>
             {[
-              { l: "Capital invertido",  v: fmtUSD(capitalInv),       c: t.tx },
-              { l: "TIR calculada",      v: `${tirCalc.toFixed(2)}%`, c: t.go },
-              { l: "Flujos pendientes",  v: fmtUSD(totalPendiente),   c: t.bl },
-              { l: "Ya cobrado",         v: fmtUSD(totalPagado),      c: paidFlows.length ? t.gr : t.fa },
-              { l: "Ganancia estimada",  v: fmtUSD(ganancia),         c: ganancia >= 0 ? t.gr : t.rd },
-              { l: "Retorno total %",    v: `${retPct >= 0 ? "+" : ""}${retPct.toFixed(1)}%`, c: retPct >= 0 ? t.gr : t.rd },
+              { l: "Capital invertido", v: fmtUSD(capitalInv),       c: t.tx },
+              { l: "TIR calculada",     v: `${tirCalc.toFixed(2)}%`, c: t.go },
+              { l: "Flujos pendientes", v: fmtUSD(totalPendiente),   c: t.bl },
+              { l: "Ya cobrado",        v: fmtUSD(totalPagado),      c: paidFlows.length ? t.gr : t.fa },
+              { l: "Ganancia estimada", v: fmtUSD(ganancia),         c: ganancia >= 0 ? t.gr : t.rd },
+              { l: "Retorno total %",   v: `${retPct >= 0 ? "+" : ""}${retPct.toFixed(1)}%`, c: retPct >= 0 ? t.gr : t.rd },
             ].map((k, i) => (
               <div key={i} style={{ background: t.alt, borderRadius: 12, padding: "12px 14px", border: `1px solid ${t.brd}` }}>
                 <div style={{ fontFamily: FB, fontSize: 9, color: t.fa, marginBottom: 4, textTransform: "uppercase", letterSpacing: ".06em" }}>{k.l}</div>
@@ -180,8 +146,8 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
           {/* Recovery bar */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontFamily: FB, fontSize: 9, color: t.fa, marginBottom: 4 }}>
-              <span>Recupero total sobre capital invertido</span>
-              <span>{((totalPagado + totalPendiente) / capitalInv * 100).toFixed(1)}% sobre cap.</span>
+              <span>Recupero sobre capital</span>
+              <span>{capitalInv > 0 ? ((totalPagado + totalPendiente) / capitalInv * 100).toFixed(1) : 0}%</span>
             </div>
             <div style={{ height: 14, background: t.alt, borderRadius: 7, overflow: "hidden", display: "flex" }}>
               <div style={{ width: `${paidWidth}%`, background: `linear-gradient(90deg,${t.gr}88,${t.gr})`, transition: "width .6s" }} />
@@ -193,27 +159,26 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
             </div>
           </div>
 
-          {/* Paid flows banner */}
+          {/* Paid flows */}
           {paidFlows.length > 0 && (
             <div style={{ background: t.grBg, border: `1px solid ${t.gr}33`, borderRadius: 12, padding: "12px 16px", marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontFamily: FB, fontSize: 12, fontWeight: 700, color: t.gr }}>
                   ✓ Ya cobrado: {fmtUSD(totalPagado)} en {paidFlows.length} pago{paidFlows.length > 1 ? "s" : ""}
                 </div>
-                <button onClick={() => setShowPaid(p => !p)} style={{ fontFamily: FB, fontSize: 10, color: t.gr, background: "transparent", border: `1px solid ${t.gr}44`, borderRadius: 6, padding: "3px 10px", cursor: "pointer" }}>
+                <button onClick={() => setShowPaid(p => !p)}
+                  style={{ fontFamily: FB, fontSize: 10, color: t.gr, background: "transparent", border: `1px solid ${t.gr}44`, borderRadius: 6, padding: "3px 10px", cursor: "pointer" }}>
                   {showPaid ? "▲ Ocultar" : "▼ Ver detalle"}
                 </button>
               </div>
               {showPaid && (
                 <div style={{ marginTop: 10, overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 11 }}>
-                    <thead>
-                      <tr>
-                        {["Fecha", "Cupón", "Amort.", "Total"].map(h => (
-                          <th key={h} style={{ textAlign: "right", padding: "4px 8px", fontSize: 9, color: t.mu, borderBottom: `1px solid ${t.brd}` }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
+                    <thead><tr>
+                      {["Fecha","Cupón","Amort.","Total"].map(h => (
+                        <th key={h} style={{ textAlign: "right", padding: "4px 8px", fontSize: 9, color: t.mu, borderBottom: `1px solid ${t.brd}` }}>{h}</th>
+                      ))}
+                    </tr></thead>
                     <tbody>
                       {paidFlows.map((f, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? t.alt + "44" : "transparent" }}>
@@ -230,16 +195,14 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
             </div>
           )}
 
-          {/* Pending flows table */}
+          {/* Pending flows */}
           <div style={{ overflowX: "auto", maxHeight: "55vh", overflowY: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 12 }}>
-              <thead>
-                <tr>
-                  {["Fecha", "Cupón USD", "Amort. USD", "Total USD", "Cap. recuperado"].map(h => (
-                    <th key={h} style={{ padding: "8px 10px", textAlign: "right", fontSize: 9, fontWeight: 700, color: t.mu, letterSpacing: ".06em", borderBottom: `2px solid ${t.brd}`, background: t.alt, position: "sticky", top: 0, zIndex: 2 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
+              <thead><tr>
+                {["Fecha","Cupón USD","Amort. USD","Total USD","Cap. recuperado"].map(h => (
+                  <th key={h} style={{ padding: "8px 10px", textAlign: "right", fontSize: 9, fontWeight: 700, color: t.mu, letterSpacing: ".06em", borderBottom: `2px solid ${t.brd}`, background: t.alt, position: "sticky", top: 0, zIndex: 2 }}>{h}</th>
+                ))}
+              </tr></thead>
               <tbody>
                 {flows.map((f, i) => {
                   const cumul = flows.slice(0, i + 1).reduce((s, x) => s + x.totalUSD, 0) + totalPagado;
@@ -260,9 +223,7 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
           </div>
 
           <p style={{ fontFamily: FB, fontSize: 10, color: t.fa, marginTop: 12, lineHeight: 1.6 }}>
-            Flujos calculados sobre VN comprado · TIR por bisección numérica ·
-            TIR Bloomberg puede diferir por convención de mercado.
-            No constituye asesoramiento de inversión.
+            Flujos sobre VN comprado · TIR por bisección · No constituye asesoramiento.
           </p>
         </>
       )}

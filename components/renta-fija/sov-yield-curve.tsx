@@ -24,6 +24,20 @@ interface SovYieldCurveProps {
   bondPrices: Record<string, { price: number; pct?: number }>;
 }
 
+function parseNum(raw: string | number | null | undefined): number {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
+  if (!raw) return 0;
+  const cleaned = raw
+    .toString()
+    .replace(/\$/g, "")
+    .replace(/%/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .replace(/[^\d.-]/g, "");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
   const t = useAppTheme();
   const [hover, setHover]   = useState<CurvePoint | null>(null);
@@ -42,15 +56,16 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
 
   // Build points from soberanos + live prices
   const points: CurvePoint[] = soberanos
-    .filter(s => s.p > 0)
     .map(s => {
       const liveData = bondPrices[s.t];
-      const price    = liveData?.price ?? s.p;
-      const dur      = s.dur ?? 0;
-      const tir      = s.tir ?? 0;
-      return { ticker: s.t, dur, tir, price, ley: s.ley, isLive: !!liveData };
+      const priceRef = parseNum(s.p);
+      const price    = liveData?.price ?? priceRef;
+      const dur      = parseNum(s.dur);
+      const tir      = parseNum(s.tir);
+      const ley      = s.ley === "NY" ? "NY" : "ARG";
+      return { ticker: s.t, dur, tir, price, ley, isLive: !!liveData };
     })
-    .filter(p => p.dur > 0 && p.tir > 0)
+    .filter(p => p.price > 0 && p.dur > 0 && p.tir > 0)
     .sort((a, b) => a.dur - b.dur);
 
   const argPts = points.filter(p => p.ley === "ARG");

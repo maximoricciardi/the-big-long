@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Home, DollarSign, ClipboardList, BarChart3, Package, Search, Lock, Sun, Moon, Phone, Mail } from "lucide-react";
+import { Home, DollarSign, ClipboardList, BarChart3, Package, Search, Lock, Sun, Moon, Phone, Mail, CalendarDays } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAppTheme } from "@/lib/theme-context";
 import { useIsMobile } from "@/hooks/use-window-size";
@@ -15,6 +15,7 @@ import { RentaFijaView }       from "@/components/renta-fija/renta-fija-view";
 import { RentaVariableView }   from "@/components/renta-variable/renta-variable-view";
 import { ProductosView }       from "@/components/productos/productos-view";
 import { ResearchView }        from "@/components/research/research-view";
+import { CalendarioView }      from "@/components/calendario/calendario-view";
 import { AIChatWidget }        from "@/components/chat/ai-chat-widget";
 import { AdminPanel }          from "@/components/admin/admin-panel";
 import { ErrorBoundary }       from "@/components/ui/error-boundary";
@@ -29,6 +30,7 @@ const TABS = [
   { id:"inicio",        label:"Inicio",        Icon:Home,          desc:"Dashboard y resumen del día" },
   { id:"mercados",      label:"Mercados",       Icon:DollarSign,    desc:"Cotizaciones, FX y noticias live" },
   { id:"rentafija",     label:"Renta Fija",     Icon:ClipboardList, desc:"LECAPs, soberanos, ONs y plazos fijos" },
+  { id:"calendario",    label:"Calendario",     Icon:CalendarDays,  desc:"Próximos vencimientos de renta fija" },
   { id:"rentavariable", label:"Renta Variable", Icon:BarChart3,     desc:"CEDEARs y screener de equities" },
   { id:"productos",     label:"Productos",      Icon:Package,       desc:"FCIs y ETPs Balanz" },
   { id:"research",      label:"Research",       Icon:Search,        desc:"Resúmenes, balances y recomendaciones" },
@@ -250,6 +252,7 @@ export default function AppPage() {
           {tab === "inicio"        && <InicioView dolar={dolar} riesgoPais={riesgoPais} liveMarket={liveMarket} setTab={handleSetTab} goResearch={goResearch} />}
           {tab === "mercados"      && <MercadosView dolar={dolar} riesgoPais={riesgoPais} fxError={fxError} liveMarket={liveMarket} />}
           {tab === "rentafija"     && <RentaFijaView />}
+          {tab === "calendario"    && <CalendarioView />}
           {tab === "rentavariable" && <RentaVariableView initialTicker={chartTickerGlobal} onTickerConsumed={() => setChartTickerGlobal(null)} />}
           {tab === "productos"     && <ProductosView />}
           {tab === "research"      && <ResearchView initialSub={researchSub} onSubChange={setResearchSub} />}

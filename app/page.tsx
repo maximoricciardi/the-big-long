@@ -166,7 +166,7 @@ export default function AppPage() {
           {/* Right controls */}
           <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
             {!isMobile && (
-              <div style={{ textAlign:"right", lineHeight:1.3 }}>
+              <div style={{ textAlign:"right", lineHeight:1.3 }} suppressHydrationWarning>
                 <div style={{ fontFamily:FB, fontSize:13, fontWeight:700, color:t.tx, letterSpacing:".01em", fontVariantNumeric:"tabular-nums" }}>{clock.time}</div>
                 <div style={{ fontFamily:FB, fontSize:9, color:t.mu, letterSpacing:".04em", textTransform:"uppercase" }}>{clock.date}</div>
               </div>
@@ -310,3 +310,4 @@ export default function AppPage() {
     </div>
   );
 }
+

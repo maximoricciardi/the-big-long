@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SUMMARIES } from "@/lib/data/summaries";
 import { NOTICIAS } from "@/lib/data/noticias";
 import { LECAP } from "@/lib/data/renta-fija";
-import { BREAKING_NEWS } from "@/lib/data/breaking-news";
+import { useLiveNews } from "@/hooks/use-live-news";
 import { FH, FB, FD } from "@/lib/constants";
 import type { DolarData, RiesgoPaisData, LiveMarket } from "@/types";
 
@@ -24,6 +24,7 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
   const t        = useAppTheme();
   const isMobile = useIsMobile(640);
   const clock    = useClock();
+  const { breakingNews, lastUpdate: newsLastUpdate } = useLiveNews();
 
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
@@ -31,8 +32,18 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
 
   const topStk = liveMarket.topArgStock;
 
-  const bestLec = LECAP.filter(l => l.dias <= 180)
-    .sort((a, b) => parseFloat(b.rows[0].tna) - parseFloat(a.rows[0].tna))[0];
+  // Best LECAP: static sort by TNA, only active (non-expired) instruments
+  const bestLec = LECAP
+    .filter(l => {
+      if (!l.vto) return false;
+      const [d,m,y] = l.vto.split('/').map(Number);
+      return new Date(y, m-1, d) >= new Date();
+    })
+    .sort((a, b) => {
+      const aTNA = parseFloat(a.rows[0].tna.replace('%','').replace(',','.'));
+      const bTNA = parseFloat(b.rows[0].tna.replace('%','').replace(',','.'));
+      return bTNA - aTNA;
+    })[0];
 
   const cached = (() => {
     try { return JSON.parse(localStorage.getItem("tbl-live-prices") ?? "{}") as Record<string, { changePct: number; price: number }>; }
@@ -48,19 +59,19 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
     <div className="fade-up" style={{ maxWidth:900, margin:"0 auto" }}>
 
       {/* ── BREAKING NEWS ── */}
-      {BREAKING_NEWS && (
+      {breakingNews && (
         <div style={{
-          background: BREAKING_NEWS.color==="red" ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
-            : BREAKING_NEWS.color==="green" ? "linear-gradient(135deg,#14532d,#166534)"
+          background: breakingNews.color==="red" ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
+            : breakingNews.color==="green" ? "linear-gradient(135deg,#14532d,#166534)"
             : "linear-gradient(135deg,#78350f,#92400e)",
           borderRadius:12, padding:"14px 20px", marginBottom:12,
           display:"flex", alignItems:"center", gap:12, cursor:"pointer",
           animation:"pulse 2s ease-in-out infinite",
-        }} onClick={() => BREAKING_NEWS?.link ? setTab(BREAKING_NEWS.link.tab) : undefined}>
-          <span style={{ fontSize:20, flexShrink:0 }}>{BREAKING_NEWS.icon ?? "🔴"}</span>
+        }} onClick={() => breakingNews?.link ? setTab(breakingNews.link.tab) : undefined}>
+          <span style={{ fontSize:20, flexShrink:0 }}>{breakingNews.icon ?? "📰"}</span>
           <div style={{ flex:1 }}>
             <div style={{ fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".12em", color:"rgba(255,255,255,.5)", textTransform:"uppercase", marginBottom:2 }}>ALERTA · ALTO IMPACTO</div>
-            <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:"#fff", lineHeight:1.35 }}>{BREAKING_NEWS.text}</div>
+            <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:"#fff", lineHeight:1.35 }}>{breakingNews.text}</div>
           </div>
           <ChevronRight size={18} color="rgba(255,255,255,.5)" />
         </div>
@@ -98,7 +109,7 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
             value: topStk ? `$${topStk.price.toFixed(2)}` : "—",
             sub: topStk?.changePct != null ? `${topStk.changePct >= 0 ? "+" : ""}${topStk.changePct.toFixed(2)}% hoy · USD` : "ADR NYSE",
             accent: topStk?.changePct != null && topStk.changePct >= 0 ? t.gr : t.rd },
-          { label:"Mejor LECAP", value:bestLec ? bestLec.rows[0].tna : "—", sub:bestLec ? `${bestLec.rows[0].t} · ${bestLec.dias}d` : "", accent:t.go },
+          { label:"Mejor LECAP", value:bestLec ? bestLec.rows[0].tna : "—", sub:bestLec ? `${bestLec.rows[0].t} · ${bestLec.vto}` : "", accent:t.go },
         ].map((k, i) => (
           <div key={i} style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`3px solid ${k.accent}`, borderRadius:14, padding:isMobile?"14px 12px":"18px 18px" }}>
             <div style={{ fontFamily:FB, fontSize:9, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:6 }}>{k.label}</div>
@@ -223,3 +234,4 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
     </div>
   );
 }
+

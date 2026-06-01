@@ -200,8 +200,8 @@ export function ONsPanel() {
     const filtered = data
       .filter(o => !search.trim() || o.t.toLowerCase().includes(search.toLowerCase()) || o.em.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => {
-        const av = (a as Record<string, number|string>)[sortCol] as number;
-        const bv = (b as Record<string, number|string>)[sortCol] as number;
+        const av = (a as unknown as Record<string, number>)[sortCol];
+        const bv = (b as unknown as Record<string, number>)[sortCol];
         if (av == null) return 1; if (bv == null) return -1;
         return (av > bv ? 1 : -1) * sortDir;
       });

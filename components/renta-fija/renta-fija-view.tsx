@@ -4,27 +4,19 @@ import { useState, useEffect, useCallback } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Card } from "@/components/ui/card";
-import { LECAP, DUALES, TAMAR, DOLARLINKED, BONOS_CER, SOBERANOS } from "@/lib/data/renta-fija";
+import { LECAP, DUALES, TAMAR, DOLARLINKED, BONOS_CER } from "@/lib/data/renta-fija";
 import { FB, FH } from "@/lib/constants";
 import { SovYieldCurve } from "@/components/renta-fija/sov-yield-curve";
 import { ONsPanel } from "@/components/renta-fija/ons-panel";
 import { LecapCalc } from "@/components/renta-fija/lecap-calc";
 import { SoberanosCalc } from "@/components/renta-fija/soberanos-calc";
+import { RentaFijaMarketProvider, useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
+import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
+import { REFERENCE_AS_OF, REFRESH_MS, daysToMaturity, isVtoActive, type LecapComputed } from "@/lib/renta-fija";
 
-type BondPriceMap = Record<string, { price: number; pct?: number }>;
-
-// ── Auto-expire: filter out instruments past maturity ─────────────
-function parseVto(vto: string): Date {
-  const [d, m, y] = vto.split("/").map(Number);
-  return new Date(y, m - 1, d);
-}
 const TODAY = new Date();
 
-// Filter LECAP groups: only show those with vto >= today
-const LECAP_ACTIVE = LECAP.filter(g => {
-  if (!g.vto) return true;
-  return parseVto(g.vto) >= TODAY;
-});
+const LECAP_ACTIVE = LECAP.filter(g => !g.vto || isVtoActive(g.vto));
 
 const TABS_RF = [
   { id:"lecap",   label:"LECAPs / BONCAPs" },
@@ -40,9 +32,7 @@ const TABS_RF = [
   { id:"dl",      label:"Dólar Linked" },
 ];
 
-const BASE_DATE     = new Date("2026-03-19");
 const BASE_TC_A3500 = 1399.60;
-const REFRESH_MS    = 5 * 60 * 1000;
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   const t = useAppTheme();
@@ -62,52 +52,45 @@ function Td({ children, right, bold, color }: { children: React.ReactNode; right
   );
 }
 
-function LiveStatusChip({ lastUpdate, status, uvaIndex, tamarRate }: { lastUpdate: Date|null; status: string; uvaIndex: number|null; tamarRate: number|null }) {
+function LiveStatusChip({ uvaIndex, tamarRate }: { uvaIndex: number|null; tamarRate: number|null }) {
   const t = useAppTheme();
+  const { status } = useRentaFijaMarketContext();
   const [secsAgo, setSecsAgo] = useState(0);
   useEffect(() => {
-    if (!lastUpdate) return;
-    const id = setInterval(() => setSecsAgo(Math.floor((Date.now() - lastUpdate.getTime()) / 1000)), 1000);
+    if (!status.lastUpdate) return;
+    const id = setInterval(() => setSecsAgo(Math.floor((Date.now() - status.lastUpdate!.getTime()) / 1000)), 1000);
     return () => clearInterval(id);
-  }, [lastUpdate]);
-  const nextIn  = Math.max(0, Math.round(REFRESH_MS/1000 - secsAgo));
-  const lastStr = lastUpdate ? lastUpdate.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit", second:"2-digit" }) : null;
+  }, [status.lastUpdate]);
+  const nextIn = Math.max(0, Math.round(REFRESH_MS / 1000 - secsAgo));
+  const lastStr = status.lastUpdate
+    ? status.lastUpdate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : null;
+  const ok = status.bondsOk || status.notesOk;
   return (
-    <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap", border:`1px solid ${status==="ok"?t.gr+"55":t.brd}`, background:status==="ok"?t.grBg:t.alt, color:status==="ok"?t.gr:t.mu }}>
-      <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", background:status==="ok"?"#22c55e":"#94a3b8", boxShadow:status==="ok"?"0 0 6px #22c55e":"none" }} />
-      {status==="loading" ? "Cargando datos ARS..." : (lastStr ? `Últ: ${lastStr} · Refresh en ${nextIn}s` : "Precios teóricos activos")}
-      {uvaIndex && <span style={{opacity:.7}}>· UVA {uvaIndex.toFixed(2)}</span>}
-      {tamarRate && <span style={{opacity:.7}}>· TAMAR {tamarRate.toFixed(2)}%</span>}
+    <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap", border:`1px solid ${ok?t.gr+"55":t.brd}`, background:ok?t.grBg:t.alt, color:ok?t.gr:t.mu }}>
+      <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", background:ok?"#22c55e":"#94a3b8", boxShadow:ok?"0 0 6px #22c55e":"none" }} />
+      {status.loading ? "Cargando DATA912..." : (lastStr ? `Últ: ${lastStr} · Refresh ${nextIn}s · LECAP ${status.matchedLecap} · SOV ${status.matchedSov}` : "Precios teóricos")}
+      {uvaIndex != null && <span style={{opacity:.7}}>· UVA {uvaIndex.toFixed(2)}</span>}
+      {tamarRate != null && <span style={{opacity:.7}}>· TAMAR {tamarRate.toFixed(2)}%</span>}
     </div>
   );
 }
 
-// ── Simple LECAP Yield Curve SVG ──────────────────────────────────
-function LecapCurva({ lecapLive, bondPrices }: { lecapLive: BondPriceMap; bondPrices: BondPriceMap }) {
+function LecapCurva() {
   const t = useAppTheme();
-  const daysSince = Math.floor((Date.now() - BASE_DATE.getTime()) / 86400000);
+  const { lecapRows } = useRentaFijaMarketContext();
 
-  // Build curve points from active LECAPs
-  const points = LECAP_ACTIVE.flatMap(g => {
-    const diasRest = Math.max(1, g.dias - daysSince);
-    return g.rows.map(row => {
-      const temBase = parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
-      const pBase   = parseFloat(row.pre.replace("$","").replace(/\./g,"").replace(",","."));
-      const vnVto   = pBase * (1 + parseFloat(row.r.replace("%","").replace(",",".")) / 100);
-      const liveD   = row.t.startsWith("S") ? lecapLive[row.t] : bondPrices[row.t];
-      const pLive   = liveD?.price > 0 ? liveD.price : pBase * Math.pow(1 + temBase, daysSince/30);
-      const temLive = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
-      const tnaLive = (vnVto / pLive - 1) * (365 / diasRest) * 100;
-      return {
-        ticker:   row.t,
-        dias:     diasRest,
-        tem:      temLive,
-        tna:      tnaLive,
-        isLive:   !!(liveD?.price > 0),
-        isBoncap: !row.t.startsWith("S"),
-      };
-    });
-  }).filter(p => p.tem > 0 && p.tem < 10).sort((a, b) => a.dias - b.dias);
+  const points = lecapRows
+    .filter((r: LecapComputed) => r.temLive != null && r.temLive > 0 && r.temLive < 10 && !r.flags.includes("tna_outlier"))
+    .map(r => ({
+      ticker: r.ticker,
+      dias: r.diasRest,
+      tem: r.temLive!,
+      tna: r.tnaLive!,
+      isLive: r.isLive,
+      isBoncap: r.isBoncap,
+    }))
+    .sort((a, b) => a.dias - b.dias);
 
   if (points.length < 3) return <p style={{ fontFamily:FB, fontSize:12, color:t.mu }}>Sin suficientes datos para la curva.</p>;
 
@@ -212,75 +195,35 @@ function LecapCurva({ lecapLive, bondPrices }: { lecapLive: BondPriceMap; bondPr
   );
 }
 
-export function RentaFijaView() {
+function RentaFijaViewInner() {
   const t = useAppTheme();
   const [sub, setSub] = useState("lecap");
-  const [bondPrices, setBondPrices]   = useState<BondPriceMap>({});
-  const [lecapLive,  setLecapLive]    = useState<BondPriceMap>({});
-  const [uvaIndex,   setUvaIndex]     = useState<number|null>(null);
-  const [tamarRate,  setTamarRate]    = useState<number|null>(null);
-  const [arsStatus,  setArsStatus]    = useState("loading");
-  const [lastUpdate, setLastUpdate]   = useState<Date|null>(null);
+  const { lecapByTicker, sovRows, bondPrices } = useRentaFijaMarketContext();
+  const [uvaIndex, setUvaIndex] = useState<number|null>(null);
+  const [tamarRate, setTamarRate] = useState<number|null>(null);
 
-  const daysSinceBase = Math.floor((Date.now() - BASE_DATE.getTime()) / 86400000);
-
-  const load = useCallback(async () => {
-    try {
-      const rb = await fetch("/api/equities?type=bonds");
-      const bondsJson = await rb.json();
-      const prices: BondPriceMap = bondsJson.map || {};
-      (bondsJson.raw || []).forEach((b: { symbol?: string; c?: number; pct_change?: number }) => {
-        if (!b.symbol || b.c == null) return;
-        prices[b.symbol] = { price: b.c, pct: b.pct_change };
-      });
-      setBondPrices(prices);
-      const matched = SOBERANOS.filter(s => prices[s.t]).length;
-      setArsStatus(matched > 0 ? "ok" : "error");
-    } catch { setArsStatus("error"); }
-
-    try {
-      const rn = await fetch("/api/equities?type=notes");
-      const notesJson = await rn.json();
-      setLecapLive(notesJson.map || {});
-    } catch {}
-
-    let hits = 0;
+  const loadAux = useCallback(async () => {
     try {
       const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/uva");
       const data = await r.json();
-      if (Array.isArray(data) && data.length > 0) { setUvaIndex(parseFloat(data[data.length-1].valor)); hits++; }
+      if (Array.isArray(data) && data.length > 0) setUvaIndex(parseFloat(data[data.length - 1].valor));
     } catch {}
     try {
       const r = await fetch("/api/bcra?list=1");
       const data = await r.json();
-      const tamar = (data.results||[]).find((v: {descripcion?:string;ultValorInformado?:number}) =>
-        (v.descripcion||"").toLowerCase().includes("tamar") && (v.descripcion||"").toLowerCase().includes("privad")
+      const tamar = (data.results || []).find((v: { descripcion?: string; ultValorInformado?: number }) =>
+        (v.descripcion || "").toLowerCase().includes("tamar") &&
+        (v.descripcion || "").toLowerCase().includes("privad")
       );
-      if (tamar?.ultValorInformado) { setTamarRate(parseFloat(tamar.ultValorInformado)); hits++; }
+      if (tamar?.ultValorInformado) setTamarRate(parseFloat(tamar.ultValorInformado));
     } catch {}
-    if (hits > 0) setArsStatus("ok");
-    setLastUpdate(new Date());
   }, []);
 
-  useEffect(() => { load(); const id = setInterval(load, REFRESH_MS); return () => clearInterval(id); }, [load]);
-
-  const calcLECAPMetrics = (row: { t: string; pre: string; r: string; tem: string }, g: { dias: number; vto: string }) => {
-    const pBase  = parseFloat(row.pre.replace("$","").replace(/\./g,"").replace(",","."));
-    const rBase  = parseFloat(row.r.replace("%","").replace(",",".")) / 100;
-    const temBase= parseFloat(row.tem.replace("%","").replace(",",".")) / 100;
-    if (!pBase || !rBase || !temBase) return null;
-    const vnVto   = pBase * (1 + rBase);
-    const diasRest= Math.max(1, g.dias - daysSinceBase);
-    const isS = row.t.startsWith("S");
-    const liveData = isS ? lecapLive[row.t] : bondPrices[row.t];
-    const pLive = liveData?.price > 0 ? liveData.price : pBase * Math.pow(1 + temBase, daysSinceBase/30);
-    const isLive = !!(liveData?.price > 0);
-    if (diasRest <= 0) return { pLive, rendimiento:0, tem:0, tna:0, diasRest:0, isLive };
-    const rendimiento = (vnVto / pLive - 1) * 100;
-    const temLive = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
-    const tnaLive = rendimiento * (365 / diasRest);
-    return { pLive, rendimiento, tem: temLive, tna: tnaLive, diasRest, isLive };
-  };
+  useEffect(() => {
+    loadAux();
+    const id = setInterval(loadAux, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [loadAux]);
 
   const trStyle = { borderBottom:`1px solid ${t.brd}`, transition:"background .12s" } as React.CSSProperties;
   const tableCtr = {
@@ -292,7 +235,7 @@ export function RentaFijaView() {
     <div className="fade-up">
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:20 }}>
         <SectionLabel t={t}>INSTRUMENTOS DE RENTA FIJA · ARGENTINA</SectionLabel>
-        <LiveStatusChip lastUpdate={lastUpdate} status={arsStatus} uvaIndex={uvaIndex} tamarRate={tamarRate} />
+        <LiveStatusChip uvaIndex={uvaIndex} tamarRate={tamarRate} />
       </div>
 
       {/* Sub-tabs */}
@@ -315,7 +258,7 @@ export function RentaFijaView() {
             </p>
           )}
           {LECAP_ACTIVE.map((g, gi) => {
-            const diasRest = Math.max(0, g.dias - daysSinceBase);
+            const diasRest = g.vto ? daysToMaturity(g.vto) : 0;
             return (
               <div key={gi} style={{ ...tableCtr }}>
                 <div style={{ padding:"12px 16px", borderBottom:`1px solid ${t.brd}`, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
@@ -325,21 +268,27 @@ export function RentaFijaView() {
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
                   <thead><tr>
                     <Th>Ticker</Th><Th right>Precio Ref</Th><Th right>Precio Live</Th>
-                    <Th right>TEM live</Th><Th right>TNA live</Th><Th right>Rdto total</Th><Th right>Días rest.</Th>
+                    <Th right>TEM ref</Th><Th right>TEM live</Th><Th right>TNA ref</Th><Th right>TNA live</Th>
+                    <Th right>Rdto</Th><Th right>Días</Th>
                   </tr></thead>
                   <tbody>
                     {g.rows.map((row, ri) => {
-                      const m = calcLECAPMetrics(row, g);
+                      const m = lecapByTicker[row.t];
                       return (
                         <tr key={ri} style={trStyle}
                           onMouseEnter={e=>(e.currentTarget.style.background=t.alt)}
                           onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                          <Td><span style={{ fontFamily:"monospace", fontWeight:700 }}>{row.t}</span></Td>
+                          <Td>
+                            <span style={{ fontFamily:"monospace", fontWeight:700 }}>{row.t}</span>
+                            {m && <DataQualityBadge flags={m.flags} isLive={m.isLive} />}
+                          </Td>
                           <Td right>{row.pre}</Td>
                           <Td right bold color={m?.isLive ? t.gr : t.tx}>${m?.pLive.toFixed(2) ?? "—"}</Td>
-                          <Td right bold color={t.go}>{m ? `${m.tem.toFixed(2)}%` : "—"}</Td>
-                          <Td right bold color={t.bl}>{m ? `${m.tna.toFixed(2)}%` : "—"}</Td>
-                          <Td right>{m ? `${m.rendimiento.toFixed(2)}%` : "—"}</Td>
+                          <Td right color={t.mu}>{m ? `${m.temRef.toFixed(2)}%` : "—"}</Td>
+                          <Td right bold color={m?.temLive != null ? t.go : t.fa}>{m?.temLive != null ? `${m.temLive.toFixed(2)}%` : "—"}</Td>
+                          <Td right color={t.mu}>{m ? `${m.tnaRef.toFixed(2)}%` : "—"}</Td>
+                          <Td right bold color={m?.tnaLive != null ? t.bl : t.fa}>{m?.tnaLive != null ? `${m.tnaLive.toFixed(2)}%` : "—"}</Td>
+                          <Td right>{m?.rendimiento != null ? `${m.rendimiento.toFixed(2)}%` : "—"}</Td>
                           <Td right>{m ? `${m.diasRest}d` : "—"}</Td>
                         </tr>
                       );
@@ -353,9 +302,7 @@ export function RentaFijaView() {
       )}
 
       {/* ── CURVA ARS ── */}
-      {sub === "curva" && (
-        <LecapCurva lecapLive={lecapLive} bondPrices={bondPrices} />
-      )}
+      {sub === "curva" && <LecapCurva />}
 
       {/* ── SOBERANOS USD ── */}
       {sub === "sob" && (
@@ -363,27 +310,31 @@ export function RentaFijaView() {
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead><tr>
               <Th>Ticker</Th><Th>Vto</Th><Th right>Precio Ref</Th><Th right>Precio Live</Th>
-              <Th right>TIR</Th><Th right>CY</Th><Th right>Var 1D</Th><Th right>Paridad</Th><Th>Ley</Th>
+              <Th right>TIR ref</Th><Th right>TIR live</Th><Th right>CY ref</Th><Th right>Var 1D</Th><Th right>Paridad</Th><Th>Ley</Th>
             </tr></thead>
             <tbody>
-              {SOBERANOS.map((d,i) => {
-                const live = bondPrices[d.t];
+              {sovRows.map((s, i) => {
+                const live = bondPrices[s.ticker];
                 const pctChange = live?.pct;
                 return (
                   <tr key={i} style={trStyle}
                     onMouseEnter={e=>(e.currentTarget.style.background=t.alt)}
                     onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <Td bold><span style={{ fontFamily:"monospace" }}>{d.t}</span></Td>
-                    <Td>{d.vto}</Td>
-                    <Td right>{d.p}</Td>
-                    <Td right bold color={live?.price ? t.gr : t.tx}>{live?.price ? `$${live.price.toFixed(2)}` : "—"}</Td>
-                    <Td right color={t.go}>{d.tir}</Td>
-                    <Td right>{d.cy}</Td>
-                    <Td right color={pctChange!=null?(pctChange>=0?t.gr:t.rd):(d.var1d?.startsWith("-")?t.rd:d.var1d==="—"?t.mu:t.gr)}>
-                      {pctChange!=null ? `${pctChange>=0?"+":""}${pctChange.toFixed(2)}%` : d.var1d}
+                    <Td bold>
+                      <span style={{ fontFamily:"monospace" }}>{s.ticker}</span>
+                      <DataQualityBadge flags={s.flags} isLive={s.isLive} />
                     </Td>
-                    <Td right>{d.par}</Td>
-                    <Td><span style={{ fontFamily:FB, fontSize:9, background:d.ley==="NY"?t.blBg:t.alt, color:d.ley==="NY"?t.bl:t.mu, padding:"2px 6px", borderRadius:5 }}>{d.ley}</span></Td>
+                    <Td>{s.vto}</Td>
+                    <Td right>${s.pRef.toFixed(2)}</Td>
+                    <Td right bold color={s.isLive ? t.gr : t.tx}>${s.pLive.toFixed(2)}</Td>
+                    <Td right color={t.mu}>{s.tirRef > 0 ? `${s.tirRef.toFixed(2)}%` : "—"}</Td>
+                    <Td right bold color={s.tirLive != null ? t.go : t.fa}>{s.tirLive != null ? `${s.tirLive.toFixed(2)}%` : "—"}</Td>
+                    <Td right>{s.cyRef > 0 ? `${s.cyRef.toFixed(2)}%` : "—"}</Td>
+                    <Td right color={pctChange!=null?(pctChange>=0?t.gr:t.rd):(s.var1d?.startsWith("-")?t.rd:s.var1d==="—"?t.mu:t.gr)}>
+                      {pctChange!=null ? `${pctChange>=0?"+":""}${pctChange.toFixed(2)}%` : s.var1d}
+                    </Td>
+                    <Td right>{s.par}</Td>
+                    <Td><span style={{ fontFamily:FB, fontSize:9, background:s.ley==="NY"?t.blBg:t.alt, color:s.ley==="NY"?t.bl:t.mu, padding:"2px 6px", borderRadius:5 }}>{s.ley}</span></Td>
                   </tr>
                 );
               })}
@@ -393,22 +344,15 @@ export function RentaFijaView() {
       )}
 
       {/* ── CURVA USD SOBERANOS ── */}
-      {sub === "sovcurva" && (
-        <SovYieldCurve soberanos={SOBERANOS} bondPrices={bondPrices} />
-      )}
+      {sub === "sovcurva" && <SovYieldCurve />}
 
       {/* ── ONs CORPORATIVOS ── */}
       {sub === "ons" && <ONsPanel />}
 
       {/* ── CALC LECAP ── */}
-      {sub === "calclecap" && (
-        <LecapCalc lecapLive={lecapLive} bondPrices={bondPrices} />
-      )}
+      {sub === "calclecap" && <LecapCalc />}
 
-      {/* ── CALC SOBERANOS ── */}
-      {sub === "calcsob" && (
-        <SoberanosCalc soberanos={SOBERANOS} bondPrices={bondPrices} />
-      )}
+      {sub === "calcsob" && <SoberanosCalc />}
 
       {/* ── DUALES ── */}
       {sub === "duales" && (
@@ -489,7 +433,7 @@ export function RentaFijaView() {
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
               <thead><tr><Th>Ticker</Th><Th>Descripción</Th><Th>Vto</Th><Th right>Precio Live</Th><Th right>Tipo</Th><Th right>Ley</Th></tr></thead>
               <tbody>
-                {BONOS_CER.filter(d => parseVto(d.vto) >= TODAY).map((d,i) => {
+                {BONOS_CER.filter(d => isVtoActive(d.vto)).map((d,i) => {
                   const live = bondPrices[d.t];
                   return (
                     <tr key={i} style={trStyle}
@@ -523,7 +467,7 @@ export function RentaFijaView() {
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
               <thead><tr><Th>Ticker</Th><Th>Vto</Th><Th right>Precio Ref</Th><Th right>Precio Live</Th><Th right>TNA</Th><Th right>Rend.</Th></tr></thead>
               <tbody>
-                {DOLARLINKED.filter(d => parseVto(d.vto) >= TODAY).map((d,i) => {
+                {DOLARLINKED.filter(d => isVtoActive(d.vto)).map((d,i) => {
                   const live = bondPrices[d.t];
                   return (
                     <tr key={i} style={trStyle}
@@ -544,9 +488,17 @@ export function RentaFijaView() {
         </div>
       )}
 
-      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, textAlign:"center", marginTop:8 }}>
-        Precios live DATA912 · Actualización cada 5 min · Instrumentos vencidos excluidos automáticamente · Solo informativo
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, textAlign:"center", marginTop:8, lineHeight:1.7 }}>
+        Ref: {REFERENCE_AS_OF} · Live: DATA912 · TIR soberanos = bisección sobre flujos · Refresh cada 5 min · Solo informativo
       </p>
     </div>
+  );
+}
+
+export function RentaFijaView() {
+  return (
+    <RentaFijaMarketProvider>
+      <RentaFijaViewInner />
+    </RentaFijaMarketProvider>
   );
 }

@@ -4,15 +4,12 @@ import { useState, useMemo } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { BOND_SCHEDULES, calcSovTIR } from "@/lib/data/bonds-schedules";
-import type { SoberanoBond } from "@/types";
+import { useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
+import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
 
-interface Props {
-  soberanos:  SoberanoBond[];
-  bondPrices: Record<string, { price: number; pct?: number }>;
-}
-
-export function SoberanosCalc({ soberanos, bondPrices }: Props) {
+export function SoberanosCalc() {
   const t = useAppTheme();
+  const { sovRows, sovByTicker } = useRentaFijaMarketContext();
 
   const [selTicker, setSelTicker] = useState("GD30D");
   const [monto,     setMonto]     = useState("10000");
@@ -21,16 +18,16 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
   const [showPaid,  setShowPaid]  = useState(false);
 
   // ── Todos los hooks ANTES de cualquier early return ──────────
-  const sel      = soberanos.find(s => s.t === selTicker) ?? soberanos[0];
-  const liveData = sel ? bondPrices[sel.t] : undefined;
-  const precioUso  = liveData?.price ?? sel?.p ?? 0;
+  const selRow   = sovByTicker[selTicker] ?? sovRows[0];
+  const sel      = selRow;
+  const precioUso = sel ? sel.pLive : 0;
   const montoNum   = parseFloat(monto.replace(/\./g, "").replace(",", ".")) || 0;
   const comPct     = parseFloat(comision.replace(",", ".")) || 0;
   const precioComp = precioUso * (1 + comPct / 100);
   const vnComprado = montoNum > 0 && precioComp > 0 ? montoNum / (precioComp / 100) : 0;
 
   const allFlows = useMemo(
-    () => (sel ? BOND_SCHEDULES[sel.t] ?? [] : []),
+    () => (sel ? BOND_SCHEDULES[sel.ticker] ?? [] : []),
     [sel]
   );
 
@@ -94,8 +91,8 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
           <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Bono</label>
           <select value={selTicker} onChange={e => setSelTicker(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: "monospace", fontSize: 13, fontWeight: 700, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}>
-            {soberanos.filter(s => BOND_SCHEDULES[s.t]).map(s => (
-              <option key={s.t} value={s.t}>{s.t.replace(/D$/, "")} — {s.vto ?? ""}</option>
+            {sovRows.filter(s => BOND_SCHEDULES[s.ticker]).map(s => (
+              <option key={s.ticker} value={s.ticker}>{s.ticker.replace(/D$/, "")} — {s.vto ?? ""}</option>
             ))}
           </select>
         </div>
@@ -119,8 +116,11 @@ export function SoberanosCalc({ soberanos, bondPrices }: Props) {
       </div>
 
       <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, marginBottom: 14 }}>
-        <strong style={{ color: t.tx }}>{sel.t}</strong> · Precio: <strong style={{ color: liveData ? t.gr : t.mu }}>${precioUso.toFixed(2)}</strong>
-        {liveData && <span style={{ marginLeft: 6, fontSize: 9, background: "#22c55e", color: "#fff", padding: "1px 5px", borderRadius: 3 }}>LIVE</span>}
+        <strong style={{ color: t.tx }}>{sel.ticker}</strong> · Precio: <strong style={{ color: sel.isLive ? t.gr : t.mu }}>${precioUso.toFixed(2)}</strong>
+        <DataQualityBadge flags={sel.flags} isLive={sel.isLive} />
+        {sel.tirLive != null && (
+          <span style={{ marginLeft: 8 }}>· TIR live: <strong style={{ color: t.go }}>{sel.tirLive.toFixed(2)}%</strong> (ref {sel.tirRef.toFixed(2)}%)</span>
+        )}
         {" "}· Precio+com: ${precioComp.toFixed(2)} · VN: {vnComprado.toFixed(2)}
       </div>
 

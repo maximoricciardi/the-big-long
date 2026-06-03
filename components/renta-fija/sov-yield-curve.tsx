@@ -1,52 +1,32 @@
 "use client";
 
-/**
- * components/renta-fija/sov-yield-curve.tsx
- * Curva de rendimientos soberanos USD — SVG puro, sin recharts
- */
-
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
-import type { SoberanoBond } from "@/types";
+import { sovTirForCurve, type SovComputed } from "@/lib/renta-fija";
+import { useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
 
 interface CurvePoint {
   ticker: string;
-  dur:    number;
-  tir:    number;
-  price:  number;
-  ley:    "ARG" | "NY";
+  dur: number;
+  tir: number;
+  tirRef: number;
+  tirLive: number | null;
+  price: number;
+  ley: "ARG" | "NY";
   isLive: boolean;
 }
 
-interface SovYieldCurveProps {
-  soberanos:  SoberanoBond[];
-  bondPrices: Record<string, { price: number; pct?: number }>;
-}
-
-function parseNum(raw: string | number | null | undefined): number {
-  if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
-  if (!raw) return 0;
-  const cleaned = raw
-    .toString()
-    .replace(/\$/g, "")
-    .replace(/%/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-    .replace(/[^\d.-]/g, "");
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : 0;
-}
-
-export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
+export function SovYieldCurve() {
   const t = useAppTheme();
-  const [hover, setHover]   = useState<CurvePoint | null>(null);
-  const [hx, setHx]         = useState(0);
-  const [hy, setHy]         = useState(0);
-  const [fsArg, setFsArg]   = useState(false);
-  const [fsNY,  setFsNY]    = useState(false);
+  const { sovRows } = useRentaFijaMarketContext();
+  const [hover, setHover] = useState<CurvePoint | null>(null);
+  const [hx, setHx] = useState(0);
+  const [hy, setHy] = useState(0);
+  const [fsArg, setFsArg] = useState(false);
+  const [fsNY, setFsNY] = useState(false);
   const refArg = useRef<HTMLDivElement>(null);
-  const refNY  = useRef<HTMLDivElement>(null);
+  const refNY = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const h = () => { setFsArg(false); setFsNY(false); };
@@ -54,22 +34,26 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
     return () => document.removeEventListener("fullscreenchange", h);
   }, []);
 
-  // Build points from soberanos + live prices
-  const points: CurvePoint[] = soberanos
-    .map(s => {
-      const liveData = bondPrices[s.t];
-      const priceRef = parseNum(s.p);
-      const price    = liveData?.price ?? priceRef;
-      const dur      = parseNum(s.dur);
-      const tir      = parseNum(s.tir);
-      const ley      = s.ley === "NY" ? "NY" : "ARG";
-      return { ticker: s.t, dur, tir, price, ley, isLive: !!liveData };
-    })
-    .filter(p => p.price > 0 && p.dur > 0 && p.tir > 0)
-    .sort((a, b) => a.dur - b.dur);
+  const points: CurvePoint[] = useMemo(
+    () =>
+      sovRows
+        .map((s: SovComputed) => ({
+          ticker: s.ticker,
+          dur: s.durRef,
+          tir: sovTirForCurve(s),
+          tirRef: s.tirRef,
+          tirLive: s.tirLive,
+          price: s.pLive,
+          ley: s.ley,
+          isLive: s.isLive,
+        }))
+        .filter(p => p.price > 0 && p.dur > 0 && p.tir > 0)
+        .sort((a, b) => a.dur - b.dur),
+    [sovRows]
+  );
 
   const argPts = points.filter(p => p.ley === "ARG");
-  const nyPts  = points.filter(p => p.ley === "NY");
+  const nyPts = points.filter(p => p.ley === "NY");
 
   const renderCurve = (
     pts: CurvePoint[],
@@ -89,8 +73,8 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
     const maxDur = Math.max(...pts.map(p => p.dur), 1);
     const minTir = Math.min(...pts.map(p => p.tir));
     const maxTir = Math.max(...pts.map(p => p.tir));
-    const range  = Math.max(maxTir - minTir, 0.5);
-    const pad    = range * 0.15;
+    const range = Math.max(maxTir - minTir, 0.5);
+    const pad = range * 0.15;
 
     const xS = (d: number) => (d / maxDur) * cW;
     const yS = (v: number) => cH - ((v - minTir + pad) / (range + 2 * pad)) * cH;
@@ -115,7 +99,7 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
 
     return (
       <div
-        ref={ref}
+        ref={ref as React.Ref<HTMLDivElement>}
         style={{
           background: fsState ? t.bg : t.srf,
           border: `1px solid ${t.brd}`,
@@ -129,7 +113,7 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontFamily: FB, fontSize: 10, fontWeight: 700, color, letterSpacing: ".1em", textTransform: "uppercase" }}>
-            {label} · TIR vs Duration · {pts.length} bonos
+            {label} · TIR live vs Duration · {pts.length} bonos
           </div>
           <button
             onClick={() => {
@@ -169,12 +153,9 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
             <text x={cW / 2} y={cH + 36} textAnchor="middle" fontSize={9} fill={t.mu}>Duration (años)</text>
             <text transform={`rotate(-90) translate(${-cH / 2},${-38})`} textAnchor="middle" fontSize={9} fill={t.mu}>TIR (%)</text>
 
-            {/* Area */}
             <path d={`${path} L${coords[coords.length - 1][0]},${cH} L${coords[0][0]},${cH} Z`} fill={`url(#${fillId})`} />
-            {/* Curve */}
             <path d={path} stroke={color} strokeWidth={2.5} fill="none" strokeLinecap="round" />
 
-            {/* Points */}
             {pts.map((p, i) => {
               const [x, y] = coords[i];
               return (
@@ -196,7 +177,6 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
           </g>
         </svg>
 
-        {/* Compact chip grid */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 10 }}>
           {pts.map((p, i) => (
             <div key={i} style={{ background: t.alt, border: `1px solid ${color}22`, borderRadius: 7, padding: "4px 9px", minWidth: 80 }}>
@@ -207,7 +187,7 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
               <div style={{ fontFamily: FH, fontSize: 12, fontWeight: 700, color: p.tir >= 12 ? t.gr : p.tir >= 8 ? t.go : t.mu }}>
                 {p.tir.toFixed(2)}%
               </div>
-              <div style={{ fontFamily: FB, fontSize: 8, color: t.fa }}>{p.dur.toFixed(1)}a</div>
+              <div style={{ fontFamily: FB, fontSize: 8, color: t.fa }}>{p.dur.toFixed(1)}a · ref {p.tirRef.toFixed(1)}%</div>
             </div>
           ))}
         </div>
@@ -217,7 +197,6 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
 
   return (
     <div>
-      {/* Hover tooltip — portal-style fixed */}
       {hover && (
         <div style={{
           position: "fixed", left: hx + 12, top: hy - 40, zIndex: 10000,
@@ -227,23 +206,23 @@ export function SovYieldCurve({ soberanos, bondPrices }: SovYieldCurveProps) {
           minWidth: 160,
         }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{hover.ticker}</div>
-          <div style={{ color: t.mu }}>TIR: <b style={{ color: t.go }}>{hover.tir.toFixed(2)}%</b></div>
+          <div style={{ color: t.mu }}>TIR live: <b style={{ color: t.go }}>{(hover.tirLive ?? hover.tir).toFixed(2)}%</b></div>
+          <div style={{ color: t.mu }}>TIR ref: {hover.tirRef.toFixed(2)}%</div>
           <div style={{ color: t.mu }}>Duration: {hover.dur.toFixed(2)} años</div>
           <div style={{ color: t.mu }}>Precio: <b>${hover.price.toFixed(2)}</b></div>
           <div style={{ color: hover.isLive ? t.gr : t.fa, fontSize: 9, marginTop: 4 }}>
-            {hover.isLive ? "● Precio en vivo" : "Precio teórico"}
+            {hover.isLive ? "● Precio en vivo" : "Precio teórico/ref"}
           </div>
         </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(520px, 1fr))", gap: 16 }}>
         {renderCurve(argPts, t.go, "LEY ARGENTINA", fsArg, setFsArg, refArg)}
-        {renderCurve(nyPts,  t.bl, "LEY NUEVA YORK", fsNY,  setFsNY,  refNY)}
+        {renderCurve(nyPts, t.bl, "LEY NUEVA YORK", fsNY, setFsNY, refNY)}
       </div>
 
       <p style={{ fontFamily: FB, fontSize: 9, color: t.fa, marginTop: 10, lineHeight: 1.7 }}>
-        TIR calculada por bisección numérica sobre precio de mercado.
-        Puntos con relleno = precio live DATA912 · Hover sobre cada punto para detalles.
+        TIR live por bisección sobre flujos y precio DATA912. TIR ref = snapshot 19/03/2026.
         No constituye asesoramiento de inversión.
       </p>
     </div>

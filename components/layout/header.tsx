@@ -6,8 +6,7 @@ import { useTheme } from "next-themes";
 import { useAppTheme } from "@/lib/theme-context";
 import { useClock } from "@/hooks/use-clock";
 import { useIsMobile } from "@/hooks/use-window-size";
-import { TABS, FD, FB, ADMIN_PIN } from "@/lib/constants";
-import { Lock } from "lucide-react";
+import { TABS, FD, FB } from "@/lib/constants";
 
 interface HeaderProps {
   tab:        string;
@@ -24,7 +23,7 @@ export function Header({ tab, setTab, onAdminOpen }: HeaderProps) {
 
   const [logoSpin, setLogoSpin] = useState(false);
   const [logoIdx,  setLogoIdx]  = useState(0);
-  const [logoClicks, setLogoClicks] = useState(0);
+  const [, setLogoClicks] = useState(0);
 
   const LOGO_COLORS = [
     null,

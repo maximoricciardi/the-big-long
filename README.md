@@ -1,82 +1,79 @@
 # The Big Long — Dashboard Financiero
+
 **Máximo Ricciardi · Asesor Financiero**
 
-## Stack
-- React 18 + Vite
-- Deploy: Vercel (gratuito)
-- Actualizaciones: editar `src/App.jsx` y hacer push a GitHub
+Dashboard financiero para mercado argentino construido con **Next.js**, React y Vercel.
 
-## Estructura del proyecto
-```
-the-big-long/
-├── src/
-│   ├── App.jsx        ← ARCHIVO PRINCIPAL (toda la app está acá)
-│   └── main.jsx       ← Entry point (no tocar)
+## Stack
+- Next.js 15 + React 18
+- TypeScript
+- Tailwind CSS
+- Deploy en Vercel
+
+## Qué hay hoy
+- `Inicio` con resumen del día, KPIs, noticias y CTA de WhatsApp.
+- `Mercados` con FX, riesgo país, brechas, noticias y calendario de balances.
+- `Renta Fija` con LECAPs, soberanos, ONs y calculadoras.
+- `Renta Variable` con CEDEARs y screener.
+- `Research`, `Productos` y panel de administración oculto.
+- Rutas API propias para datos live y agregación de información.
+
+## Estructura real del proyecto
+```txt
+.
+├── app/
+│   ├── page.tsx            ← Entrada principal de la app
+│   ├── layout.tsx          ← Layout global, fuentes y providers
+│   └── api/                ← Route handlers de Next.js
+├── components/             ← UI por secciones y componentes reutilizables
+├── hooks/                  ← Hooks de datos live y estado
+├── lib/                    ← Tema, constantes, utilidades y data local
 ├── public/
-│   └── favicon.svg
-├── index.html
+├── styles/
+├── types/
 ├── package.json
-├── vite.config.js
+├── next.config.ts
+├── tailwind.config.ts
 └── vercel.json
 ```
 
-## Flujo de actualización diaria
-1. Recibir archivo `App.jsx` actualizado de Claude
-2. Reemplazar `src/App.jsx` con el nuevo archivo
-3. `git add . && git commit -m "update 20 mar 2026" && git push`
-4. Vercel publica automáticamente en ~1 minuto ✅
+## Nota sobre la carpeta `the-big-long/`
+- Esa carpeta es una **copia/legado del proyecto anterior**.
+- La app activa vive en la raíz del repo.
+- Si editás el dashboard actual, trabajá sobre los archivos de la raíz.
 
-## Setup inicial (una sola vez)
-
-### 1. Instalar Node.js
-→ https://nodejs.org (descargar versión LTS)
-
-### 2. Crear cuenta GitHub
-→ https://github.com → Sign up (gratis)
-
-### 3. Crear repo en GitHub
-- Click "New repository"
-- Nombre: `the-big-long`
-- Privado o público (a elección)
-- NO inicializar con README
-
-### 4. Subir este proyecto
-Abrir Terminal (Mac/Linux) o Command Prompt (Windows) en la carpeta del proyecto:
-```bash
-cd the-big-long
-git init
-git add .
-git commit -m "initial commit"
-git branch -M main
-git remote add origin https://github.com/TU_USUARIO/the-big-long.git
-git push -u origin main
-```
-
-### 5. Deploy en Vercel
-1. Ir a https://vercel.com → Sign up con GitHub
-2. Click "New Project"
-3. Importar el repo `the-big-long`
-4. Configuración automática detecta Vite — solo hacer click en **Deploy**
-5. En ~2 minutos: `https://the-big-long.vercel.app` ✅
-
-### 6. Dominio propio (opcional)
-En Vercel → Settings → Domains → agregar dominio propio
-
-## Actualización diaria (rutina)
-```bash
-# 1. Reemplazar App.jsx con el nuevo de Claude
-cp ~/Downloads/research-dashboard.jsx src/App.jsx
-
-# 2. Publicar
-git add src/App.jsx
-git commit -m "update $(date +%d-%m-%Y)"
-git push
-```
-Vercel detecta el push y publica solo. En 60 segundos está online.
-
-## Desarrollo local (opcional)
+## Desarrollo local
 ```bash
 npm install
 npm run dev
-# → http://localhost:5173
 ```
+
+Luego abrir:
+```txt
+http://localhost:3000
+```
+
+## Scripts útiles
+```bash
+npm run build
+npm run lint
+npm run start
+```
+
+## Flujo de trabajo sugerido
+1. Hacer cambios en la raíz del repo.
+2. Verificar localmente con `npm run dev`.
+3. Revisar build con `npm run build`.
+4. Commit y push a GitHub.
+5. Vercel despliega automáticamente.
+
+## Variables y datos
+- El tema visual está en `lib/theme.ts` y `lib/theme-context.tsx`.
+- Las constantes generales están en `lib/constants.ts`.
+- Los datos financieros específicos viven en `lib/data/` y `lib/renta-fija/`.
+- Las rutas API consumen fuentes externas y normalizan la información para la UI.
+
+## Convenciones
+- La app prioriza datos live cuando están disponibles.
+- Las vistas están separadas por dominio funcional.
+- El estilo visual busca ser sobrio, claro y orientado a lectura rápida.

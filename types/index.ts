@@ -221,6 +221,37 @@ export interface Noticia {
   cuerpo:      string;
 }
 
+export interface LiveNewsArticle {
+  id:                string;
+  title:             string;
+  articleUrl:        string;
+  sourceName:        string;
+  sourceUrl:         string | null;
+  sourceDomain:      string | null;
+  sourceFaviconUrl:  string | null;
+  publishedAt:       string;
+  publishedLabel:    string;
+  sourceTier:        "preferred" | "standard";
+  locale:            "global" | "regional";
+}
+
+export interface CuratedReport {
+  id: string;
+  title: string;
+  source: string;
+  sourceUrl: string;
+  reportUrl: string;
+  publishedAt: string;
+  publishedLabel: string;
+  summary: string;
+  reportType: "macro" | "markets" | "strategy" | "credit" | "policy";
+  cadence: "daily" | "weekly" | "monthly" | "quarterly" | "ad-hoc";
+  regions: string[];
+  tags: string[];
+  featured: boolean;
+  freshnessDays: number;
+}
+
 /* ── Summaries / KPIs ─────────────────────────────────────── */
 export interface KpiItem {
   k:   string;

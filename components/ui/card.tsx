@@ -15,9 +15,9 @@ export function Card({ children, t, style = {}, className }: CardProps) {
     <div
       className={className}
       style={{
-        background:   t.srf,
+        background:   `linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)), ${t.srf}`,
         border:       `1px solid ${t.brd}`,
-        borderRadius: 12,
+        borderRadius: 8,
         boxShadow:    t.sh,
         overflow:     "hidden",
         ...style,

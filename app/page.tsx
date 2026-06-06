@@ -9,6 +9,7 @@ import { useClock } from "@/hooks/use-clock";
 import { useFX } from "@/hooks/use-fx";
 import { useLiveMarket } from "@/hooks/use-live-market";
 import { useExtra } from "@/hooks/use-extra";
+import { useLiveNews } from "@/hooks/use-live-news";
 import { InicioView }          from "@/components/inicio/inicio-view";
 import { MercadosView }        from "@/components/mercados/mercados-view";
 import { RentaFijaView }       from "@/components/renta-fija/renta-fija-view";
@@ -23,7 +24,6 @@ import { KpiChip }             from "@/components/ui/kpi-chip";
 import { Card }                from "@/components/ui/card";
 import { SectionLabel }        from "@/components/ui/section-label";
 import { CONTACT, WA_LINK, FH, FB, FD } from "@/lib/constants";
-import { NOTICIAS } from "@/lib/data/noticias";
 import type { ExtraItem } from "@/types";
 
 const TABS = [
@@ -55,6 +55,7 @@ export default function AppPage() {
   const { dolar, riesgoPais, fxError } = useFX();
   const liveMarket = useLiveMarket();
   const { extra, publish: publishItem, remove: removeItem } = useExtra();
+  const { featuredArticle } = useLiveNews();
 
   const [mounted,          setMounted]          = useState(false);
   const [tab,              setTab]              = useState<TabId>("inicio");
@@ -130,33 +131,33 @@ export default function AppPage() {
     liveMarket.spy                ? mkItem("SPY",         `$${liveMarket.spy.price.toFixed(2)}`, liveMarket.spy.changePct) : null,
     liveMarket.gold               ? mkItem("Oro",         `$${liveMarket.gold.price.toFixed(0)}`, liveMarket.gold.changePct) : null,
     liveMarket.brent              ? mkItem("Brent",       `$${liveMarket.brent.price.toFixed(2)}`, liveMarket.brent.changePct) : null,
-    NOTICIAS[0]                   ? { label:"📰", val:NOTICIAS[0].titulo.slice(0, 55) + (NOTICIAS[0].titulo.length > 55 ? "…" : ""), pctStr:"", pos:false, neg:false } : null,
+    featuredArticle               ? { label:featuredArticle.sourceName, val:featuredArticle.title.slice(0, 55) + (featuredArticle.title.length > 55 ? "..." : ""), pctStr:"", pos:false, neg:false } : null,
   ].filter(Boolean) as { label: string; val: string; pctStr: string; pos: boolean; neg: boolean }[];
 
   return (
     <div style={{ fontFamily:FB, background:t.bg, minHeight:"100vh", color:t.tx, transition:"background .3s, color .3s", paddingBottom:isMobile?72:0 }}>
 
       {/* ── HEADER ── */}
-      <header style={{ background:t.hdr, borderBottom:`1px solid ${t.brd}`, position:"sticky", top:0, zIndex:100, boxShadow:t.sh }}>
-        <div style={{ maxWidth:1200, margin:"0 auto", padding:`0 ${isMobile?12:20}px`, display:"flex", alignItems:"center", justifyContent:"space-between", height:isMobile?50:56, gap:isMobile?8:16 }}>
+      <header style={{ background:t.hdr, borderBottom:`1px solid ${t.brd}`, position:"sticky", top:0, zIndex:100, boxShadow:"0 1px 0 rgba(255,255,255,.03)", backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto", padding:`0 ${isMobile?12:24}px`, display:"flex", alignItems:"center", justifyContent:"space-between", height:isMobile?54:62, gap:isMobile?8:18 }}>
 
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer", userSelect:"none" }} onClick={handleLogoClick}>
-            <div style={{ fontFamily:FD, fontSize:isMobile?18:23, fontWeight:700, color:logoC?logoC.main:t.tx, letterSpacing:"-.02em", lineHeight:1, transition:"color .4s ease", animation:logoSpin?"logoSpin .5s cubic-bezier(.4,0,.2,1)":"none" }}>
+            <div style={{ fontFamily:FD, fontSize:isMobile?20:25, fontWeight:700, color:logoC?logoC.main:t.tx, letterSpacing:"0", lineHeight:1, transition:"color .4s ease", animation:logoSpin?"logoSpin .5s cubic-bezier(.4,0,.2,1)":"none" }}>
               The Big <span style={{ color:logoC?logoC.accent:t.go, transition:"color .4s ease" }}>Long</span>
             </div>
           </div>
 
           {/* Nav — desktop only */}
           {!isMobile && (
-            <nav style={{ display:"flex", gap:2, flexWrap:"nowrap" }}>
+            <nav style={{ display:"flex", gap:4, flexWrap:"nowrap", alignItems:"center" }}>
               {TABS.map(tb => (
                 <button key={tb.id} onClick={() => setTab(tb.id)} style={{
-                  padding:"6px 12px", borderRadius:8, border:"none", fontFamily:FB,
-                  fontSize:11, fontWeight:tab===tb.id?700:400,
-                  background:tab===tb.id?t.go+"18":"transparent",
+                  padding:"7px 10px", borderRadius:6, border:`1px solid ${tab===tb.id?t.go+"44":"transparent"}`, fontFamily:FB,
+                  fontSize:11, fontWeight:tab===tb.id?650:450,
+                  background:tab===tb.id?t.goBg:"transparent",
                   color:tab===tb.id?t.go:t.mu,
-                  cursor:"pointer", transition:"all .2s", whiteSpace:"nowrap",
+                  cursor:"pointer", transition:"all .18s ease", whiteSpace:"nowrap",
                   display:"flex", alignItems:"center", gap:5,
                 }}>
                   <tb.Icon size={13} strokeWidth={tab===tb.id?2.5:1.8} /> {tb.label}
@@ -169,11 +170,11 @@ export default function AppPage() {
           <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
             {!isMobile && (
               <div style={{ textAlign:"right", lineHeight:1.3 }} suppressHydrationWarning>
-                <div style={{ fontFamily:FB, fontSize:13, fontWeight:700, color:t.tx, letterSpacing:".01em", fontVariantNumeric:"tabular-nums" }}>{clock.time}</div>
-                <div style={{ fontFamily:FB, fontSize:9, color:t.mu, letterSpacing:".04em", textTransform:"uppercase" }}>{clock.date}</div>
+                <div suppressHydrationWarning style={{ fontFamily:FB, fontSize:13, fontWeight:700, color:t.tx, letterSpacing:".01em", fontVariantNumeric:"tabular-nums" }}>{clock.time}</div>
+                <div suppressHydrationWarning style={{ fontFamily:FB, fontSize:9, color:t.mu, letterSpacing:".04em", textTransform:"uppercase" }}>{clock.date}</div>
               </div>
             )}
-            <button onClick={() => setTheme(isDark ? "light" : "dark")} style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:isMobile?"6px 10px":"6px 12px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer", display:"flex", alignItems:"center" }}>
+            <button onClick={() => setTheme(isDark ? "light" : "dark")} aria-label="Cambiar tema" style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:6, padding:isMobile?"7px 10px":"7px 11px", fontFamily:FB, fontSize:12, color:t.mu, cursor:"pointer", display:"flex", alignItems:"center" }}>
               {isDark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
           </div>
@@ -182,14 +183,14 @@ export default function AppPage() {
 
       {/* ── TICKER ── */}
       {mounted && tickerData.length > 0 && (
-        <div style={{ background:t.tick, padding:"6px 0", overflow:"hidden", borderBottom:"1px solid rgba(255,255,255,.04)" }}>
+        <div style={{ background:t.tick, padding:"7px 0", overflow:"hidden", borderBottom:"1px solid rgba(255,255,255,.06)" }}>
           <div style={{ display:"flex", animation:"marquee 50s linear infinite", width:"max-content" }}>
             {[...tickerData, ...tickerData, ...tickerData].map((item, k) => (
-              <span key={k} style={{ display:"inline-flex", alignItems:"center", gap:6, paddingRight:28, whiteSpace:"nowrap" }}>
-                <span style={{ fontFamily:FB, fontSize:10, fontWeight:500, color:"rgba(255,255,255,.38)", letterSpacing:".06em", textTransform:"uppercase" }}>{item.label}</span>
-                <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:item.pos?"#4ade80":item.neg?"#f87171":"#e2e8f0" }}>{item.val}</span>
-                {item.pctStr && <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:item.pos?"#4ade80":item.neg?"#f87171":"#94a3b8" }}>{item.pctStr}</span>}
-                <span style={{ color:"rgba(255,255,255,.15)", fontSize:10 }}>·</span>
+              <span key={k} style={{ display:"inline-flex", alignItems:"center", gap:7, paddingRight:32, whiteSpace:"nowrap" }}>
+                <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:"rgba(255,255,255,.42)", letterSpacing:".08em", textTransform:"uppercase" }}>{item.label}</span>
+                <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:item.pos?"#8BCB9A":item.neg?"#E48D83":"#F3F0E8", fontVariantNumeric:"tabular-nums" }}>{item.val}</span>
+                {item.pctStr && <span style={{ fontFamily:FB, fontSize:10, fontWeight:650, color:item.pos?"#8BCB9A":item.neg?"#E48D83":"#A2A9B4", fontVariantNumeric:"tabular-nums" }}>{item.pctStr}</span>}
+                <span style={{ color:"rgba(255,255,255,.18)", fontSize:10 }}>/</span>
               </span>
             ))}
           </div>
@@ -223,7 +224,7 @@ export default function AppPage() {
       {admin && <AdminPanel onClose={() => setAdmin(false)} onPublish={publishExtra} />}
 
       {/* ── MAIN ── */}
-      <main style={{ maxWidth:1200, margin:"0 auto", padding:isMobile?"16px 12px 40px":"28px 20px 60px" }}>
+      <main style={{ maxWidth:1280, margin:"0 auto", padding:isMobile?"16px 12px 40px":"30px 24px 64px" }}>
 
         {/* Extra published content */}
         {extra.length > 0 && (
@@ -313,4 +314,3 @@ export default function AppPage() {
     </div>
   );
 }
-

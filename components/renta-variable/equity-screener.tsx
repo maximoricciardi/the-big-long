@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Search, TrendingUp, BarChart3 } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
-import { EQUITIES, tvUrl, type Equity } from "@/lib/data/equities";
+import { EQUITIES, tvUrl } from "@/lib/data/equities";
 import type { BatchPrice } from "@/types";
 
 interface LiveEntry { price: number; change: number; changePct: number; high: number; low: number; }
@@ -21,10 +21,6 @@ function getUpCategory(pct: number): string {
   if (pct > 5)  return "MEDIO";
   return "BAJO";
 }
-
-const CAL_COLOR: Record<string, string>  = { EXCELENTE: "green", ALTA: "blue", MEDIA: "gold", BAJA: "red" };
-const VAL_COLOR: Record<string, string>  = { BARATA: "green", RAZONABLE: "blue", CARA: "red" };
-const MOM_COLOR: Record<string, string>  = { "MUY FUERTE": "green", FUERTE: "blue", NEUTRO: "gray", DÉBIL: "red" };
 
 export function EquityScreener() {
   const t = useAppTheme();

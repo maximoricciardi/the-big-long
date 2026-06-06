@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Globe, Activity, LineChart, Search } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
-import { useIsMobile } from "@/hooks/use-window-size";
 import { FB, FH } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -26,7 +25,6 @@ const QUICK_TICKERS = ["AAPL","MSFT","NVDA","TSLA","GGAL","YPF","VIST","MELI","S
 // ─────────────────────────────────────────────
 export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVariableViewProps) {
   const t        = useAppTheme();
-  const isMobile = useIsMobile(640);
   const [sub, setSub]             = useState(initialTicker ? "charts" : "cedears");
   const [chartTicker, setChartTicker] = useState(initialTicker || "AAPL");
   const [chartInput,  setChartInput]  = useState(initialTicker || "AAPL");
@@ -51,11 +49,11 @@ export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVari
   return (
     <div className="fade-up">
       {/* Sub-tabs */}
-      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
         {SUBS.map(s => (
           <button key={s.id} onClick={()=>setSub(s.id)} style={{
-            padding:"8px 18px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:sub===s.id?700:400,
-            border:`1.5px solid ${sub===s.id?t.go:t.brd}`, background:sub===s.id?t.goBg:"transparent",
+            padding:"8px 14px", borderRadius:6, fontFamily:FB, fontSize:12, fontWeight:sub===s.id?700:450,
+            border:`1px solid ${sub===s.id?t.go+"66":t.brd}`, background:sub===s.id?t.goBg:t.srf,
             color:sub===s.id?t.go:t.mu, cursor:"pointer", display:"flex", alignItems:"center", gap:6, transition:"all .15s",
           }}>
             <s.Icon size={14} strokeWidth={sub===s.id?2.5:1.5} /> {s.label}
@@ -77,10 +75,10 @@ export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVari
                 onChange={e => setChartInput(e.target.value.toUpperCase())}
                 onKeyDown={e => e.key==="Enter" && loadChart(chartInput)}
                 placeholder="Ticker (ej: AAPL, MSFT, GGAL)"
-                style={{ width:"100%", padding:"10px 10px 10px 32px", borderRadius:10, fontFamily:"monospace", fontSize:13, fontWeight:700, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}
+                style={{ width:"100%", padding:"10px 10px 10px 32px", borderRadius:6, fontFamily:"monospace", fontSize:13, fontWeight:700, border:`1px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }}
               />
             </div>
-            <button onClick={() => loadChart(chartInput)} style={{ padding:"10px 20px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:700, background:t.go, color:"#fff", border:"none", cursor:"pointer" }}>
+            <button onClick={() => loadChart(chartInput)} style={{ padding:"10px 18px", borderRadius:6, fontFamily:FB, fontSize:12, fontWeight:750, background:t.go, color:"#090D14", border:"none", cursor:"pointer" }}>
               Buscar
             </button>
             <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
@@ -94,7 +92,7 @@ export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVari
               ))}
             </div>
           </div>
-          <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:14, overflow:"hidden", height:520 }}>
+          <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, overflow:"hidden", height:520, boxShadow:t.sh }}>
             <iframe
               key={chartTicker+tvTheme}
               src={chartUrl}
@@ -121,7 +119,6 @@ export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVari
 // ─────────────────────────────────────────────
 function CEDEARsPanel() {
   const t = useAppTheme();
-  const isMobile = useIsMobile(640);
   const [prices, setPrices] = useState<Record<string, { price: number; changePct: number; volume: number }>>({});
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -180,13 +177,13 @@ function CEDEARsPanel() {
           </span>
         )}
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
         {TOP_CEDEARS.map((c, i) => {
           const live = prices[c.t];
           const pct = live?.changePct;
           const col = pct != null ? (pct >= 0 ? t.gr : t.rd) : t.mu;
           return (
-            <div key={i} style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:12, padding:"12px 14px", cursor:"pointer" }}
+            <div key={i} className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px", cursor:"pointer" }}
               onClick={() => {
                 (window as typeof window & { __goChart?: (t: string) => void }).__goChart?.(c.t);
               }}>
@@ -412,9 +409,9 @@ function EquityScreener() {
   });
 
   const mktBadge: Record<string, { bg: string; tx: string; label: string }> = {
-    ARG: { bg:"#FEF3C7", tx:"#92400E", label:"🇦🇷" },
-    US:  { bg:"#DBEAFE", tx:"#1E40AF", label:"🇺🇸" },
-    ETF: { bg:"#EDE9FE", tx:"#6D28D9", label:"📦" },
+    ARG: { bg:t.goBg, tx:t.go, label:"AR" },
+    US:  { bg:t.blBg, tx:t.bl, label:"US" },
+    ETF: { bg:t.puBg, tx:t.pu, label:"ETF" },
   };
 
   const perfColor = (v: number | null) => v === null ? t.fa : v >= 0 ? t.gr : t.rd;
@@ -436,11 +433,11 @@ function EquityScreener() {
     const active = sortCol === col;
     return (
       <th onClick={() => sort(col)} title={tip} style={{
-        padding:"9px 10px", textAlign:center?"center":right?"right":"left",
-        fontSize:9, fontWeight:700,
-        color: active ? t.go : t.mu,
-        letterSpacing:".07em", textTransform:"uppercase",
-        borderBottom:`2px solid ${t.brd}`,
+        padding:"10px 10px", textAlign:center?"center":right?"right":"left",
+        fontSize:9, fontWeight:750,
+        color: active ? t.go : t.fa,
+        letterSpacing:".1em", textTransform:"uppercase",
+        borderBottom:`1px solid ${t.brd}`,
         background:t.alt, cursor:"pointer", whiteSpace:"nowrap",
         userSelect:"none", position:"sticky", top:0, zIndex:5,
         transition:"color .15s",
@@ -452,10 +449,10 @@ function EquityScreener() {
 
   const Pill = ({ label, active, onClick, color }: { label: string; active: boolean; onClick: () => void; color?: string }) => (
     <button onClick={onClick} style={{
-      padding:"5px 12px", borderRadius:20, fontFamily:FB, fontSize:11,
+      padding:"6px 11px", borderRadius:6, fontFamily:FB, fontSize:11,
       fontWeight:active?700:400, cursor:"pointer", transition:"all .15s",
-      border:`1.5px solid ${active?(color||t.go)+"88":t.brd}`,
-      background:active?(color||t.go)+"18":"transparent",
+      border:`1px solid ${active?(color||t.go)+"88":t.brd}`,
+      background:active?(color||t.go)+"18":t.srf,
       color:active?(color||t.go):t.mu,
     }}>{label}</button>
   );
@@ -491,21 +488,21 @@ function EquityScreener() {
       <div style={{ marginBottom:14 }}>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", marginBottom:8 }}>
           <div style={{ position:"relative", flexShrink:0 }}>
-            <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu, fontSize:13 }}>🔍</span>
+            <Search size={13} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:t.mu }} />
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar ticker o empresa..."
-              style={{ fontFamily:FB, fontSize:12, padding:"7px 10px 7px 30px", borderRadius:10, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, width:210, outline:"none" }}
+              style={{ fontFamily:FB, fontSize:12, padding:"8px 10px 8px 30px", borderRadius:6, border:`1px solid ${t.brd}`, background:t.srf, color:t.tx, width:230, outline:"none" }}
             />
           </div>
           <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
-            <Pill label="🇦🇷 ARG" active={fMkt==="ARG"} onClick={()=>setFMkt(fMkt==="ARG"?"Todos":"ARG")} color="#92400E"/>
-            <Pill label="🇺🇸 US"  active={fMkt==="US"}  onClick={()=>setFMkt(fMkt==="US" ?"Todos":"US")}  color="#1E40AF"/>
-            <Pill label="📦 ETF" active={fMkt==="ETF"} onClick={()=>setFMkt(fMkt==="ETF"?"Todos":"ETF")} color="#6D28D9"/>
+            <Pill label="ARG" active={fMkt==="ARG"} onClick={()=>setFMkt(fMkt==="ARG"?"Todos":"ARG")} color={t.go}/>
+            <Pill label="US"  active={fMkt==="US"}  onClick={()=>setFMkt(fMkt==="US" ?"Todos":"US")}  color={t.bl}/>
+            <Pill label="ETF" active={fMkt==="ETF"} onClick={()=>setFMkt(fMkt==="ETF"?"Todos":"ETF")} color={t.pu}/>
           </div>
           <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
             {([{id:"perf",label:"Performance"},{id:"fund",label:"Fundamentals"}] as const).map(v=>(
               <button key={v.id} onClick={()=>setViewMode(v.id)} style={{
-                padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, cursor:"pointer",
-                border:`1.5px solid ${viewMode===v.id?t.go:t.brd}`,
+                padding:"7px 12px", borderRadius:6, fontFamily:FB, fontSize:11, cursor:"pointer",
+                border:`1px solid ${viewMode===v.id?t.go+"66":t.brd}`,
                 background:viewMode===v.id?t.go+"18":"transparent",
                 color:viewMode===v.id?t.go:t.mu, fontWeight:viewMode===v.id?700:400,
               }}>{v.label}</button>
@@ -534,7 +531,7 @@ function EquityScreener() {
               marginLeft:4, padding:"5px 12px", borderRadius:20,
               border:`1px solid ${t.brd}`, background:"transparent",
               fontFamily:FB, fontSize:11, color:t.rd, cursor:"pointer",
-            }}>✕ Limpiar</button>
+            }}>Limpiar</button>
           )}
           <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:11, color:t.fa }}>
             {filtered.length} de {EQUITIES.length} instrumentos
@@ -545,7 +542,7 @@ function EquityScreener() {
       {/* ── TABLA ── */}
       <Card t={t}>
         <div style={{ overflowX:"auto", maxHeight:"72vh", overflowY:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:12 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FB, fontSize:12, fontVariantNumeric:"tabular-nums" }}>
             <thead>
               <tr>
                 <Th label="#"        col="_rank"  tip="Ranking" />
@@ -572,7 +569,7 @@ function EquityScreener() {
 
                 <Th label="Momentum"  col="mom"  tip="Impulso de precio" center />
                 <Th label="Analistas" col="an"   tip="Consenso Wall St." center />
-                <th style={{ padding:"6px 8px", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".06em", borderBottom:`2px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, width:36 }}></th>
+                <th style={{ padding:"6px 8px", fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".06em", borderBottom:`1px solid ${t.brd}`, background:t.alt, position:"sticky", top:0, zIndex:5, width:36 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -600,7 +597,7 @@ function EquityScreener() {
                     {/* Ticker + empresa */}
                     <td style={{ padding:"7px 10px", minWidth:170 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ width:28, height:28, borderRadius:6, flexShrink:0, background:mb.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
+                        <div style={{ width:32, height:26, borderRadius:6, flexShrink:0, background:mb.bg, color:mb.tx, border:`1px solid ${mb.tx}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, letterSpacing:".06em" }}>
                           {mb.label}
                         </div>
                         <div>
@@ -744,7 +741,7 @@ function StatusPill({ ok, error, loading, t, blue, labelLoading, labelOk, labelE
   const col = ok ? (blue ? t.bl : t.gr) : error ? t.rd : t.mu;
   const label = loading ? labelLoading : ok ? labelOk : labelError;
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:7, padding:"7px 14px", borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap", border:`1px solid ${borderColor}`, background:bg, color:col }}>
+    <div style={{ display:"flex", alignItems:"center", gap:7, padding:"7px 12px", borderRadius:6, fontFamily:FB, fontSize:11, whiteSpace:"nowrap", border:`1px solid ${borderColor}`, background:bg, color:col }}>
       <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", flexShrink:0, background:dotBg,
         boxShadow:ok&&!blue?"0 0 6px #22c55e":"none", animation:loading?"blink 1s infinite":"none" }} />
       {label}
@@ -756,14 +753,14 @@ function StatusPill({ ok, error, loading, t, blue, labelLoading, labelOk, labelE
 function WhatsAppCTA() {
   const t = useAppTheme();
   return (
-    <div style={{ background:t.goBg, border:`1px solid ${t.go}33`, borderRadius:14, padding:"20px 24px", marginTop:24, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:16 }}>
+    <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"18px 20px", marginTop:24, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:16 }}>
       <div>
         <div style={{ fontFamily:FH, fontSize:15, fontWeight:700, color:t.tx, marginBottom:4 }}>¿Querés operar CEDEARs?</div>
         <div style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.5 }}>Consultá estrategias y armado de cartera con cobertura directa en dólares.</div>
       </div>
       <a href="https://wa.me/5491169558833?text=Hola%20Máximo%2C%20me%20interesa%20operar%20CEDEARs" target="_blank" rel="noreferrer"
-        style={{ background:t.go, color:"#fff", borderRadius:10, padding:"10px 20px", fontFamily:FB, fontWeight:700, fontSize:12, textDecoration:"none", whiteSpace:"nowrap" }}>
-        WhatsApp →
+        style={{ background:t.go, color:"#090D14", borderRadius:6, padding:"10px 16px", fontFamily:FB, fontWeight:750, fontSize:12, textDecoration:"none", whiteSpace:"nowrap" }}>
+        Consultar estrategia
       </a>
     </div>
   );

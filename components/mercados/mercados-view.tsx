@@ -1,13 +1,14 @@
 "use client";
 
 import { useAppTheme } from "@/lib/theme-context";
-import { useIsMobile } from "@/hooks/use-window-size";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Card } from "@/components/ui/card";
 import { LECAP } from "@/lib/data/renta-fija";
-import { NOTICIAS } from "@/lib/data/noticias";
 import { FB, FH } from "@/lib/constants";
-import type { DolarData, RiesgoPaisData, LiveMarket } from "@/types";
+import { useState } from "react";
+import { useLiveNews } from "@/hooks/use-live-news";
+import type { DolarData, RiesgoPaisData, LiveMarket, LiveNewsArticle } from "@/types";
+import { EarningsCalendar } from "@/components/mercados/earnings-calendar";
 
 interface MercadosViewProps {
   dolar:      DolarData | null;
@@ -37,26 +38,63 @@ interface LivePanelProps {
   dot?:       boolean;
 }
 
-function NewsItem({ n }: { n: typeof NOTICIAS[0] }) {
+function NewsItem({ article }: { article: LiveNewsArticle }) {
   const t = useAppTheme();
-  const acMap: Record<string, string> = { blue:t.bl, green:t.gr, gold:t.go, red:t.rd, purple:t.pu };
-  const ac = acMap[n.catColor] ?? t.mu;
+  const accent = article.sourceTier === "preferred" ? t.go : t.bl;
+
   return (
-    <div style={{ padding:"14px 0", borderBottom:`1px solid ${t.brd}` }}>
-      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-        <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:ac, background:`${ac}15`, padding:"2px 8px", borderRadius:10, letterSpacing:".08em", textTransform:"uppercase" }}>{n.cat}</span>
-        <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{n.fecha}</span>
+    <a
+      href={article.articleUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="premium-hover"
+      style={{
+        display:"block",
+        padding:"16px 0",
+        borderBottom:`1px solid ${t.brd}`,
+        color:"inherit",
+        textDecoration:"none",
+      }}
+    >
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, marginBottom:8, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+          {article.sourceFaviconUrl ? (
+            <img
+              src={article.sourceFaviconUrl}
+              alt={article.sourceName}
+              width={18}
+              height={18}
+              style={{ borderRadius:99, background:"#fff", border:`1px solid ${t.brd}`, flexShrink:0 }}
+            />
+          ) : (
+            <div style={{ width:18, height:18, borderRadius:99, background:t.alt, border:`1px solid ${t.brd}`, flexShrink:0 }} />
+          )}
+          <span style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:accent, letterSpacing:".08em", textTransform:"uppercase" }}>
+            {article.sourceName}
+          </span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+            {article.publishedLabel}
+          </span>
+        </div>
+        <span style={{ fontFamily:FB, fontSize:9, color:t.mu, background:t.alt, border:`1px solid ${t.brd}`, borderRadius:999, padding:"3px 8px", textTransform:"uppercase", letterSpacing:".08em" }}>
+          {article.locale === "global" ? "Global" : "LatAm"}
+        </span>
       </div>
-      <h3 style={{ fontFamily:FH, fontSize:15, fontWeight:700, color:t.tx, lineHeight:1.35, marginBottom:8 }}>{n.titulo}</h3>
-      <div style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.7 }}
-        dangerouslySetInnerHTML={{ __html: n.cuerpo.slice(0, 300) + (n.cuerpo.length > 300 ? "…" : "") }}
-      />
-    </div>
+      <h3 style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx, lineHeight:1.35, marginBottom:8 }}>
+        {article.title}
+      </h3>
+      <div style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.7, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+        <span>Abrir nota original</span>
+        {article.sourceDomain && <span style={{ color:t.fa }}>{article.sourceDomain}</span>}
+      </div>
+    </a>
   );
 }
 
 export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: MercadosViewProps) {
   const t        = useAppTheme();
+  const [subTab, setSubTab] = useState("mercados");
+  const { articles, status: newsStatus, lastUpdate: newsLastUpdate } = useLiveNews();
   const cMap = {
     blue:  {bg:t.blBg, ac:t.bl},
     gold:  {bg:t.goBg, ac:t.go},
@@ -103,16 +141,16 @@ export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: Mercado
   const FxCard = ({ label, value, compra, sub, color, badge, loading: ld, fxError: fe }: FxCardProps) => {
     const col = cMap[color];
     return (
-      <div style={{ background:col.bg, border:`1px solid ${col.ac}22`, borderRadius:12, padding:"18px 20px", borderLeft:`4px solid ${col.ac}`, display:"flex", flexDirection:"column", gap:4 }}>
+      <div className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${col.ac}`, borderRadius:8, padding:"17px 18px", display:"flex", flexDirection:"column", gap:4 }}>
         <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".1em" }}>{label}</div>
         <div style={{ display:"flex", alignItems:"baseline", gap:8, flexWrap:"wrap" }}>
-          <span style={{ fontFamily:FH, fontSize:28, fontWeight:700, color:col.ac, lineHeight:1 }}>
+            <span style={{ fontFamily:FH, fontSize:28, fontWeight:750, color:col.ac, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>
             {ld ? <span style={{ fontSize:20, color:t.fa }}>cargando…</span>
               : fe ? <span style={{ fontSize:16, color:t.rd }}>sin datos</span>
               : value}
           </span>
           {!ld && !fe && badge != null && (
-            <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:parseFloat(badge)>0?t.rd:t.gr, background:parseFloat(badge)>0?t.rdBg:t.grBg, padding:"2px 8px", borderRadius:20 }}>
+            <span style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:parseFloat(badge)>0?t.rd:t.gr, background:parseFloat(badge)>0?t.rdBg:t.grBg, padding:"2px 8px", borderRadius:6 }}>
               {parseFloat(badge)>0?"+":""}{badge}%
             </span>
           )}
@@ -126,13 +164,13 @@ export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: Mercado
   const LivePanel = ({ label, value, sub, changePct, color, badge, dot }: LivePanelProps) => {
     const col = cMap[color];
     return (
-      <div style={{ background:col.bg, border:`1px solid ${col.ac}22`, borderRadius:12, padding:"18px 20px", borderLeft:`4px solid ${col.ac}`, position:"relative" }}>
-        {badge && <div style={{ position:"absolute", top:10, right:12, fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em", color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:10, textTransform:"uppercase" }}>{badge}</div>}
+      <div className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${col.ac}`, borderRadius:8, padding:"17px 18px", position:"relative" }}>
+        {badge && <div style={{ position:"absolute", top:10, right:12, fontFamily:FB, fontSize:8, fontWeight:700, letterSpacing:".06em", color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:6, textTransform:"uppercase" }}>{badge}</div>}
         <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:6 }}>
           <span style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".1em" }}>{label}</span>
           {dot && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 5px #22c55e", display:"inline-block" }} />}
         </div>
-        <div style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:col.ac, lineHeight:1 }}>
+        <div style={{ fontFamily:FH, fontSize:26, fontWeight:750, color:col.ac, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>
           {value || <span style={{ fontSize:16, color:t.fa }}>—</span>}
         </div>
         {changePct != null && (
@@ -147,12 +185,21 @@ export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: Mercado
 
   return (
     <div className="fade-up">
+      {/* Sub-tabs */}
+      <div style={{ display:"flex", gap:6, marginBottom:20 }}>
+        <button onClick={()=>setSubTab("mercados")} style={{ padding:"8px 14px", borderRadius:6, fontFamily:FB, fontSize:12, fontWeight:subTab==="mercados"?700:450, cursor:"pointer", border:`1px solid ${subTab==="mercados"?t.go+"66":t.brd}`, background:subTab==="mercados"?t.goBg:t.srf, color:subTab==="mercados"?t.go:t.mu }}>Mercados</button>
+        <button onClick={()=>setSubTab("earnings")} style={{ padding:"8px 14px", borderRadius:6, fontFamily:FB, fontSize:12, fontWeight:subTab==="earnings"?700:450, cursor:"pointer", border:`1px solid ${subTab==="earnings"?t.go+"66":t.brd}`, background:subTab==="earnings"?t.goBg:t.srf, color:subTab==="earnings"?t.go:t.mu }}>Balances</button>
+      </div>
+
+      {subTab === "earnings" && <EarningsCalendar />}
+      {subTab === "mercados" && <div>
+
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:20 }}>
         <SectionLabel t={t}>MERCADO DE CAMBIOS — TIEMPO REAL</SectionLabel>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           {fxError ? (
-            <span style={{ fontFamily:FB, fontSize:11, color:t.rd, background:t.rdBg, padding:"3px 10px", borderRadius:8 }}>⚠️ Sin conexión — recargá la página</span>
+            <span style={{ fontFamily:FB, fontSize:11, color:t.rd, background:t.rdBg, padding:"3px 10px", borderRadius:6 }}>Sin conexión · recargá la página</span>
           ) : (
             <span style={{ fontFamily:FB, fontSize:11, color:dolar?t.gr:t.fa, display:"flex", alignItems:"center", gap:6 }}>
               <span style={{ width:7, height:7, borderRadius:"50%", background:dolar?t.gr:t.fa, boxShadow:dolar?`0 0 5px ${t.gr}`:"none" }} />
@@ -169,10 +216,10 @@ export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: Mercado
         <LivePanel label="Oro (GLD)" value={gold?`USD ${gold.price.toFixed(2)}`:null} sub="Proxy ETF GLD · Tiempo real" changePct={gold?.changePct} color="gold" dot={!!gold} />
         <LivePanel label="Petróleo (BNO)" value={brent?`USD ${brent.price.toFixed(2)}`:null} sub="Proxy ETF BNO · Tiempo real" changePct={brent?.changePct} color="gold" dot={!!brent} />
         {bestLECAP && (
-          <div style={{ background:t.blBg, border:`1px solid ${t.bl}22`, borderRadius:12, padding:"18px 20px", borderLeft:`4px solid ${t.bl}`, position:"relative" }}>
-            <div style={{ position:"absolute", top:10, right:12, fontFamily:FB, fontSize:8, fontWeight:700, color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:10, textTransform:"uppercase", letterSpacing:".06em" }}>MAYOR TNA</div>
+          <div className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${t.bl}`, borderRadius:8, padding:"18px 20px", position:"relative" }}>
+            <div style={{ position:"absolute", top:10, right:12, fontFamily:FB, fontSize:8, fontWeight:700, color:t.go, background:t.goBg, padding:"2px 7px", borderRadius:6, textTransform:"uppercase", letterSpacing:".06em" }}>MAYOR TNA</div>
             <div style={{ fontFamily:FB, fontSize:9, color:t.mu, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>LECAP / BONCAP</div>
-            <div style={{ fontFamily:FH, fontSize:26, fontWeight:700, color:t.bl, lineHeight:1 }}>{bestLECAP.tnaStr}</div>
+            <div style={{ fontFamily:FH, fontSize:26, fontWeight:750, color:t.bl, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{bestLECAP.tnaStr}</div>
             <div style={{ fontFamily:FB, fontSize:11, fontWeight:600, color:t.mu, marginTop:4 }}>TNA · {bestLECAP.ticker} · {bestLECAP.dias}d</div>
           </div>
         )}
@@ -203,9 +250,9 @@ export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: Mercado
                 const bv = parseFloat(b.v!);
                 const color = bv > 5 ? t.rd : bv < 2 ? t.gr : t.go;
                 return (
-                  <div key={i} style={{ background:t.alt, borderRadius:8, padding:"10px 16px", fontFamily:FB }}>
+                  <div key={i} style={{ background:t.alt, borderRadius:6, padding:"10px 16px", fontFamily:FB, border:`1px solid ${t.brd}` }}>
                     <div style={{ fontSize:9, color:t.fa, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>{b.label}</div>
-                    <div style={{ fontSize:20, fontWeight:700, color }}>{bv>0?"+":""}{b.v}%</div>
+                    <div style={{ fontSize:20, fontWeight:750, color, fontVariantNumeric:"tabular-nums" }}>{bv>0?"+":""}{b.v}%</div>
                   </div>
                 );
               })}
@@ -218,9 +265,39 @@ export function MercadosView({ dolar, riesgoPais, fxError, liveMarket }: Mercado
       <SectionLabel t={t}>NOTICIAS Y ANÁLISIS RECIENTES</SectionLabel>
       <Card t={t}>
         <div style={{ padding:"0 20px" }}>
-          {NOTICIAS.slice(0, 8).map((n, i) => <NewsItem key={i} n={n} />)}
+          <div style={{ padding:"16px 0 4px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+              Curado para priorizar medios financieros de referencia y evitar duplicados.
+            </div>
+            <div style={{ fontFamily:FB, fontSize:10, color:newsStatus==="error" ? t.rd : t.mu }}>
+              {newsStatus==="loading" && "Actualizando feed..."}
+              {newsStatus==="error" && "No se pudo actualizar el feed en vivo"}
+              {newsStatus==="ok" && newsLastUpdate && `Actualizado ${newsLastUpdate.toLocaleTimeString("es-AR",{ hour:"2-digit", minute:"2-digit" })}`}
+            </div>
+          </div>
+
+          {newsStatus === "loading" && articles.length === 0 && (
+            <div style={{ padding:"0 0 18px", fontFamily:FB, fontSize:12, color:t.mu }}>
+              Cargando noticias de mercado...
+            </div>
+          )}
+
+          {newsStatus === "error" && articles.length === 0 && (
+            <div style={{ padding:"0 0 18px", fontFamily:FB, fontSize:12, color:t.rd }}>
+              El feed en vivo no respondió. La integración quedó preparada para reintentar automáticamente.
+            </div>
+          )}
+
+          {articles.slice(0, 10).map((article) => <NewsItem key={article.id} article={article} />)}
+
+          {newsStatus === "ok" && articles.length === 0 && (
+            <div style={{ padding:"0 0 18px", fontFamily:FB, fontSize:12, color:t.mu }}>
+              No encontramos noticias recientes con el filtro de calidad actual.
+            </div>
+          )}
         </div>
       </Card>
+      </div>}
     </div>
   );
 }

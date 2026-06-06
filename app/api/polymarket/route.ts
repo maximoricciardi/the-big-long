@@ -83,8 +83,6 @@ async function fetchTag(tag: string, limit = 40): Promise<PolyEvent[]> {
   } catch { return []; }
 }
 
-export const runtime = "edge";
-
 export async function GET() {
   try {
     const trackedSlugs = [

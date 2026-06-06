@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "edge";
-
 const ENDPOINTS: Record<string, string> = {
   cedears: "https://data912.com/live/arg_cedears",
   bonds:   "https://data912.com/live/arg_bonds",

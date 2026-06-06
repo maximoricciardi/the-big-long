@@ -1,13 +1,15 @@
+// lib/renta-fija/lecap-metrics.ts
+// LIVE ONLY: si no hay precio live no se muestra TNA/TEM.
+// No usamos precio teórico como fallback — datos reales o nada.
+
 import type { LecapMes } from "@/types";
 import {
-  MAX_TNA_DIVERGENCE_PP,
-  REFERENCE_AS_OF_DATE,
   TNA_LIVE_MAX,
   TNA_LIVE_MIN,
 } from "./constants";
-import { daysSinceReference, daysToMaturity, isVtoActive } from "./dates";
+import { daysToMaturity, isVtoActive } from "./dates";
 import { parseARSPrice, parsePct } from "./parse";
-import { resolveQuote, theoreticalLecapPrice, validateLivePrice } from "./prices";
+import { resolveQuote } from "./prices";
 import type { DataQualityFlag, LecapComputed, PriceMap } from "./types";
 
 export function computeLecapMetrics(
@@ -17,8 +19,7 @@ export function computeLecapMetrics(
   now = new Date()
 ): LecapComputed | null {
   const pBase = parseARSPrice(row.pre);
-  const rBase = parsePct(row.r) / 100;
-  const temBase = parsePct(row.tem) / 100;
+  const rBase  = parsePct(row.r)   / 100;
   const tnaRef = parsePct(row.tna);
   const temRef = parsePct(row.tem);
 
@@ -29,47 +30,71 @@ export function computeLecapMetrics(
   if (diasRest <= 0) return null;
 
   const vnVto = pBase * (1 + rBase);
-  const daysSince = daysSinceReference(now, REFERENCE_AS_OF_DATE);
-  const quote = resolveQuote(row.t, maps);
-  const pTheoretical = theoreticalLecapPrice(pBase, temBase, daysSince);
+
+  // ── Solo usamos precio LIVE de DATA912 ─────────────────────────
+  const quote   = resolveQuote(row.t, maps);
   const hasLive = !!(quote?.price && quote.price > 0);
-  const validation = hasLive
-    ? validateLivePrice(quote!.price, pTheoretical)
-    : { ok: false as const, reason: "no_live" };
-  const pLive = hasLive && validation.ok ? quote!.price : pTheoretical;
-  const isLive = hasLive && validation.ok;
 
   const flags: DataQualityFlag[] = [];
-  if (!hasLive) flags.push("stale_ref");
-  if (hasLive && !validation.ok) flags.push("bad_live");
+
+  // Sin precio live → devolvemos entrada con flags pero sin métricas
+  if (!hasLive) {
+    flags.push("stale_ref");
+    return {
+      ticker:      row.t,
+      mes:         group.mes ?? group.vto,
+      vto:         group.vto,
+      pRef:        pBase,
+      pLive:       null,   // explícitamente null
+      vnVto,
+      isLive:      false,
+      priceOk:     false,
+      diasRest,
+      tnaRef,
+      temRef,
+      tnaLive:     null,
+      temLive:     null,
+      rendimiento: null,
+      isBoncap:    !row.t.startsWith("S"),
+      flags,
+    };
+  }
+
+  // Con precio live → calcular métricas en tiempo real
+  const pLive = quote!.price!;
+  flags.push("live");
 
   let rendimiento: number | null = null;
-  let temLive: number | null = null;
-  let tnaLive: number | null = null;
+  let temLive:     number | null = null;
+  let tnaLive:     number | null = null;
 
   if (pLive > 0 && diasRest > 0) {
     rendimiento = (vnVto / pLive - 1) * 100;
-    temLive = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
-    tnaLive = rendimiento * (365 / diasRest);
+    temLive     = (Math.pow(vnVto / pLive, 30 / diasRest) - 1) * 100;
+    tnaLive     = rendimiento * (365 / diasRest);
 
-    if (tnaLive > TNA_LIVE_MAX || tnaLive < TNA_LIVE_MIN) {
+    // Sanity check
+    if (
+      tnaLive  < TNA_LIVE_MIN ||
+      tnaLive  > TNA_LIVE_MAX ||
+      temLive  < 0
+    ) {
       flags.push("tna_outlier");
-      tnaLive = null;
-      temLive = null;
-    } else if (Math.abs(tnaLive - tnaRef) > MAX_TNA_DIVERGENCE_PP && isLive) {
-      flags.push("tna_divergence");
+      tnaLive  = null;
+      temLive  = null;
+      rendimiento = null;
     }
   }
 
   return {
-    ticker: row.t,
-    mes: group.mes ?? group.vto,
-    vto: group.vto,
-    pRef: pBase,
+    ticker:  row.t,
+    mes:     group.mes ?? group.vto,
+    vto:     group.vto,
+    pRef:    pBase,
     pLive,
     vnVto,
-    isLive,
-    priceOk: isLive,
+    isLive:  true,
+    priceOk: true,
     diasRest,
     tnaRef,
     temRef,
@@ -97,7 +122,9 @@ export function buildLecapRows(
   return rows;
 }
 
-export function indexLecapByTicker(rows: LecapComputed[]): Record<string, LecapComputed> {
+export function indexLecapByTicker(
+  rows: LecapComputed[]
+): Record<string, LecapComputed> {
   const out: Record<string, LecapComputed> = {};
   for (const r of rows) out[r.ticker] = r;
   return out;

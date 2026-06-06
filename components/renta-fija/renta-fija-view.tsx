@@ -14,8 +14,6 @@ import { RentaFijaMarketProvider, useRentaFijaMarketContext } from "@/components
 import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
 import { REFERENCE_AS_OF, REFRESH_MS, daysToMaturity, isVtoActive, type LecapComputed } from "@/lib/renta-fija";
 
-const TODAY = new Date();
-
 const LECAP_ACTIVE = LECAP.filter(g => !g.vto || isVtoActive(g.vto));
 
 const TABS_RF = [
@@ -37,7 +35,7 @@ const BASE_TC_A3500 = 1399.60;
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   const t = useAppTheme();
   return (
-    <th style={{ padding:"8px 12px", textAlign:right?"right":"left", fontSize:9, fontWeight:700, color:t.mu, letterSpacing:".08em", textTransform:"uppercase", borderBottom:`2px solid ${t.brd}`, background:t.alt, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5 }}>
+    <th style={{ padding:"10px 12px", textAlign:right?"right":"left", fontSize:9, fontWeight:750, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", borderBottom:`1px solid ${t.brd}`, background:t.alt, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5 }}>
       {children}
     </th>
   );
@@ -46,7 +44,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 function Td({ children, right, bold, color }: { children: React.ReactNode; right?: boolean; bold?: boolean; color?: string }) {
   const t = useAppTheme();
   return (
-    <td style={{ padding:"8px 12px", textAlign:right?"right":"left", fontSize:12, fontWeight:bold?700:400, color:color||t.tx, whiteSpace:"nowrap" }}>
+    <td style={{ padding:"9px 12px", textAlign:right?"right":"left", fontSize:12, fontWeight:bold?700:430, color:color||t.tx, whiteSpace:"nowrap", fontVariantNumeric:right?"tabular-nums":undefined }}>
       {children}
     </td>
   );
@@ -67,7 +65,7 @@ function LiveStatusChip({ uvaIndex, tamarRate }: { uvaIndex: number|null; tamarR
     : null;
   const ok = status.bondsOk || status.notesOk;
   return (
-    <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"6px 14px", borderRadius:8, fontFamily:FB, fontSize:11, whiteSpace:"nowrap", border:`1px solid ${ok?t.gr+"55":t.brd}`, background:ok?t.grBg:t.alt, color:ok?t.gr:t.mu }}>
+    <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"6px 12px", borderRadius:6, fontFamily:FB, fontSize:11, whiteSpace:"nowrap", border:`1px solid ${ok?t.gr+"55":t.brd}`, background:ok?t.grBg:t.alt, color:ok?t.gr:t.mu }}>
       <span style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", background:ok?"#22c55e":"#94a3b8", boxShadow:ok?"0 0 6px #22c55e":"none" }} />
       {status.loading ? "Cargando DATA912..." : (lastStr ? `Últ: ${lastStr} · Refresh ${nextIn}s · LECAP ${status.matchedLecap} · SOV ${status.matchedSov}` : "Precios teóricos")}
       {uvaIndex != null && <span style={{opacity:.7}}>· UVA {uvaIndex.toFixed(2)}</span>}
@@ -125,7 +123,7 @@ function LecapCurva() {
   const xLabels = [30,60,90,120,180,270,365,468].filter(d => d <= maxDias + 20);
 
   return (
-    <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:14, padding:"18px 20px", marginBottom:20 }}>
+    <div style={{ background:`linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)), ${t.srf}`, border:`1px solid ${t.brd}`, borderRadius:8, padding:"18px 20px", marginBottom:20, boxShadow:t.sh }}>
       <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.go, letterSpacing:".1em", textTransform:"uppercase", marginBottom:12 }}>
         CURVA DE RENDIMIENTOS ARS · TEM % vs Días al Vencimiento
         <span style={{ marginLeft:8, fontFamily:FB, fontSize:9, color:t.fa, fontWeight:400 }}>
@@ -227,7 +225,8 @@ function RentaFijaViewInner() {
 
   const trStyle = { borderBottom:`1px solid ${t.brd}`, transition:"background .12s" } as React.CSSProperties;
   const tableCtr = {
-    background:t.srf, border:`1px solid ${t.brd}`, borderRadius:14,
+    background:`linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)), ${t.srf}`,
+    border:`1px solid ${t.brd}`, borderRadius:8, boxShadow:t.sh,
     overflow:"hidden", overflowX:"auto" as const, marginBottom:24,
   };
 
@@ -242,8 +241,8 @@ function RentaFijaViewInner() {
       <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
         {TABS_RF.map(s => (
           <button key={s.id} onClick={() => setSub(s.id)} style={{
-            padding:"7px 16px", borderRadius:10, fontFamily:FB, fontSize:12, fontWeight:sub===s.id?700:400,
-            border:`1.5px solid ${sub===s.id?t.go:t.brd}`, background:sub===s.id?t.goBg:"transparent",
+            padding:"7px 13px", borderRadius:6, fontFamily:FB, fontSize:12, fontWeight:sub===s.id?700:450,
+            border:`1px solid ${sub===s.id?t.go+"66":t.brd}`, background:sub===s.id?t.goBg:t.srf,
             color:sub===s.id?t.go:t.mu, cursor:"pointer", transition:"all .15s",
           }}>{s.label}</button>
         ))}
@@ -261,8 +260,8 @@ function RentaFijaViewInner() {
             const diasRest = g.vto ? daysToMaturity(g.vto) : 0;
             return (
               <div key={gi} style={{ ...tableCtr }}>
-                <div style={{ padding:"12px 16px", borderBottom:`1px solid ${t.brd}`, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-                  <span style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx }}>{g.mes || g.vto}</span>
+                <div style={{ padding:"13px 16px", borderBottom:`1px solid ${t.brd}`, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap", background:t.srf }}>
+                  <span style={{ fontFamily:FH, fontSize:15, fontWeight:750, color:t.tx }}>{g.mes || g.vto}</span>
                   <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>Vto: {g.vto} · {diasRest}d restantes</span>
                 </div>
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
@@ -283,7 +282,7 @@ function RentaFijaViewInner() {
                             {m && <DataQualityBadge flags={m.flags} isLive={m.isLive} />}
                           </Td>
                           <Td right>{row.pre}</Td>
-                          <Td right bold color={m?.isLive ? t.gr : t.tx}>${m?.pLive.toFixed(2) ?? "—"}</Td>
+                          <Td right bold color={m?.isLive ? t.gr : t.tx}>${m?.pLive?.toFixed(2) ?? "—"}</Td>
                           <Td right color={t.mu}>{m ? `${m.temRef.toFixed(2)}%` : "—"}</Td>
                           <Td right bold color={m?.temLive != null ? t.go : t.fa}>{m?.temLive != null ? `${m.temLive.toFixed(2)}%` : "—"}</Td>
                           <Td right color={t.mu}>{m ? `${m.tnaRef.toFixed(2)}%` : "—"}</Td>

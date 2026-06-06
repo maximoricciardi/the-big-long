@@ -4,64 +4,68 @@
 
 /* ── Design tokens: Light mode ─────────────────────────────── */
 :root {
-  --bg:      #FAF9F6;
-  --srf:     #FFFFFF;
-  --alt:     #F3F1EB;
-  --brd:     #E6E2D9;
-  --tx:      #0C1B30;
-  --mu:      #64748B;
-  --fa:      #94A3B8;
-  --go:      #B0782A;
-  --go-bg:   #FEF9EC;
-  --go-acc:  #F59E0B;
-  --gr:      #166534;
-  --gr-bg:   #F0FDF4;
-  --gr-acc:  #22C55E;
-  --rd:      #B91C1C;
-  --rd-bg:   #FEF2F2;
-  --rd-acc:  #EF4444;
-  --bl:      #1E40AF;
-  --bl-bg:   #EFF6FF;
-  --bl-acc:  #3B82F6;
-  --pu:      #6D28D9;
-  --pu-bg:   #F5F3FF;
-  --hdr:     #FFFFFF;
-  --tick:    #0C1B30;
-  --ft:      #0C1B30;
-  --sh:      0 1px 3px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05);
+  --bg:      #F5F2EA;
+  --srf:     #FFFEFA;
+  --alt:     #ECE7DC;
+  --brd:     #D8D0C2;
+  --tx:      #111827;
+  --mu:      #5C6675;
+  --fa:      #8B9380;
+  --go:      #9A6A2F;
+  --go-bg:   #F3E8D3;
+  --go-acc:  #B88945;
+  --gr:      #1F6B45;
+  --gr-bg:   #E8F3EC;
+  --gr-acc:  #2B8A5B;
+  --rd:      #A33A34;
+  --rd-bg:   #F6E7E4;
+  --rd-acc:  #C8524A;
+  --bl:      #2F5D86;
+  --bl-bg:   #E6EEF5;
+  --bl-acc:  #4378A5;
+  --pu:      #665A8D;
+  --pu-bg:   #ECE8F4;
+  --hdr:     rgba(255,254,250,.88);
+  --tick:    #0B0F16;
+  --ft:      #080B10;
+  --sh:      0 1px 2px rgba(17,24,39,.04), 0 14px 40px rgba(17,24,39,.07);
   --sk1:     #E2E8F0;
   --sk2:     #F1F5F9;
+  --font-fraunces: "Georgia", "Times New Roman", serif;
+  --font-dm-sans: "DM Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ── Design tokens: Dark mode ──────────────────────────────── */
 .dark {
-  --bg:      #0D1117;
-  --srf:     #161B22;
-  --alt:     #1C2128;
-  --brd:     #30363D;
-  --tx:      #E6EDF3;
-  --mu:      #8B949E;
-  --fa:      #6E7681;
-  --go:      #D4A853;
-  --go-bg:   #1A1500;
-  --go-acc:  #F59E0B;
-  --gr:      #3FB950;
-  --gr-bg:   #0A2012;
-  --gr-acc:  #22C55E;
-  --rd:      #F85149;
-  --rd-bg:   #1F0D0D;
-  --rd-acc:  #F87171;
-  --bl:      #58A6FF;
-  --bl-bg:   #0B1A30;
-  --bl-acc:  #60A5FA;
-  --pu:      #A371F7;
-  --pu-bg:   #1A1240;
-  --hdr:     #161B22;
-  --tick:    #010409;
-  --ft:      #010409;
-  --sh:      0 1px 3px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.2);
+  --bg:      #070A0F;
+  --srf:     #0F141B;
+  --alt:     #151B23;
+  --brd:     #27303A;
+  --tx:      #F3F0E8;
+  --mu:      #A2A9B4;
+  --fa:      #6F7886;
+  --go:      #C6A15B;
+  --go-bg:   #211A0D;
+  --go-acc:  #D8B76C;
+  --gr:      #74B88A;
+  --gr-bg:   #102016;
+  --gr-acc:  #8BCB9A;
+  --rd:      #D5766E;
+  --rd-bg:   #251313;
+  --rd-acc:  #E48D83;
+  --bl:      #8AA7C7;
+  --bl-bg:   #111D2A;
+  --bl-acc:  #A2BEDB;
+  --pu:      #A79BC7;
+  --pu-bg:   #1A1728;
+  --hdr:     rgba(11,15,22,.86);
+  --tick:    #030507;
+  --ft:      #030507;
+  --sh:      0 1px 2px rgba(0,0,0,.35), 0 18px 50px rgba(0,0,0,.28);
   --sk1:     #21262D;
   --sk2:     #30363D;
+  --font-fraunces: "Georgia", "Times New Roman", serif;
+  --font-dm-sans: "DM Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ── Base resets ───────────────────────────────────────────── */
@@ -75,9 +79,39 @@ body {
   background: var(--bg);
   color: var(--tx);
   transition: background 0.3s, color 0.3s;
-  font-family: var(--font-ibm-plex-sans), sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 50% -18%, rgba(198,161,91,.09), transparent 34rem),
+    linear-gradient(180deg, #090D14 0%, #070A0F 28rem);
+}
+
+.premium-surface {
+  background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015)), var(--srf);
+}
+
+.premium-hover {
+  transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.premium-hover:hover {
+  border-color: color-mix(in srgb, var(--go) 42%, var(--brd));
+  transform: translateY(-1px);
 }
 
 /* ── Custom scrollbar ──────────────────────────────────────── */

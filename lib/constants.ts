@@ -12,6 +12,7 @@ export const CONTACT = {
 } as const;
 
 /* ── WhatsApp ────────────────────────────────────────────── */
+export const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbAtCLv7DAWtnb0xwD18";
 const WA_NUM = ""; // set phone number here
 export const WA_LINK = (msg: string) =>
   `https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`;
@@ -23,12 +24,12 @@ export const FD = "'Playfair Display','Georgia',serif";
 
 /* ── Tabs ────────────────────────────────────────────────── */
 export const TABS: TabDef[] = [
-  { id:"inicio",        label:"Inicio",        Icon:Home,         desc:"Dashboard y resumen del día" },
+  { id:"inicio",        label:"Inicio",        Icon:Home,         desc:"Dashboard e inteligencia diaria" },
   { id:"mercados",      label:"Mercados",       Icon:DollarSign,   desc:"Cotizaciones, FX y noticias live" },
   { id:"rentafija",     label:"Renta Fija",     Icon:ClipboardList,desc:"LECAPs, soberanos, ONs y plazos fijos" },
   { id:"rentavariable", label:"Renta Variable", Icon:BarChart3,    desc:"CEDEARs y screener de equities" },
   { id:"productos",     label:"Productos",      Icon:Package,      desc:"FCIs y ETPs Balanz" },
-  { id:"research",      label:"Research",       Icon:Search,       desc:"Resúmenes, balances y recomendaciones" },
+  { id:"research",      label:"Research",       Icon:Search,       desc:"Canal, balances e inteligencia" },
 ];
 
 export const VALID_TABS = TABS.map(t => t.id);

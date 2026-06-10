@@ -59,6 +59,7 @@ export interface RentaFijaMarketStatus {
 export interface RentaFijaMarketSnapshot {
   bondPrices: PriceMap;
   lecapLive: PriceMap;
+  discovered: import("./taxonomy").DiscoveredInstrument[];
   lecapRows: LecapComputed[];
   sovRows: SovComputed[];
   lecapByTicker: Record<string, LecapComputed>;

@@ -6,6 +6,7 @@ import {
   REFRESH_MS,
   buildLecapRows,
   buildSovRows,
+  discoverFixedIncomeUniverse,
   indexLecapByTicker,
   indexSovByTicker,
   type PriceMap,
@@ -99,12 +100,14 @@ export function useRentaFijaMarket(): RentaFijaMarketSnapshot {
 
   const lecapRows = useMemo(() => buildLecapRows(LECAP, maps), [maps]);
   const sovRows = useMemo(() => buildSovRows(SOBERANOS, maps), [maps]);
+  const discovered = useMemo(() => discoverFixedIncomeUniverse(maps), [maps]);
   const lecapByTicker = useMemo(() => indexLecapByTicker(lecapRows), [lecapRows]);
   const sovByTicker = useMemo(() => indexSovByTicker(sovRows), [sovRows]);
 
   return {
     bondPrices,
     lecapLive,
+    discovered,
     lecapRows,
     sovRows,
     lecapByTicker,

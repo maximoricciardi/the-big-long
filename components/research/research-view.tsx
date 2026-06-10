@@ -6,7 +6,6 @@ import {
   BarChart3,
   FileText,
   Briefcase,
-  CircleDot,
   Lock,
   AlertTriangle,
   PieChart,
@@ -25,12 +24,11 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { EarningsCalendar } from "@/components/mercados/earnings-calendar";
 import { ReportsPanel } from "@/components/research/reports-panel";
 import { useLiveNews } from "@/hooks/use-live-news";
-import { SUMMARIES } from "@/lib/data/summaries";
 import { PERFILES } from "@/lib/data/perfiles";
-import { FB, FH } from "@/lib/constants";
+import { FB, FH, WHATSAPP_CHANNEL_URL } from "@/lib/constants";
 
 const SUBTABS = [
-  { id: "resumen", label: "Resumen Diario", Icon: ClipboardList },
+  { id: "resumen", label: "Canal WhatsApp", Icon: ClipboardList },
   { id: "balances", label: "Earnings", Icon: BarChart3 },
   { id: "informes", label: "Inteligencia", Icon: FileText },
   { id: "reports", label: "Reports", Icon: Globe },
@@ -94,132 +92,71 @@ export function ResearchView({ initialSub = "resumen", onSubChange }: ResearchVi
 
 function ResumenPanel() {
   const t = useAppTheme();
-  const [selectedIndex, setSelectedIndex] = useState(0);
 
   return (
     <div>
       <Card t={t} style={{ marginBottom: 18, borderTop: `3px solid ${t.go}` }}>
-        <div style={{ padding: "18px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, alignItems: "center" }}>
+        <div style={{ padding: "22px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 18, alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: FB, fontSize: 9, fontWeight: 700, color: t.fa, letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 6 }}>
-              THE BIG LONG · HOUSE VIEW
+              THE BIG LONG · MARKET INTELLIGENCE
             </div>
-            <div style={{ fontFamily: FH, fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 6 }}>
-              Resumen diario propio, con archivo navegable.
+            <div style={{ fontFamily: FH, fontSize: 28, fontWeight: 850, color: t.tx, marginBottom: 8, lineHeight: 1.15 }}>
+              Inteligencia diaria para seguir mercados sin ruido.
             </div>
-            <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, lineHeight: 1.7 }}>
-              Este bloque concentra el contenido original de The Big Long. La lectura prioriza contexto macro, drivers de mercado y cambios de posicionamiento relevantes para advisory.
+            <div style={{ fontFamily: FB, fontSize: 13, color: t.mu, lineHeight: 1.75, maxWidth: 680 }}>
+              El canal concentra lectura de mercado, contexto local e internacional, cambios relevantes en renta fija, renta variable, FX y oportunidades según distintos perfiles de riesgo. La promesa no es adivinar el mercado: es monitorear mejor y decidir con más contexto.
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+              {["Renta fija local", "FX y macro", "Equity global", "Riesgo y duration"].map(item => (
+                <span key={item} style={{ fontFamily: FB, fontSize: 10, fontWeight: 700, color: t.go, background: t.goBg, border: `1px solid ${t.go}33`, borderRadius: 6, padding: "5px 8px" }}>
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-            {[
-              { label: "Ediciones", value: String(SUMMARIES.length) },
-              { label: "Formato", value: "Premium" },
-              { label: "Cobertura", value: "Macro + mercados" },
-            ].map((item) => (
-              <div key={item.label} style={{ background: t.alt, border: `1px solid ${t.brd}`, borderRadius: 10, padding: "10px 12px" }}>
-                <div style={{ fontFamily: FB, fontSize: 8, color: t.fa, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontFamily: FH, fontSize: 16, fontWeight: 800, color: t.tx }}>{item.value}</div>
-              </div>
-            ))}
+          <div style={{ background: t.alt, border: `1px solid ${t.brd}`, borderRadius: 8, padding: "16px 18px" }}>
+            <div style={{ fontFamily: FB, fontSize: 9, fontWeight: 800, color: t.go, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 8 }}>
+              Canal de difusión
+            </div>
+            <div style={{ fontFamily: FH, fontSize: 20, fontWeight: 850, color: t.tx, marginBottom: 8 }}>
+              The Big Long en WhatsApp
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, lineHeight: 1.6, marginBottom: 14 }}>
+              Recibí el seguimiento directamente donde ya leés el mercado durante el día.
+            </div>
+            <a href={WHATSAPP_CHANNEL_URL} target="_blank" rel="noreferrer noopener" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8, background: t.go, color: "#090D14", borderRadius: 8, padding: "11px 14px", fontFamily: FB, fontSize: 12, fontWeight: 850 }}>
+              Unirme al canal <ArrowUpRight size={14} />
+            </a>
           </div>
         </div>
       </Card>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {SUMMARIES.map((summary, index) => (
-          <button
-            key={summary.id}
-            onClick={() => setSelectedIndex(index)}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 6,
-              fontFamily: FB,
-              fontSize: 12,
-              fontWeight: selectedIndex === index ? 700 : 450,
-              cursor: "pointer",
-              transition: "all .2s",
-              border: `1px solid ${selectedIndex === index ? `${t.go}66` : t.brd}`,
-              background: selectedIndex === index ? t.goBg : t.srf,
-              color: selectedIndex === index ? t.go : t.mu,
-            }}
-          >
-            {index === 0 && <CircleDot size={10} style={{ marginRight: 4, verticalAlign: "middle", color: t.go }} />}
-            {summary.date}
-            {index === 0 && <span style={{ marginLeft: 6, fontSize: 9, background: t.goBg, color: t.go, padding: "1px 5px", borderRadius: 5 }}>ÚLTIMO</span>}
-          </button>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12, marginBottom: 18 }}>
+        {[
+          { title: "Monitoreo diario", body: "Precios, curvas, tasas, FX, riesgo país, balances y noticias con lectura de impacto.", Icon: Clock, color: t.bl },
+          { title: "Contexto local", body: "Argentina primero: deuda soberana, Tesoro, BCRA, liquidez, inflación y flujos locales.", Icon: Landmark, color: t.go },
+          { title: "Contexto global", body: "Tasas internacionales, commodities, equities y eventos que mueven apetito por riesgo.", Icon: Globe, color: t.gr },
+          { title: "Perfiles de riesgo", body: "Ideas ordenadas por objetivo y tolerancia, sin prometer retornos ni empujar operaciones.", Icon: PieChart, color: t.pu },
+        ].map(item => (
+          <div key={item.title} style={{ background: t.srf, border: `1px solid ${t.brd}`, borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <item.Icon size={15} color={item.color} />
+              <div style={{ fontFamily: FB, fontSize: 10, fontWeight: 800, color: item.color, letterSpacing: ".08em", textTransform: "uppercase" }}>{item.title}</div>
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, lineHeight: 1.65 }}>{item.body}</div>
+          </div>
         ))}
       </div>
 
-      <SummaryCard s={SUMMARIES[selectedIndex]} />
-    </div>
-  );
-}
-
-function SummaryCard({ s }: { s: typeof SUMMARIES[0] }) {
-  const t = useAppTheme();
-  const isMobile = useIsMobile(640);
-  if (!s) return null;
-
-  const bcMap: Record<string, string> = { green: t.gr, red: t.rd, blue: t.bl, gold: t.go, gray: t.mu };
-
-  return (
-    <Card t={t}>
-      <div style={{ padding: isMobile ? "18px 14px" : "24px 28px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <span style={{ fontFamily: FB, fontSize: 9, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: t.go, background: t.goBg, padding: "3px 10px", borderRadius: 20 }}>
-            ● {s.date}
-          </span>
-          {s.label && <span style={{ fontFamily: FB, fontSize: 10, color: t.mu }}>{s.label}</span>}
+      <div style={{ background: t.alt, border: `1px solid ${t.brd}`, borderRadius: 8, padding: "12px 14px", display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <AlertTriangle size={15} color={t.fa} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontFamily: FB, fontSize: 11, color: t.fa, lineHeight: 1.6 }}>
+          Información exclusivamente informativa. El canal no reemplaza asesoramiento personalizado ni constituye recomendación de compra o venta.
         </div>
-
-        {s.kpis && s.kpis.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-            {s.kpis.map((kpi, index) => {
-              const col = bcMap[kpi.bc] ?? t.mu;
-              return (
-                <div key={index} style={{ background: t.alt, border: `1px solid ${t.brd}`, borderRadius: 6, padding: "8px 12px", fontFamily: FB, display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ fontSize: 8, color: t.fa, letterSpacing: ".06em", textTransform: "uppercase" }}>{kpi.k}</span>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>{kpi.v}</span>
-                  {kpi.b && <span style={{ fontSize: 8, fontWeight: 600, color: col, background: `${col}15`, padding: "0 5px", borderRadius: 4, width: "fit-content" }}>{kpi.b}</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {s.cards && s.cards.map((card, index) => (
-          <div key={index} style={{ padding: "14px 0", borderTop: `1px solid ${t.brd}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ fontFamily: FB, fontSize: 8, fontWeight: 700, color: card.ac, letterSpacing: ".08em", textTransform: "uppercase" }}>{card.cat}</span>
-            </div>
-            <div style={{ fontFamily: FH, fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 6 }}>{card.title}</div>
-            {card.note && <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: card.note }} />}
-          </div>
-        ))}
-
-        {s.intl && s.intl.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontFamily: FB, fontSize: 9, fontWeight: 700, color: t.fa, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 10 }}>
-              Mercados internacionales
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {s.intl.map((item, index) => {
-                const col = item.neg ? t.rd : item.ch?.startsWith("+") ? t.gr : t.mu;
-                return (
-                  <div key={index} style={{ background: t.alt, borderRadius: 8, padding: "8px 12px", fontFamily: FB, textAlign: "center" }}>
-                    <div style={{ fontSize: 9, color: t.fa, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 2 }}>{item.n}</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: t.tx, fontVariantNumeric: "tabular-nums" }}>{item.v}</div>
-                    {item.ch && <div style={{ fontSize: 10, fontWeight: 700, color: col }}>{item.ch}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
-    </Card>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Card } from "@/components/ui/card";
@@ -12,11 +12,24 @@ import { LecapCalc } from "@/components/renta-fija/lecap-calc";
 import { SoberanosCalc } from "@/components/renta-fija/soberanos-calc";
 import { RentaFijaMarketProvider, useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
 import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
-import { REFERENCE_AS_OF, REFRESH_MS, daysToMaturity, isVtoActive, parseNumStrict, type LecapComputed } from "@/lib/renta-fija";
+import {
+  FIXED_INCOME_CATEGORIES,
+  REFERENCE_AS_OF,
+  REFRESH_MS,
+  countByCategory,
+  daysToMaturity,
+  isVtoActive,
+  parseNumStrict,
+  type DiscoveredInstrument,
+  type FixedIncomeCategoryId,
+  type LecapComputed,
+  type SovComputed,
+} from "@/lib/renta-fija";
 
 const LECAP_ACTIVE = LECAP.filter(g => !g.vto || isVtoActive(g.vto));
 
 const TABS_RF = [
+  { id:"universo",label:"Universo" },
   { id:"lecap",   label:"LECAPs / BONCAPs" },
   { id:"curva",   label:"Curva ARS" },
   { id:"sob",     label:"Soberanos USD" },
@@ -77,8 +90,9 @@ function LiveStatusChip({ uvaIndex, tamarRate }: { uvaIndex: number|null; tamarR
 function LecapCurva() {
   const t = useAppTheme();
   const { lecapRows } = useRentaFijaMarketContext();
+  const [segment, setSegment] = useState<"short" | "medium" | "all">("short");
 
-  const points = lecapRows
+  const allPoints = lecapRows
     .filter((r: LecapComputed) => r.temLive != null && r.tnaLive != null && r.temLive > 0 && r.temLive <= 4 && r.tnaLive <= 50 && !r.flags.includes("tna_outlier"))
     .map(r => ({
       ticker: r.ticker,
@@ -89,6 +103,13 @@ function LecapCurva() {
       isBoncap: r.isBoncap,
     }))
     .sort((a, b) => a.dias - b.dias);
+
+  const points = allPoints.filter(p => {
+    if (segment === "short") return p.dias <= 180;
+    if (segment === "medium") return p.dias > 180 && p.dias <= 540;
+    return p.dias <= 540;
+  });
+  const excluded = lecapRows.length - allPoints.length;
 
   if (points.length < 3) return <p style={{ fontFamily:FB, fontSize:12, color:t.mu }}>Sin suficientes datos para la curva.</p>;
 
@@ -127,8 +148,21 @@ function LecapCurva() {
       <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.go, letterSpacing:".1em", textTransform:"uppercase", marginBottom:12 }}>
         CURVA DE RENDIMIENTOS ARS · TEM % vs Días al Vencimiento
         <span style={{ marginLeft:8, fontFamily:FB, fontSize:9, color:t.fa, fontWeight:400 }}>
-          {points.filter(p=>p.isLive).length} con precio de mercado · se excluyen vencidos y outliers automáticamente
+          {points.filter(p=>p.isLive).length} puntos visibles · {excluded} excluidos por vencimiento, falta de precio u outlier
         </span>
+      </div>
+      <div style={{ display:"flex", gap:6, marginBottom:12, flexWrap:"wrap" }}>
+        {[
+          { id:"short", label:"0-180d" },
+          { id:"medium", label:"181-540d" },
+          { id:"all", label:"Vista compacta" },
+        ].map(item => (
+          <button key={item.id} onClick={() => setSegment(item.id as "short" | "medium" | "all")} style={{
+            padding:"5px 10px", borderRadius:6, fontFamily:FB, fontSize:10, fontWeight:segment===item.id?750:500,
+            border:`1px solid ${segment===item.id?t.go+"66":t.brd}`, background:segment===item.id?t.goBg:t.alt,
+            color:segment===item.id?t.go:t.mu, cursor:"pointer",
+          }}>{item.label}</button>
+        ))}
       </div>
       <svg width={W} height={H} style={{ overflow:"visible", fontFamily:FB, maxWidth:"100%" }}>
         <defs>
@@ -187,7 +221,173 @@ function LecapCurva() {
       </div>
       <p style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:8 }}>
         Curva TEM calculada solo con precios de mercado DATA912 dentro de rangos válidos.
-        Instrumentos vencidos u outliers excluidos automáticamente.
+        La vista compacta evita que vencimientos largos opaquen el tramo operable de corto plazo.
+      </p>
+    </div>
+  );
+}
+
+function MetricTile({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  const t = useAppTheme();
+  return (
+    <div style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"11px 12px" }}>
+      <div style={{ fontFamily:FB, fontSize:8, color:t.fa, letterSpacing:".08em", textTransform:"uppercase", marginBottom:4 }}>{label}</div>
+      <div style={{ fontFamily:FH, fontSize:18, fontWeight:800, color:tone ?? t.tx }}>{value}</div>
+    </div>
+  );
+}
+
+function TaxonomyPanel({
+  rows,
+  counts,
+}: {
+  rows: DiscoveredInstrument[];
+  counts: Record<FixedIncomeCategoryId, number>;
+}) {
+  const t = useAppTheme();
+  const [category, setCategory] = useState<FixedIncomeCategoryId | "all">("all");
+  const visible = category === "all" ? rows : rows.filter(r => r.category === category);
+
+  return (
+    <div>
+      <Card t={t} style={{ marginBottom:16 }}>
+        <div style={{ padding:"16px 18px" }}>
+          <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.go, letterSpacing:".1em", textTransform:"uppercase", marginBottom:6 }}>
+            Taxonomía viva de renta fija
+          </div>
+          <div style={{ fontFamily:FH, fontSize:22, fontWeight:800, color:t.tx, marginBottom:6 }}>
+            Instrumentos detectados automáticamente desde mercado.
+          </div>
+          <div style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.65 }}>
+            La clasificación es conservadora: cuando el ticker permite inferir familia, el instrumento aparece con precio de mercado.
+            Si no existe cronograma o metadata suficiente, no se calculan rendimientos.
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:10, marginBottom:16 }}>
+        {FIXED_INCOME_CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setCategory(category === cat.id ? "all" : cat.id)} style={{
+            textAlign:"left", background:category===cat.id?t.goBg:t.srf, border:`1px solid ${category===cat.id?t.go+"66":t.brd}`,
+            borderRadius:8, padding:"12px 13px", cursor:"pointer",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between", gap:8, alignItems:"baseline" }}>
+              <span style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:category===cat.id?t.go:t.tx }}>{cat.label}</span>
+              <span style={{ fontFamily:FH, fontSize:18, fontWeight:800, color:category===cat.id?t.go:t.tx }}>{counts[cat.id] ?? 0}</span>
+            </div>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.mu, lineHeight:1.45, marginTop:5 }}>{cat.description}</div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, overflow:"hidden", overflowX:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead><tr><Th>Ticker</Th><Th>Categoría</Th><Th right>Precio mercado</Th><Th right>Variación</Th><Th>Confianza</Th><Th>Estado</Th></tr></thead>
+          <tbody>
+            {visible.slice(0, 120).map(row => (
+              <tr key={`${row.category}-${row.ticker}`} style={{ borderBottom:`1px solid ${t.brd}` }}>
+                <Td bold><span style={{ fontFamily:"monospace" }}>{row.ticker}</span></Td>
+                <Td>{row.label}</Td>
+                <Td right bold color={t.gr}>${row.price.toFixed(2)}</Td>
+                <Td right color={row.pct == null ? t.mu : row.pct >= 0 ? t.gr : t.rd}>{row.pct == null ? "—" : `${row.pct >= 0 ? "+" : ""}${row.pct.toFixed(2)}%`}</Td>
+                <Td>{row.confidence === "high" ? "Alta" : row.confidence === "medium" ? "Media" : "Baja"}</Td>
+                <Td><span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>Precio live · sin cálculo inferido</span></Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function unavailableReason(row: SovComputed) {
+  if (!row.isLive) return "Sin precio live confiable";
+  if (row.flags.includes("tir_unavailable")) return "TIR no defendible con flujos actuales";
+  return "Disponible";
+}
+
+function SovereignBondsPanel() {
+  const t = useAppTheme();
+  const { sovRows, bondPrices } = useRentaFijaMarketContext();
+  const rows = [...sovRows].sort((a, b) => a.ley.localeCompare(b.ley) || a.durRef - b.durRef);
+  const liveRows = rows.filter(r => r.isLive);
+  const tirRows = rows.filter(r => r.tirLive != null);
+  const excludedRows = rows.filter(r => r.tirLive == null);
+  const bestTir = [...tirRows].sort((a, b) => (b.tirLive ?? 0) - (a.tirLive ?? 0))[0];
+  const lawCounts = {
+    ARG: rows.filter(r => r.ley === "ARG").length,
+    NY: rows.filter(r => r.ley === "NY").length,
+  };
+
+  return (
+    <div>
+      <Card t={t} style={{ marginBottom:16, borderTop:`3px solid ${t.bl}` }}>
+        <div style={{ padding:"18px 20px", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:12, alignItems:"stretch" }}>
+          <div>
+            <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.bl, letterSpacing:".1em", textTransform:"uppercase", marginBottom:6 }}>
+              Soberanos USD
+            </div>
+            <div style={{ fontFamily:FH, fontSize:23, fontWeight:850, color:t.tx, marginBottom:6 }}>
+              Curva y comparación con métricas defendibles.
+            </div>
+            <div style={{ fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.65 }}>
+              La tabla prioriza precio de mercado y TIR calculada. Los bonos con flujos/precios que no producen una TIR técnica razonable quedan marcados, no rellenados con referencias viejas.
+            </div>
+          </div>
+          <MetricTile label="Precio live" value={`${liveRows.length}/${rows.length}`} tone={t.gr} />
+          <MetricTile label="TIR defendible" value={`${tirRows.length}`} tone={t.go} />
+          <MetricTile label="Excluidos curva" value={`${excludedRows.length}`} tone={excludedRows.length ? t.rd : t.gr} />
+          <MetricTile label="Mejor TIR live" value={bestTir?.tirLive != null ? `${bestTir.ticker} ${bestTir.tirLive.toFixed(2)}%` : "—"} tone={t.bl} />
+        </div>
+      </Card>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginBottom:16 }}>
+        <MetricTile label="Ley Argentina" value={`${lawCounts.ARG} bonos`} tone={t.go} />
+        <MetricTile label="Ley Nueva York" value={`${lawCounts.NY} bonos`} tone={t.bl} />
+        <MetricTile label="Fuente precio" value="DATA912" tone={t.gr} />
+        <MetricTile label="Fuente flujos" value="Cronogramas internos" tone={t.mu} />
+      </div>
+
+      <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, overflow:"hidden", overflowX:"auto", marginBottom:12 }}>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead><tr>
+            <Th>Ticker</Th><Th>Ley</Th><Th>Vto</Th><Th right>Precio mercado</Th><Th right>Var live</Th>
+            <Th right>TIR mercado</Th><Th right>Duration ref</Th><Th>Estado cálculo</Th>
+          </tr></thead>
+          <tbody>
+            {rows.map((s) => {
+              const live = bondPrices[s.ticker];
+              const pctChange = live?.pct;
+              const ok = s.tirLive != null;
+              return (
+                <tr key={s.ticker} style={{ borderBottom:`1px solid ${t.brd}` }}>
+                  <Td bold>
+                    <span style={{ fontFamily:"monospace" }}>{s.ticker}</span>
+                    <DataQualityBadge flags={s.flags} isLive={s.isLive} />
+                  </Td>
+                  <Td><span style={{ fontFamily:FB, fontSize:9, background:s.ley==="NY"?t.blBg:t.goBg, color:s.ley==="NY"?t.bl:t.go, padding:"2px 6px", borderRadius:5 }}>{s.ley}</span></Td>
+                  <Td>{s.vto}</Td>
+                  <Td right bold color={s.pLive != null ? t.gr : t.fa}>{s.pLive != null ? `$${s.pLive.toFixed(2)}` : "—"}</Td>
+                  <Td right color={pctChange == null ? t.mu : pctChange >= 0 ? t.gr : t.rd}>
+                    {pctChange == null ? "—" : `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(2)}%`}
+                  </Td>
+                  <Td right bold color={ok ? t.go : t.fa}>{ok ? `${s.tirLive!.toFixed(2)}%` : "—"}</Td>
+                  <Td right>{s.durRef > 0 ? `${s.durRef.toFixed(2)}a` : "—"}</Td>
+                  <Td>
+                    <span style={{ fontFamily:FB, fontSize:10, color:ok?t.gr:t.fa }}>
+                      {ok ? "Incluido en curva" : unavailableReason(s)}
+                    </span>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.7 }}>
+        TIR mercado se calcula solo con precio live y cronograma disponible. La TIR base, paridad y CY de snapshots antiguos no se usan para ordenar ni construir curva.
       </p>
     </div>
   );
@@ -195,8 +395,9 @@ function LecapCurva() {
 
 function RentaFijaViewInner() {
   const t = useAppTheme();
-  const [sub, setSub] = useState("lecap");
-  const { lecapByTicker, sovRows, bondPrices } = useRentaFijaMarketContext();
+  const [sub, setSub] = useState("universo");
+  const { lecapByTicker, discovered, bondPrices } = useRentaFijaMarketContext();
+  const categoryCounts = useMemo(() => countByCategory(discovered), [discovered]);
   const [uvaIndex, setUvaIndex] = useState<number|null>(null);
   const [tamarRate, setTamarRate] = useState<number|null>(null);
 
@@ -241,14 +442,26 @@ function RentaFijaViewInner() {
 
       {/* Sub-tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
-        {TABS_RF.map(s => (
+        {TABS_RF.map(s => {
+          const count = s.id === "universo"
+            ? discovered.length
+            : s.id === "sob"
+              ? categoryCounts.sovereign
+              : s.id === "duales"
+                ? categoryCounts.dual
+                : s.id === "dl"
+                  ? categoryCounts.dollar_linked
+                  : undefined;
+          return (
           <button key={s.id} onClick={() => setSub(s.id)} style={{
             padding:"7px 13px", borderRadius:6, fontFamily:FB, fontSize:12, fontWeight:sub===s.id?700:450,
             border:`1px solid ${sub===s.id?t.go+"66":t.brd}`, background:sub===s.id?t.goBg:t.srf,
             color:sub===s.id?t.go:t.mu, cursor:"pointer", transition:"all .15s",
-          }}>{s.label}</button>
-        ))}
+          }}>{s.label}{count != null && count > 0 ? ` · ${count}` : ""}</button>
+        )})}
       </div>
+
+      {sub === "universo" && <TaxonomyPanel rows={discovered} counts={categoryCounts} />}
 
       {/* ── LECAP / BONCAP — auto-expire ── */}
       {sub === "lecap" && (
@@ -306,43 +519,7 @@ function RentaFijaViewInner() {
       {sub === "curva" && <LecapCurva />}
 
       {/* ── SOBERANOS USD ── */}
-      {sub === "sob" && (
-        <div style={tableCtr}>
-          <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>
-              <Th>Ticker</Th><Th>Vto</Th><Th right>Precio base</Th><Th right>Precio mercado</Th>
-              <Th right>TIR base</Th><Th right>TIR mercado</Th><Th right>CY base</Th><Th right>Var 1D</Th><Th right>Paridad</Th><Th>Ley</Th>
-            </tr></thead>
-            <tbody>
-              {sovRows.map((s, i) => {
-                const live = bondPrices[s.ticker];
-                const pctChange = live?.pct;
-                return (
-                  <tr key={i} style={trStyle}
-                    onMouseEnter={e=>(e.currentTarget.style.background=t.alt)}
-                    onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <Td bold>
-                      <span style={{ fontFamily:"monospace" }}>{s.ticker}</span>
-                      <DataQualityBadge flags={s.flags} isLive={s.isLive} />
-                    </Td>
-                    <Td>{s.vto}</Td>
-                    <Td right>${s.pRef.toFixed(2)}</Td>
-                    <Td right bold color={s.pLive != null ? t.gr : t.fa}>{s.pLive != null ? `$${s.pLive.toFixed(2)}` : "—"}</Td>
-                    <Td right color={t.mu}>{s.tirRef > 0 ? `${s.tirRef.toFixed(2)}%` : "—"}</Td>
-                    <Td right bold color={s.tirLive != null ? t.go : t.fa}>{s.tirLive != null ? `${s.tirLive.toFixed(2)}%` : "—"}</Td>
-                    <Td right>{s.cyRef > 0 ? `${s.cyRef.toFixed(2)}%` : "—"}</Td>
-                    <Td right color={pctChange!=null?(pctChange>=0?t.gr:t.rd):(s.var1d?.startsWith("-")?t.rd:s.var1d==="—"?t.mu:t.gr)}>
-                      {pctChange!=null ? `${pctChange>=0?"+":""}${pctChange.toFixed(2)}%` : s.var1d}
-                    </Td>
-                    <Td right>{s.par}</Td>
-                    <Td><span style={{ fontFamily:FB, fontSize:9, background:s.ley==="NY"?t.blBg:t.alt, color:s.ley==="NY"?t.bl:t.mu, padding:"2px 6px", borderRadius:5 }}>{s.ley}</span></Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {sub === "sob" && <SovereignBondsPanel />}
 
       {/* ── CURVA USD SOBERANOS ── */}
       {sub === "sovcurva" && <SovYieldCurve />}

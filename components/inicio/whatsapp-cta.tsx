@@ -7,16 +7,14 @@
 
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
-import { FB, FH } from "@/lib/constants";
-
-const WHATSAPP_URL = "https://whatsapp.com/channel/0029VbAtCLv7DAWtnb0xwD18";
+import { FB, FH, WHATSAPP_CHANNEL_URL } from "@/lib/constants";
 
 export function WhatsAppCTA() {
   const t = useAppTheme();
 
   return (
     <a
-      href={WHATSAPP_URL}
+      href={WHATSAPP_CHANNEL_URL}
       target="_blank"
       rel="noreferrer noopener"
       style={{ textDecoration: "none", display: "block" }}

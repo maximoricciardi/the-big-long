@@ -115,7 +115,7 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
             </p>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:8, justifySelf:isMobile?"stretch":"end", minWidth:isMobile?0:280 }}>
-            <button onClick={() => goResearch("resumen")} style={{ background:t.go, color:"#090D14", border:`1px solid ${t.go}`, borderRadius:6, padding:"11px 16px", fontFamily:FB, fontWeight:750, fontSize:12, cursor:"pointer", textAlign:"center" }}>Ver resumen del día</button>
+            <button onClick={() => goResearch("resumen")} style={{ background:t.go, color:"#090D14", border:`1px solid ${t.go}`, borderRadius:6, padding:"11px 16px", fontFamily:FB, fontWeight:750, fontSize:12, cursor:"pointer", textAlign:"center" }}>Unirme al canal diario</button>
             <button onClick={() => setTab("mercados")} style={{ background:t.alt, color:t.tx, border:`1px solid ${t.brd}`, borderRadius:6, padding:"11px 16px", fontFamily:FB, fontWeight:650, fontSize:12, cursor:"pointer", textAlign:"center" }}>Monitorear mercados</button>
           </div>
         </div>

@@ -44,16 +44,16 @@ export function EquityScreener() {
     const run = async () => {
       try {
         const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`);
-        const data: { prices?: Record<string, BatchPrice> } = await r.json();
+        const data: { prices?: Record<string, BatchPrice>; _meta?: { status?: string } } = await r.json();
         const prices = data.prices ?? {};
-        if (Object.keys(prices).length > 0) {
+        if (r.ok && Object.keys(prices).length > 0 && data._meta?.status !== "error") {
           const mapped: Record<string, LiveEntry> = {};
           Object.entries(prices).forEach(([k, v]) => {
             mapped[k] = { price: v.price, change: v.change, changePct: v.changePct, high: v.high, low: v.low };
           });
           livePricesRef.current = mapped;
           setLivePrices(mapped);
-          setLiveStatus("ok");
+          setLiveStatus(data._meta?.status === "partial" ? "degraded" : "ok");
         } else {
           setLiveStatus("error");
         }
@@ -221,7 +221,7 @@ export function EquityScreener() {
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, background: liveStatus === "ok" ? t.grBg : t.alt, border: `1px solid ${liveStatus === "ok" ? t.gr + "44" : t.brd}` }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: liveStatus === "ok" ? "#22c55e" : "#94a3b8", boxShadow: liveStatus === "ok" ? "0 0 6px #22c55e" : "none" }} />
           <span style={{ fontFamily: FB, fontSize: 10, color: liveStatus === "ok" ? t.gr : t.mu }}>
-            {liveStatus === "ok" ? `${Object.keys(livePrices).length} precios live` : liveStatus === "error" ? "Sin datos live" : "Cargando precios..."}
+            {liveStatus === "ok" ? `${Object.keys(livePrices).length} precios live` : liveStatus === "degraded" ? `${Object.keys(livePrices).length} precios · fuente parcial` : liveStatus === "error" ? "Sin datos live" : "Cargando precios..."}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, background: histStatus === "ok" ? t.blBg : t.alt, border: `1px solid ${histStatus === "ok" ? t.bl + "44" : t.brd}` }}>

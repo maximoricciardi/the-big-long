@@ -83,6 +83,10 @@ export const CEDEARS_LIST: Cedear[] = [
 ];
 
 interface LiveEntry { price: number; pct: number; vol?: number; }
+type CedearsResponse = {
+  map?: Record<string, LiveEntry>;
+  _meta?: { status?: "ok" | "partial" | "empty" | "error" };
+};
 
 const SEC_COLOR: Record<string, string> = {
   Tech:"#3b82f6",Semis:"#8b5cf6",Energía:"#f59e0b",Financiero:"#22c55e",
@@ -132,10 +136,11 @@ export function CEDEARsPanel() {
     const load = async () => {
       try {
         const r    = await fetch("/api/cedears");
-        const json = await r.json();
+        const json = await r.json() as CedearsResponse;
         setPrices(json.map || {});
         setLastUpd(new Date());
-        setStatus(Object.keys(json.map || {}).length > 0 ? "ok" : "empty");
+        const count = Object.keys(json.map || {}).length;
+        setStatus(r.ok && count > 0 && json._meta?.status !== "error" ? "ok" : count > 0 ? "degraded" : "empty");
       } catch { setStatus("error"); }
     };
     load();
@@ -196,7 +201,7 @@ export function CEDEARsPanel() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.06)", borderRadius: 10, padding: "8px 16px", border: "1px solid rgba(255,255,255,.08)" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: status === "ok" ? "#22c55e" : "#f59e0b", boxShadow: status === "ok" ? "0 0 8px #22c55e" : "none" }} />
               <span style={{ fontFamily: FB, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.8)" }}>
-                {status === "ok" ? `${liveCount} precios en vivo` : status === "error" ? "API offline" : "Conectando..."}
+                {status === "ok" ? `${liveCount} precios en vivo` : status === "degraded" ? `${liveCount} precios · fuente degradada` : status === "error" ? "API offline" : "Conectando..."}
               </span>
             </div>
             {lastUpd && <span style={{ fontFamily: FB, fontSize: 9, color: "rgba(255,255,255,.3)" }}>Act. {lastUpd.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>}

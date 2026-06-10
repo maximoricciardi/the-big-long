@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildMeta, fetchJsonWithRetry, jsonError, jsonWithMeta } from "@/lib/api/reliability";
 
 export const runtime = "nodejs"; // needs Date.now() for dynamic desde/hasta
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   const { searchParams } = req.nextUrl;
   const id    = searchParams.get("id");
   const desde = searchParams.get("desde");
@@ -31,20 +33,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing ?id= or ?list=1" }, { status: 400 });
     }
 
-    const r = await fetch(url, {
+    const data = await fetchJsonWithRetry<Record<string, unknown>>(url, {
+      provider: "BCRA",
       headers: { Accept: "application/json", "Accept-Language": "es-AR" },
+      timeoutMs: 8_000,
+      retries: 1,
     });
 
-    if (!r.ok) {
-      return NextResponse.json({ error: `BCRA API returned ${r.status}` }, { status: r.status });
-    }
-
-    const data = await r.json();
-    return NextResponse.json(data, {
-      headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" },
-    });
+    return jsonWithMeta(
+      data,
+      buildMeta({
+        provider: "BCRA",
+        source: url,
+        status: Array.isArray(data.results) && data.results.length === 0 ? "empty" : "ok",
+        startedAt,
+        cacheSeconds: 300,
+        staleAfterSeconds: 600,
+      }),
+      { cacheSeconds: 300, staleWhileRevalidateSeconds: 600 }
+    );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonError({ provider: "BCRA", source: BASE, startedAt, error: err });
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildMeta, fetchJsonWithRetry, jsonError, jsonWithMeta } from "@/lib/api/reliability";
 
 function mapInterval(resolution: string): string {
   const r = resolution.toUpperCase();
@@ -16,16 +17,7 @@ async function fetchYahooCandles(symbol: string, resolution: string, from: strin
   url.searchParams.set("includePrePost", "false");
   url.searchParams.set("events", "div,splits");
 
-  const r = await fetch(url.toString(), {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "Mozilla/5.0",
-    },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!r.ok) throw new Error(`Yahoo Finance returned ${r.status}`);
-
-  const json = await r.json() as {
+  const json = await fetchJsonWithRetry<{
     chart?: {
       result?: Array<{
         timestamp?: number[];
@@ -40,7 +32,15 @@ async function fetchYahooCandles(symbol: string, resolution: string, from: strin
         };
       }>;
     };
-  };
+  }>(url.toString(), {
+    provider: "Yahoo Finance",
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Mozilla/5.0",
+    },
+    timeoutMs: 8_000,
+    retries: 1,
+  });
 
   const result = json.chart?.result?.[0];
   const quote = result?.indicators?.quote?.[0];
@@ -83,6 +83,7 @@ async function fetchYahooCandles(symbol: string, resolution: string, from: strin
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   const { searchParams } = req.nextUrl;
   const symbol     = searchParams.get("symbol");
   const resolution = searchParams.get("resolution") ?? "D";
@@ -96,22 +97,49 @@ export async function GET(req: NextRequest) {
   const key = process.env.FINNHUB_KEY;
   try {
     if (key) {
+      const source = "https://finnhub.io/api/v1/stock/candle";
       const url =
-        `https://finnhub.io/api/v1/stock/candle?token=${key}` +
+        `${source}?token=${key}` +
         `&symbol=${encodeURIComponent(symbol)}&resolution=${resolution}&from=${from}&to=${to}`;
-      const r = await fetch(url);
-      const data = await r.json();
-      return NextResponse.json(data, {
-        headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" },
+      const data = await fetchJsonWithRetry<Record<string, unknown>>(url, {
+        provider: "Finnhub",
+        timeoutMs: 8_000,
+        retries: 1,
       });
+      const candleStatus = data.s === "ok" ? "ok" : "empty";
+      return jsonWithMeta(
+        data,
+        buildMeta({
+          provider: "Finnhub",
+          source,
+          status: candleStatus,
+          startedAt,
+          cacheSeconds: 300,
+          staleAfterSeconds: 600,
+        }),
+        { cacheSeconds: 300, staleWhileRevalidateSeconds: 600 }
+      );
     }
 
     const data = await fetchYahooCandles(symbol, resolution, from, to);
-    return NextResponse.json(data, {
-      headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" },
-    });
+    return jsonWithMeta(
+      data,
+      buildMeta({
+        provider: "Yahoo Finance",
+        source: "Yahoo chart",
+        status: data.s === "ok" ? "ok" : "empty",
+        startedAt,
+        cacheSeconds: 300,
+        staleAfterSeconds: 600,
+      }),
+      { cacheSeconds: 300, staleWhileRevalidateSeconds: 600 }
+    );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonError({
+      provider: key ? "Finnhub" : "Yahoo Finance",
+      source: key ? "https://finnhub.io/api/v1/stock/candle" : "Yahoo chart",
+      startedAt,
+      error: err,
+    });
   }
 }

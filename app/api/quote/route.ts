@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildMeta, fetchJsonWithRetry, jsonError, jsonWithMeta } from "@/lib/api/reliability";
 
 function yahooCandidates(symbol: string): string[] {
   const base = symbol.trim().toUpperCase();
@@ -31,19 +32,7 @@ async function fetchYahooQuote(symbol: string) {
       url.searchParams.set("includePrePost", "false");
       url.searchParams.set("events", "div,splits");
 
-      const r = await fetch(url.toString(), {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "Mozilla/5.0",
-        },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!r.ok) {
-        lastError = `Yahoo Finance returned ${r.status} for ${candidate}`;
-        continue;
-      }
-
-      const json = await r.json() as {
+      const json = await fetchJsonWithRetry<{
         chart?: {
           result?: Array<{
             meta?: {
@@ -58,7 +47,15 @@ async function fetchYahooQuote(symbol: string) {
             };
           }>;
         };
-      };
+      }>(url.toString(), {
+        provider: "Yahoo Finance",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0",
+        },
+        timeoutMs: 8_000,
+        retries: 1,
+      });
 
       const meta = json.chart?.result?.[0]?.meta;
       const c = meta?.regularMarketPrice ?? 0;
@@ -69,7 +66,7 @@ async function fetchYahooQuote(symbol: string) {
       const o = meta?.regularMarketOpen ?? c;
       const pc = meta?.previousClose ?? meta?.chartPreviousClose ?? c;
       if (c > 0) {
-        return { c, d, dp, h, l, o, pc };
+        return { c, d, dp, h, l, o, pc, resolvedSymbol: candidate };
       }
       lastError = `No market price for ${candidate}`;
     } catch (err) {
@@ -81,6 +78,7 @@ async function fetchYahooQuote(symbol: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   const symbol = req.nextUrl.searchParams.get("symbol");
   if (!symbol) {
     return NextResponse.json({ error: "Missing ?symbol=" }, { status: 400 });
@@ -89,19 +87,46 @@ export async function GET(req: NextRequest) {
   const key = process.env.FINNHUB_KEY;
   try {
     if (key) {
-      const r = await fetch(`https://finnhub.io/api/v1/quote?token=${key}&symbol=${encodeURIComponent(symbol)}`);
-      const data = await r.json();
-      return NextResponse.json(data, {
-        headers: { "Cache-Control": "s-maxage=120, stale-while-revalidate=300" },
+      const source = "https://finnhub.io/api/v1/quote";
+      const data = await fetchJsonWithRetry<Record<string, unknown>>(`${source}?token=${key}&symbol=${encodeURIComponent(symbol)}`, {
+        provider: "Finnhub",
+        timeoutMs: 8_000,
+        retries: 1,
       });
+      const price = typeof data.c === "number" ? data.c : 0;
+      return jsonWithMeta(
+        data,
+        buildMeta({
+          provider: "Finnhub",
+          source,
+          status: price > 0 ? "ok" : "empty",
+          startedAt,
+          cacheSeconds: 120,
+          staleAfterSeconds: 300,
+        }),
+        { cacheSeconds: 120, staleWhileRevalidateSeconds: 300 }
+      );
     }
 
     const data = await fetchYahooQuote(symbol);
-    return NextResponse.json(data, {
-      headers: { "Cache-Control": "s-maxage=120, stale-while-revalidate=300" },
-    });
+    return jsonWithMeta(
+      data,
+      buildMeta({
+        provider: "Yahoo Finance",
+        source: String(data.resolvedSymbol),
+        status: data.c > 0 ? "ok" : "empty",
+        startedAt,
+        cacheSeconds: 120,
+        staleAfterSeconds: 300,
+      }),
+      { cacheSeconds: 120, staleWhileRevalidateSeconds: 300 }
+    );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonError({
+      provider: key ? "Finnhub" : "Yahoo Finance",
+      source: key ? "https://finnhub.io/api/v1/quote" : "Yahoo chart candidates",
+      startedAt,
+      error: err,
+    });
   }
 }

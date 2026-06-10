@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildMeta, fetchJsonWithRetry, jsonError, jsonWithMeta } from "@/lib/api/reliability";
 
 const ENDPOINTS: Record<string, string> = {
   cedears: "https://data912.com/live/arg_cedears",
@@ -8,6 +9,7 @@ const ENDPOINTS: Record<string, string> = {
 };
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   const type = req.nextUrl.searchParams.get("type") ?? "cedears";
   const url  = ENDPOINTS[type];
 
@@ -16,16 +18,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const r = await fetch(url, {
+    const raw = await fetchJsonWithRetry<Array<{ symbol: string; c: number; pct_change?: number; v?: number }>>(url, {
+      provider: "DATA912",
       headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(10000),
+      timeoutMs: 10_000,
+      retries: 1,
     });
-
-    if (!r.ok) {
-      return NextResponse.json({ error: `DATA912 responded ${r.status}` }, { status: 502 });
-    }
-
-    const raw = await r.json() as Array<{ symbol: string; c: number; pct_change?: number; v?: number }>;
     if (!Array.isArray(raw)) {
       return NextResponse.json({ error: "Unexpected format" }, { status: 502 });
     }
@@ -43,12 +41,19 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    return NextResponse.json(
+    return jsonWithMeta(
       { map, raw, count: raw.length, ts: Date.now() },
-      { headers: { "Cache-Control": "s-maxage=60, stale-while-revalidate=120" } }
+      buildMeta({
+        provider: "DATA912",
+        source: url,
+        status: raw.length > 0 && Object.keys(map).length > 0 ? "ok" : "empty",
+        startedAt,
+        cacheSeconds: 60,
+        staleAfterSeconds: 120,
+      }),
+      { cacheSeconds: 60, staleWhileRevalidateSeconds: 120 }
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonError({ provider: "DATA912", source: url, startedAt, error: err });
   }
 }

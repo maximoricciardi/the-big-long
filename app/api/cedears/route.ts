@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
+import { buildMeta, fetchJsonWithRetry, jsonError, jsonWithMeta } from "@/lib/api/reliability";
 
 export async function GET() {
+  const startedAt = Date.now();
+  const source = "https://data912.com/live/arg_cedears";
   try {
-    const r = await fetch("https://data912.com/live/arg_cedears", {
+    const raw = await fetchJsonWithRetry<Array<{ symbol: string; c: number; pct_change?: number; v?: number }>>(source, {
+      provider: "DATA912",
       headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
-      signal: AbortSignal.timeout(12000),
+      timeoutMs: 12_000,
+      retries: 1,
     });
-
-    if (!r.ok) {
-      return NextResponse.json({ error: `DATA912 ${r.status}` }, { status: 502 });
-    }
-
-    const raw = await r.json() as Array<{ symbol: string; c: number; pct_change?: number; v?: number }>;
     if (!Array.isArray(raw)) {
       return NextResponse.json({ error: "Unexpected format" }, { status: 502 });
     }
@@ -40,12 +39,19 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(
+    return jsonWithMeta(
       { map, count: raw.length, sample: raw.slice(0, 3).map((d) => d.symbol), ts: Date.now() },
-      { headers: { "Cache-Control": "s-maxage=60, stale-while-revalidate=120" } }
+      buildMeta({
+        provider: "DATA912",
+        source,
+        status: raw.length > 0 && Object.keys(map).length > 0 ? "ok" : "empty",
+        startedAt,
+        cacheSeconds: 60,
+        staleAfterSeconds: 120,
+      }),
+      { cacheSeconds: 60, staleWhileRevalidateSeconds: 120 }
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return jsonError({ provider: "DATA912", source, startedAt, error: err });
   }
 }

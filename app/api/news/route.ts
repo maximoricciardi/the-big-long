@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import type { LiveNewsArticle } from "@/types";
+import { buildMeta, fetchTextWithRetry, jsonError, jsonWithMeta, normalizeError } from "@/lib/api/reliability";
 
 export const dynamic = "force-dynamic";
 
@@ -182,28 +182,30 @@ async function fetchFeed(query: string, locale: "global" | "regional"): Promise<
   url.searchParams.set("gl", "AR");
   url.searchParams.set("ceid", "AR:es-419");
 
-  const response = await fetch(url.toString(), {
+  const xml = await fetchTextWithRetry(url.toString(), {
+    provider: "Google News RSS",
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; TheBigLong/2.0; +https://thebiglong.local)",
       Accept: "application/rss+xml, application/xml, text/xml",
     },
+    timeoutMs: 8_000,
+    retries: 1,
     next: { revalidate: NEWS_CACHE_SECONDS },
   });
 
-  if (!response.ok) {
-    throw new Error(`Google News returned ${response.status}`);
-  }
-
-  return parseFeed(await response.text(), locale);
+  return parseFeed(xml, locale);
 }
 
 export async function GET() {
+  const startedAt = Date.now();
+  const errors: Array<{ provider: string; message: string; status?: number }> = [];
   try {
     const feedGroups = await Promise.all(
       QUERY_GROUPS.map(async ({ q, locale }) => {
         try {
           return await fetchFeed(q, locale);
-        } catch {
+        } catch (err) {
+          errors.push(normalizeError(err, "Google News RSS"));
           return [];
         }
       })
@@ -236,21 +238,25 @@ export async function GET() {
       })
       .slice(0, 24);
 
-    return NextResponse.json(
+    return jsonWithMeta(
       {
         articles,
         count: articles.length,
         updatedAt: new Date().toISOString(),
         sources: [...new Set(articles.map((article) => article.sourceName))],
       },
-      {
-        headers: {
-          "Cache-Control": `s-maxage=${NEWS_CACHE_SECONDS}, stale-while-revalidate=${NEWS_CACHE_SECONDS * 2}`,
-        },
-      }
+      buildMeta({
+        provider: "Google News RSS",
+        source: GOOGLE_NEWS_BASE,
+        status: articles.length > 0 && errors.length === 0 ? "ok" : articles.length > 0 ? "partial" : "empty",
+        startedAt,
+        cacheSeconds: NEWS_CACHE_SECONDS,
+        staleAfterSeconds: NEWS_CACHE_SECONDS * 2,
+        errors,
+      }),
+      { cacheSeconds: NEWS_CACHE_SECONDS, staleWhileRevalidateSeconds: NEWS_CACHE_SECONDS * 2 }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message, articles: [] }, { status: 500 });
+    return jsonError({ provider: "Google News RSS", source: GOOGLE_NEWS_BASE, startedAt, error, status: 502 });
   }
 }

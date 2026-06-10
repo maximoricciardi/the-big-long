@@ -1,8 +1,7 @@
-// app/api/earnings/route.ts
 // Calendario de balances via NASDAQ public API — sin API key
 // Cubre las próximas 2 semanas
 
-import { NextResponse } from "next/server";
+import { buildMeta, jsonWithMeta, normalizeError } from "@/lib/api/reliability";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +76,10 @@ interface NasdaqRow {
 }
 
 export async function GET() {
+  const startedAt = Date.now();
   const dates = Array.from({ length: WINDOW_DAYS }, (_, i) => dateStr(i));
+  const source = "https://api.nasdaq.com/api/calendar/earnings";
+  const errors: Array<{ provider: string; message: string; status?: number }> = [];
   const allRows: Array<{
     symbol: string; name: string; date: string; hour: string;
     epsEstimate: number | null; logo: string | null; companyDomain: string | null; logoFallback: string | null;
@@ -87,10 +89,13 @@ export async function GET() {
     dates.map(async (date) => {
       try {
         const res = await fetch(
-          `https://api.nasdaq.com/api/calendar/earnings?date=${date}`,
+          `${source}?date=${date}`,
           { headers: HEADERS, signal: AbortSignal.timeout(8000) }
         );
-        if (!res.ok) return;
+        if (!res.ok) {
+          errors.push({ provider: "Nasdaq", message: `Provider returned HTTP ${res.status}`, status: res.status });
+          return;
+        }
         const json = await res.json();
         const rows: NasdaqRow[] = json?.data?.rows ?? [];
         for (const row of rows) {
@@ -110,23 +115,33 @@ export async function GET() {
             logoFallback: DOMAIN_MAP[sym] ? tickerLogoUrl(sym) : null,
           });
         }
-      } catch {}
+      } catch (err) {
+        errors.push(normalizeError(err, "Nasdaq"));
+      }
     })
   );
 
   allRows.sort((a, b) => a.date.localeCompare(b.date));
 
-  return NextResponse.json({
-    earnings: allRows,
-    count:    allRows.length,
-    from:     dates[0],
-    to:       dates[dates.length - 1],
-    windowDays: WINDOW_DAYS,
-    source: "Nasdaq public earnings calendar",
-    logoStrategy: "Mapped domains, ticker image fallback, generated initials",
-  }, {
-    headers: {
-      "Cache-Control": `s-maxage=${EARNINGS_CACHE_SECONDS}, stale-while-revalidate=${EARNINGS_CACHE_SECONDS * 2}`,
+  return jsonWithMeta(
+    {
+      earnings: allRows,
+      count:    allRows.length,
+      from:     dates[0],
+      to:       dates[dates.length - 1],
+      windowDays: WINDOW_DAYS,
+      source: "Nasdaq public earnings calendar",
+      logoStrategy: "Mapped domains, ticker image fallback, generated initials",
     },
-  });
+    buildMeta({
+      provider: "Nasdaq",
+      source,
+      status: allRows.length > 0 && errors.length === 0 ? "ok" : allRows.length > 0 ? "partial" : "empty",
+      startedAt,
+      cacheSeconds: EARNINGS_CACHE_SECONDS,
+      staleAfterSeconds: EARNINGS_CACHE_SECONDS * 2,
+      errors,
+    }),
+    { cacheSeconds: EARNINGS_CACHE_SECONDS, staleWhileRevalidateSeconds: EARNINGS_CACHE_SECONDS * 2 }
+  );
 }

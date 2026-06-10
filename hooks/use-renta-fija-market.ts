@@ -13,8 +13,15 @@ import {
   type RentaFijaMarketStatus,
 } from "@/lib/renta-fija";
 
-function mapFromApi(json: { map?: PriceMap }): PriceMap {
+type ProviderEnvelope = { map?: PriceMap; _meta?: { status?: string } };
+
+function mapFromApi(json: ProviderEnvelope): PriceMap {
   return json.map ?? {};
+}
+
+function isUsableProviderResponse(responseOk: boolean, json: ProviderEnvelope): boolean {
+  const status = json._meta?.status;
+  return responseOk && (status == null || status === "ok" || status === "partial") && Object.keys(json.map ?? {}).length > 0;
 }
 
 export function useRentaFijaMarket(): RentaFijaMarketSnapshot {
@@ -43,7 +50,7 @@ export function useRentaFijaMarket(): RentaFijaMarketSnapshot {
         if (!b.symbol || b.c == null) return;
         bonds[b.symbol] = { price: b.c, pct: b.pct_change };
       });
-      bondsOk = true;
+      bondsOk = isUsableProviderResponse(rb.ok, bondsJson);
     } catch {
       bondsOk = false;
     }
@@ -52,7 +59,7 @@ export function useRentaFijaMarket(): RentaFijaMarketSnapshot {
       const rn = await fetch("/api/equities?type=notes");
       const notesJson = await rn.json();
       Object.assign(notes, mapFromApi(notesJson));
-      notesOk = true;
+      notesOk = isUsableProviderResponse(rn.ok, notesJson);
     } catch {
       notesOk = false;
     }

@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { REPORT_CATALOG } from "@/lib/data/reports";
 import type { CuratedReport } from "@/types";
+import { buildMeta, jsonWithMeta } from "@/lib/api/reliability";
 
 export const revalidate = 21_600;
 
@@ -33,6 +33,7 @@ function normalizeReport(report: (typeof REPORT_CATALOG)[number]): CuratedReport
 }
 
 export async function GET(request: Request) {
+  const startedAt = Date.now();
   const { searchParams } = new URL(request.url);
   const source = searchParams.get("source")?.trim().toLowerCase() ?? "";
   const type = searchParams.get("type")?.trim().toLowerCase() ?? "";
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
 
   const items = reports.slice(0, limit);
 
-  return NextResponse.json(
+  return jsonWithMeta(
     {
       reports: items,
       count: items.length,
@@ -68,10 +69,14 @@ export async function GET(request: Request) {
       },
       updatedAt: new Date().toISOString(),
     },
-    {
-      headers: {
-        "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
-      },
-    }
+    buildMeta({
+      provider: "The Big Long curated catalog",
+      source: "lib/data/reports.ts",
+      status: items.length > 0 ? "ok" : "empty",
+      startedAt,
+      cacheSeconds: 21_600,
+      staleAfterSeconds: 43_200,
+    }),
+    { cacheSeconds: 21_600, staleWhileRevalidateSeconds: 43_200 }
   );
 }

@@ -246,7 +246,7 @@ function EquityScreener() {
 
   const [livePrices,     setLivePrices]     = useState<Record<string, LivePrice>>({});
   const [liveHistory,    setLiveHistory]    = useState<Record<string, LiveHist>>({});
-  const [liveStatus,     setLiveStatus]     = useState<"loading"|"ok"|"error">("loading");
+  const [liveStatus,     setLiveStatus]     = useState<"loading"|"ok"|"degraded"|"error">("loading");
   const [histStatus,     setHistStatus]     = useState<"loading"|"ok"|"error">("loading");
   const [quotesComplete, setQuotesComplete] = useState(false);
   const livePricesRef = useRef<Record<string, LivePrice>>({});
@@ -266,17 +266,17 @@ function EquityScreener() {
     const run = async () => {
       try {
         const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`);
-        const data = await r.json() as { prices?: Record<string, LivePrice> };
+        const data = await r.json() as { prices?: Record<string, LivePrice>; _meta?: { status?: string } };
         if (cancelled) return;
         const prices = data.prices ?? {};
-        if (Object.keys(prices).length > 0) {
+        if (r.ok && Object.keys(prices).length > 0 && data._meta?.status !== "error") {
           livePricesRef.current = prices;
           setLivePrices(prev => {
             const next = { ...prev, ...prices };
             try { localStorage.setItem("tbl-live-prices", JSON.stringify(next)); } catch {}
             return next;
           });
-          setLiveStatus("ok");
+          setLiveStatus(data._meta?.status === "partial" ? "degraded" : "ok");
         } else {
           setLiveStatus("error");
         }
@@ -466,10 +466,10 @@ function EquityScreener() {
       {/* ── STATUS BAR ── */}
       <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
         <StatusPill
-          ok={liveStatus==="ok"} error={liveStatus==="error"} loading={liveStatus==="loading"}
+          ok={liveStatus==="ok" || liveStatus==="degraded"} error={liveStatus==="error"} loading={liveStatus==="loading"}
           t={t}
           labelLoading="Cargando precios..."
-          labelOk={`Precios en vivo · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`}
+          labelOk={liveStatus === "degraded" ? `Precios parciales · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers` : `Precios en vivo · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`}
           labelError="Sin conexión · Precios estáticos"
         />
         <StatusPill

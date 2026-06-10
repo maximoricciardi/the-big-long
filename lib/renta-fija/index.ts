@@ -5,4 +5,5 @@ export * from "./dates";
 export * from "./prices";
 export * from "./lecap-metrics";
 export * from "./sov-metrics";
+export * from "./metadata";
 export * from "./taxonomy";

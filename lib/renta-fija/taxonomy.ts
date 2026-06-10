@@ -1,4 +1,12 @@
 import type { PriceMap } from "./types";
+import {
+  buildFixedIncomeMetadata,
+  normalizeFixedIncomeTicker,
+  type FixedIncomeMetadata,
+  type InstrumentMetadata,
+  type MetadataReviewStatus,
+} from "./metadata";
+export { normalizeFixedIncomeTicker } from "./metadata";
 
 export type FixedIncomeCategoryId =
   | "lecap"
@@ -29,6 +37,7 @@ export type DiscoveredInstrument = {
   maturitySource?: "static" | "ticker-inferred";
   hasSchedule: boolean;
   reviewReasons: string[];
+  metadata: FixedIncomeMetadata;
 };
 
 export type FixedIncomeUniverse = {
@@ -38,11 +47,6 @@ export type FixedIncomeUniverse = {
   curveEligible: DiscoveredInstrument[];
   calculationEligible: DiscoveredInstrument[];
   needsReview: DiscoveredInstrument[];
-};
-
-export type InstrumentMetadata = {
-  maturity?: string;
-  hasSchedule?: boolean;
 };
 
 export const FIXED_INCOME_CATEGORIES: FixedIncomeCategory[] = [
@@ -73,11 +77,6 @@ const MATURITY_MONTH: Record<string, number> = {
   N: 11,
   D: 12,
 };
-
-export function normalizeFixedIncomeTicker(ticker: string) {
-  const t = ticker.toUpperCase();
-  return t.length > 4 ? t.replace(/[CD]$/, "") : t;
-}
 
 export function inferMaturityFromTicker(ticker: string): string | null {
   const base = normalizeFixedIncomeTicker(ticker);
@@ -112,26 +111,35 @@ export function classifyFixedIncomeTicker(ticker: string): {
 
 export function discoverFixedIncomeUniverse(
   maps: { bonds: PriceMap; notes: PriceMap },
-  metadata: Record<string, InstrumentMetadata> = {}
+  metadataMap: Record<string, InstrumentMetadata> = {}
 ): DiscoveredInstrument[] {
   const rows: DiscoveredInstrument[] = [];
   for (const [ticker, quote] of Object.entries({ ...maps.bonds, ...maps.notes })) {
     if (!quote?.price || quote.price <= 0) continue;
     const { category, confidence } = classifyFixedIncomeTicker(ticker);
-    const def = FIXED_INCOME_CATEGORIES.find(c => c.id === category);
     const base = normalizeFixedIncomeTicker(ticker);
-    const meta = metadata[ticker] ?? metadata[base];
+    const meta = metadataMap[ticker] ?? metadataMap[base];
     const inferredMaturity = inferMaturityFromTicker(ticker);
     const maturity = meta?.maturity ?? inferredMaturity ?? undefined;
-    const hasSchedule = meta?.hasSchedule ?? false;
+    const instrumentMetadata = buildFixedIncomeMetadata({
+      ticker,
+      category: meta?.category ?? category,
+      confidence,
+      maturity,
+      maturitySource: meta?.maturity ? "static" : inferredMaturity ? "ticker-inferred" : undefined,
+      staticMetadata: meta,
+    });
+    const hasSchedule = instrumentMetadata.cashflowScheduleStatus === "reliable";
     const reviewReasons = [
       ...(confidence === "low" ? ["low_classification_confidence"] : []),
       ...(!maturity ? ["missing_maturity"] : []),
       ...(!hasSchedule ? ["missing_cashflow_schedule"] : []),
+      ...instrumentMetadata.reviewReasons.filter(reason => reason === "metadata_inferred"),
     ];
+    const def = FIXED_INCOME_CATEGORIES.find(c => c.id === instrumentMetadata.category.value);
     rows.push({
       ticker,
-      category,
+      category: instrumentMetadata.category.value,
       label: def?.label ?? "Otros",
       price: quote.price,
       pct: quote.pct,
@@ -140,7 +148,8 @@ export function discoverFixedIncomeUniverse(
       maturity,
       maturitySource: meta?.maturity ? "static" : inferredMaturity ? "ticker-inferred" : undefined,
       hasSchedule,
-      reviewReasons,
+      reviewReasons: [...new Set(reviewReasons)],
+      metadata: instrumentMetadata,
     });
   }
   return rows.sort((a, b) => a.category.localeCompare(b.category) || a.ticker.localeCompare(b.ticker));
@@ -169,4 +178,11 @@ export function selectFixedIncomeUniverse(rows: DiscoveredInstrument[]): FixedIn
     calculationEligible: rows.filter(row => Boolean(row.maturity) && row.hasSchedule),
     needsReview: rows.filter(row => row.reviewReasons.length > 0),
   };
+}
+
+export function reviewLabel(status: MetadataReviewStatus) {
+  if (status === "verified") return "Verificado";
+  if (status === "inferred") return "Inferido";
+  if (status === "needs_review") return "Revisión";
+  return "No disponible";
 }

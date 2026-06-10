@@ -21,6 +21,7 @@ import {
   isVtoActive,
   parseNumStrict,
   selectFixedIncomeUniverse,
+  reviewLabel,
   type DiscoveredInstrument,
   type FixedIncomeCategoryId,
   type LecapComputed,
@@ -331,17 +332,23 @@ function DiscoveredCategoryTable({
         <div style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{visible.length} instrumento{visible.length === 1 ? "" : "s"} live</div>
       </div>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
-        <thead><tr><Th>Ticker</Th><Th right>Precio mercado</Th><Th right>Variación</Th><Th>Vencimiento</Th><Th>Estado</Th></tr></thead>
+        <thead><tr><Th>Ticker</Th><Th>Tipo</Th><Th right>Precio mercado</Th><Th right>Variación</Th><Th>Vencimiento</Th><Th>Metadata</Th><Th>Estado</Th></tr></thead>
         <tbody>
           {visible.map(row => (
             <tr key={`${row.category}-${row.ticker}`} style={{ borderBottom:`1px solid ${t.brd}` }}>
               <Td bold><span style={{ fontFamily:"monospace" }}>{row.ticker}</span></Td>
+              <Td>{row.metadata.creditSegment?.value ?? row.metadata.instrumentType?.value ?? row.label}</Td>
               <Td right bold color={t.gr}>${row.price.toFixed(2)}</Td>
               <Td right color={row.pct == null ? t.mu : row.pct >= 0 ? t.gr : t.rd}>{row.pct == null ? "—" : `${row.pct >= 0 ? "+" : ""}${row.pct.toFixed(2)}%`}</Td>
-              <Td>{row.maturity ? `${row.maturity}${row.maturitySource === "ticker-inferred" ? " · inferido" : ""}` : "—"}</Td>
+              <Td>{row.metadata.maturityDate ? `${row.metadata.maturityDate.value}${row.metadata.maturityDate.source === "ticker_inference" ? " · inferido" : ""}` : "—"}</Td>
+              <Td>
+                <span style={{ fontFamily:FB, fontSize:10, color:row.metadata.reviewStatus === "verified" ? t.gr : row.metadata.reviewStatus === "inferred" ? t.go : t.fa }}>
+                  {reviewLabel(row.metadata.reviewStatus)} · {row.metadata.cashflowScheduleStatus}
+                </span>
+              </Td>
               <Td>
                 <span style={{ fontFamily:FB, fontSize:10, color:row.reviewReasons.includes("missing_maturity") ? t.fa : t.mu }}>
-                  {row.hasSchedule ? "Con metadata para cálculo" : row.maturity ? "Precio live · sin cronograma" : "Requiere metadata"}
+                  {row.hasSchedule ? `Fuente ${row.metadata.metadataSource}` : row.maturity ? "Precio live · sin cronograma" : "Requiere metadata"}
                 </span>
               </Td>
             </tr>

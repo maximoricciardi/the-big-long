@@ -4,10 +4,9 @@ import { useMemo } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Card } from "@/components/ui/card";
-import { BOND_SCHEDULES } from "@/lib/data/bonds-schedules";
 import { FB, FH } from "@/lib/constants";
 import { RentaFijaMarketProvider, useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
-import { normalizeFixedIncomeTicker, selectFixedIncomeUniverse, type DiscoveredInstrument, type FixedIncomeCategoryId } from "@/lib/renta-fija";
+import { normalizeFixedIncomeTicker, selectFixedIncomeUniverse, type FixedIncomeCategoryId } from "@/lib/renta-fija";
 
 type InstrumentoTipo = "LECAP" | "BONCAP" | "Soberano" | "Dólar Linked" | "Dual" | "CER" | "BOPREAL" | "ON / Crédito";
 type EventoTipo = "Renta" | "Amortización" | "Renta + Amort." | "Vencimiento" | "Cronograma no disponible";
@@ -106,11 +105,6 @@ function labelForCategory(category: FixedIncomeCategoryId): InstrumentoTipo {
   return "ON / Crédito";
 }
 
-function scheduleFor(row: DiscoveredInstrument) {
-  const base = normalizeFixedIncomeTicker(row.ticker);
-  return BOND_SCHEDULES[row.ticker] ?? BOND_SCHEDULES[base] ?? BOND_SCHEDULES[`${base}D`] ?? [];
-}
-
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   const t = useAppTheme();
   return (
@@ -143,14 +137,20 @@ function CalendarioViewInner() {
     const seen = new Set<string>();
 
     for (const row of universe.calendarEligible) {
-      const flows = scheduleFor(row);
+      const flows = row.metadata.cashflows;
       let addedScheduleEvent = false;
       for (const flow of flows) {
         const fecha = parseISODate(flow.date);
         if (!fecha) continue;
         const f = startOfDay(fecha);
         if (f < today || f > in90) continue;
-        const evento = getEventoTipo(flow.cpn, flow.amort);
+        const evento = flow.eventType === "coupon_amortization"
+          ? "Renta + Amort."
+          : flow.eventType === "amortization"
+            ? "Amortización"
+            : flow.eventType === "coupon"
+              ? "Renta"
+              : getEventoTipo(flow.couponAmount ?? 0, flow.amortizationAmount ?? 0);
         if (!evento) continue;
         const key = `${normalizeFixedIncomeTicker(row.ticker)}-${flow.date}-${evento}`;
         if (seen.has(key)) continue;
@@ -161,7 +161,7 @@ function CalendarioViewInner() {
           fechaLabel: formatDate(f),
           ticker: row.ticker,
           evento,
-          montoPor1000: (flow.cpn + flow.amort) * 10,
+          montoPor1000: ((flow.couponAmount ?? 0) + (flow.amortizationAmount ?? 0)) * 10,
           instrumento: labelForCategory(row.category),
           source: "schedule",
           status: "defensible",

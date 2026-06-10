@@ -142,15 +142,23 @@ export default function AppPage() {
         <div style={{ maxWidth:1280, margin:"0 auto", padding:`0 ${isMobile?12:24}px`, display:"flex", alignItems:"center", justifyContent:"space-between", height:isMobile?54:62, gap:isMobile?8:18 }}>
 
           {/* Logo */}
-          <div style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer", userSelect:"none" }} onClick={handleLogoClick}>
+          <button
+            type="button"
+            aria-label="Volver al inicio"
+            onClick={handleLogoClick}
+            style={{ display:"flex", alignItems:"center", flexShrink:0, cursor:"pointer", userSelect:"none", background:"transparent", border:"none", padding:0 }}
+          >
             <div style={{ fontFamily:FD, fontSize:isMobile?20:25, fontWeight:700, color:logoC?logoC.main:t.tx, letterSpacing:"0", lineHeight:1, transition:"color .4s ease", animation:logoSpin?"logoSpin .5s cubic-bezier(.4,0,.2,1)":"none" }}>
               The Big <span style={{ color:logoC?logoC.accent:t.go, transition:"color .4s ease" }}>Long</span>
             </div>
-          </div>
+          </button>
 
           {/* Nav — desktop only */}
           {!isMobile && (
-            <nav style={{ display:"flex", gap:4, flexWrap:"nowrap", alignItems:"center" }}>
+            <nav style={{ display:"flex", gap:4, flexWrap:"nowrap", alignItems:"center", overflowX:"auto", maxWidth:"52vw", scrollbarWidth:"none", msOverflowStyle:"none" }}>
+              <style jsx>{`
+                nav::-webkit-scrollbar { display: none; }
+              `}</style>
               {TABS.map(tb => (
                 <button key={tb.id} onClick={() => setTab(tb.id)} style={{
                   padding:"7px 10px", borderRadius:6, border:`1px solid ${tab===tb.id?t.go+"44":"transparent"}`, fontFamily:FB,
@@ -273,14 +281,24 @@ export default function AppPage() {
                 <div style={{ fontFamily:FB, fontSize:15, fontWeight:600, color:t.ftT }}>{CONTACT.name}</div>
                 <div style={{ fontFamily:FB, fontSize:11, fontWeight:300, color:"rgba(255,255,255,.35)" }}>{CONTACT.title}</div>
               </div>
-              <div style={{ display:"flex", gap:16 }}>
-                <a href={WA_LINK("Hola Máximo, te escribo desde The Big Long.")} target="_blank" rel="noreferrer" style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
-                  <Phone size={14} /> {CONTACT.phone}
-                </a>
-                <a href={`mailto:${CONTACT.email}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
-                  <Mail size={14} /> {CONTACT.email}
-                </a>
-              </div>
+              {(CONTACT.phone || CONTACT.email) ? (
+                <div style={{ display:"flex", gap:16 }}>
+                  {CONTACT.phone && (
+                    <a href={WA_LINK("Hola Máximo, te escribo desde The Big Long.")} target="_blank" rel="noreferrer" style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
+                      <Phone size={14} /> {CONTACT.phone}
+                    </a>
+                  )}
+                  {CONTACT.email && (
+                    <a href={`mailto:${CONTACT.email}`} style={{ fontFamily:FB, fontSize:13, fontWeight:500, color:t.go, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
+                      <Mail size={14} /> {CONTACT.email}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontFamily:FB, fontSize:12, fontWeight:500, color:"rgba(255,255,255,.38)" }}>
+                  Canales de contacto en actualización
+                </div>
+              )}
             </div>
           </div>
           <div style={{ height:1, background:"rgba(255,255,255,.06)", marginBottom:16 }} />

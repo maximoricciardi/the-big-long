@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { DollarSign, ClipboardList, BarChart3, Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { useIsMobile } from "@/hooks/use-window-size";
@@ -26,6 +27,8 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
   const isMobile = useIsMobile(640);
   const clock    = useClock();
   const { breakingNews } = useLiveNews();
+  const [mounted, setMounted] = useState(false);
+  const [topMovers, setTopMovers] = useState<Array<{ ticker: string; price: number; pct: number }>>([]);
 
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
@@ -46,28 +49,36 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
       return bTNA - aTNA;
     })[0];
 
-  const cached = (() => {
-    try { return JSON.parse(localStorage.getItem("tbl-live-prices") ?? "{}") as Record<string, { changePct: number; price: number }>; }
-    catch { return {}; }
-  })();
-  const withData = Object.entries(cached)
-    .filter(([, v]) => v && typeof v.changePct === "number" && v.price > 0)
-    .map(([ticker, v]) => ({ ticker, price: v.price, pct: v.changePct }));
-  const sorted = [...withData].sort((a, b) => b.pct - a.pct);
-  const topMovers = withData.length >= 6 ? [...sorted.slice(0,3), ...sorted.slice(-3).reverse()] : [];
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const cached = JSON.parse(localStorage.getItem("tbl-live-prices") ?? "{}") as Record<string, { changePct: number; price: number }>;
+      const withData = Object.entries(cached)
+        .filter(([, v]) => v && typeof v.changePct === "number" && v.price > 0)
+        .map(([ticker, v]) => ({ ticker, price: v.price, pct: v.changePct }));
+      const sorted = [...withData].sort((a, b) => b.pct - a.pct);
+      setTopMovers(withData.length >= 6 ? [...sorted.slice(0,3), ...sorted.slice(-3).reverse()] : []);
+    } catch {
+      setTopMovers([]);
+    }
+  }, []);
 
   return (
     <div className="fade-up" style={{ maxWidth:1120, margin:"0 auto" }}>
 
       {/* ── BREAKING NEWS ── */}
       {breakingNews && (
-        <div style={{
+        <button
+          type="button"
+          aria-label={breakingNews.link ? `Abrir noticia destacada: ${breakingNews.text}` : breakingNews.text}
+          style={{
           background: breakingNews.color==="red" ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
             : breakingNews.color==="green" ? "linear-gradient(135deg,#14532d,#166534)"
             : "linear-gradient(135deg,#78350f,#92400e)",
           borderRadius:8, padding:"12px 16px", marginBottom:16,
           display:"flex", alignItems:"center", gap:12, cursor:"pointer",
           border:"1px solid rgba(255,255,255,.08)",
+          width:"100%", textAlign:"left",
         }} onClick={() => breakingNews?.link ? setTab(breakingNews.link.tab) : undefined}>
           <span style={{ width:8, height:8, borderRadius:"50%", background:"rgba(255,255,255,.65)", flexShrink:0 }} />
           <div style={{ flex:1 }}>
@@ -80,7 +91,7 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
             )}
           </div>
           <ChevronRight size={18} color="rgba(255,255,255,.5)" />
-        </div>
+        </button>
       )}
 
       {/* ── HERO ── */}
@@ -172,7 +183,7 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
       )}
 
       {/* ── TOP MOVERS ── */}
-      {topMovers.length >= 6 && (
+      {mounted && topMovers.length >= 6 && (
         <div style={{ marginBottom:16 }}>
           <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".12em", textTransform:"uppercase", marginBottom:8 }}>ACCIONES DESTACADAS · EN VIVO</div>
           <div style={{ display:"grid", gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(6,1fr)", gap:8 }}>

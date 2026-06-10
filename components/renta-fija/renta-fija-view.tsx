@@ -20,6 +20,7 @@ import {
   daysToMaturity,
   isVtoActive,
   parseNumStrict,
+  selectFixedIncomeUniverse,
   type DiscoveredInstrument,
   type FixedIncomeCategoryId,
   type LecapComputed,
@@ -38,6 +39,7 @@ const TABS_RF = [
   { id:"calclecap",label:"Calc. LECAP" },
   { id:"calcsob",  label:"Calc. Soberanos" },
   { id:"duales",   label:"Duales" },
+  { id:"bopreal",  label:"BOPREAL" },
   { id:"tamar",   label:"TAMAR" },
   { id:"cer",     label:"CER" },
   { id:"dl",      label:"Dólar Linked" },
@@ -301,6 +303,55 @@ function TaxonomyPanel({
   );
 }
 
+function DiscoveredCategoryTable({
+  title,
+  rows,
+  exclude = new Set<string>(),
+  empty,
+}: {
+  title: string;
+  rows: DiscoveredInstrument[];
+  exclude?: Set<string>;
+  empty?: string;
+}) {
+  const t = useAppTheme();
+  const visible = rows.filter(row => !exclude.has(row.ticker));
+  if (!visible.length) {
+    return empty ? (
+      <div style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"14px 16px", fontFamily:FB, fontSize:12, color:t.mu, marginBottom:16 }}>
+        {empty}
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, overflow:"hidden", overflowX:"auto", marginBottom:18 }}>
+      <div style={{ padding:"11px 14px", borderBottom:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", gap:10, alignItems:"baseline" }}>
+        <div style={{ fontFamily:FB, fontSize:10, fontWeight:800, color:t.go, letterSpacing:".08em", textTransform:"uppercase" }}>{title}</div>
+        <div style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{visible.length} instrumento{visible.length === 1 ? "" : "s"} live</div>
+      </div>
+      <table style={{ width:"100%", borderCollapse:"collapse" }}>
+        <thead><tr><Th>Ticker</Th><Th right>Precio mercado</Th><Th right>Variación</Th><Th>Vencimiento</Th><Th>Estado</Th></tr></thead>
+        <tbody>
+          {visible.map(row => (
+            <tr key={`${row.category}-${row.ticker}`} style={{ borderBottom:`1px solid ${t.brd}` }}>
+              <Td bold><span style={{ fontFamily:"monospace" }}>{row.ticker}</span></Td>
+              <Td right bold color={t.gr}>${row.price.toFixed(2)}</Td>
+              <Td right color={row.pct == null ? t.mu : row.pct >= 0 ? t.gr : t.rd}>{row.pct == null ? "—" : `${row.pct >= 0 ? "+" : ""}${row.pct.toFixed(2)}%`}</Td>
+              <Td>{row.maturity ? `${row.maturity}${row.maturitySource === "ticker-inferred" ? " · inferido" : ""}` : "—"}</Td>
+              <Td>
+                <span style={{ fontFamily:FB, fontSize:10, color:row.reviewReasons.includes("missing_maturity") ? t.fa : t.mu }}>
+                  {row.hasSchedule ? "Con metadata para cálculo" : row.maturity ? "Precio live · sin cronograma" : "Requiere metadata"}
+                </span>
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function unavailableReason(row: SovComputed) {
   if (!row.isLive) return "Sin precio live confiable";
   if (row.flags.includes("tir_unavailable")) return "TIR no defendible con flujos actuales";
@@ -309,8 +360,11 @@ function unavailableReason(row: SovComputed) {
 
 function SovereignBondsPanel() {
   const t = useAppTheme();
-  const { sovRows, bondPrices } = useRentaFijaMarketContext();
+  const { sovRows, bondPrices, discovered } = useRentaFijaMarketContext();
   const rows = [...sovRows].sort((a, b) => a.ley.localeCompare(b.ley) || a.durRef - b.durRef);
+  const known = new Set(rows.map(row => row.ticker));
+  const universe = selectFixedIncomeUniverse(discovered);
+  const discoveredSov = universe.byCategory.sovereign.filter(row => !known.has(row.ticker));
   const liveRows = rows.filter(r => r.isLive);
   const tirRows = rows.filter(r => r.tirLive != null);
   const excludedRows = rows.filter(r => r.tirLive == null);
@@ -389,6 +443,11 @@ function SovereignBondsPanel() {
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, lineHeight:1.7 }}>
         TIR mercado se calcula solo con precio live y cronograma disponible. La TIR base, paridad y CY de snapshots antiguos no se usan para ordenar ni construir curva.
       </p>
+      <DiscoveredCategoryTable
+        title="Soberanos detectados fuera del set modelado"
+        rows={discoveredSov}
+        empty="No hay soberanos adicionales fuera del set modelado."
+      />
     </div>
   );
 }
@@ -397,7 +456,12 @@ function RentaFijaViewInner() {
   const t = useAppTheme();
   const [sub, setSub] = useState("universo");
   const { lecapByTicker, discovered, bondPrices } = useRentaFijaMarketContext();
+  const universe = useMemo(() => selectFixedIncomeUniverse(discovered), [discovered]);
   const categoryCounts = useMemo(() => countByCategory(discovered), [discovered]);
+  const staticLecapTickers = useMemo(() => new Set(LECAP.flatMap(g => g.rows.map(row => row.t))), []);
+  const staticDualTickers = useMemo(() => new Set(DUALES.map(row => row.t)), []);
+  const staticDollarLinkedTickers = useMemo(() => new Set(DOLARLINKED.map(row => row.t)), []);
+  const staticCerTickers = useMemo(() => new Set(BONOS_CER.map(row => row.t)), []);
   const [uvaIndex, setUvaIndex] = useState<number|null>(null);
   const [tamarRate, setTamarRate] = useState<number|null>(null);
 
@@ -449,6 +513,8 @@ function RentaFijaViewInner() {
               ? categoryCounts.sovereign
               : s.id === "duales"
                 ? categoryCounts.dual
+                : s.id === "bopreal"
+                  ? categoryCounts.bopreal
                 : s.id === "dl"
                   ? categoryCounts.dollar_linked
                   : undefined;
@@ -512,6 +578,18 @@ function RentaFijaViewInner() {
               </div>
             );
           })}
+          <DiscoveredCategoryTable
+            title="LECAPs descubiertas en mercado"
+            rows={universe.byCategory.lecap}
+            exclude={staticLecapTickers}
+            empty="No hay LECAPs adicionales fuera del set estático."
+          />
+          <DiscoveredCategoryTable
+            title="BONCAPs descubiertos en mercado"
+            rows={universe.byCategory.boncap}
+            exclude={staticLecapTickers}
+            empty="No hay BONCAPs adicionales fuera del set estático."
+          />
         </div>
       )}
 
@@ -525,7 +603,16 @@ function RentaFijaViewInner() {
       {sub === "sovcurva" && <SovYieldCurve />}
 
       {/* ── ONs CORPORATIVOS ── */}
-      {sub === "ons" && <ONsPanel />}
+      {sub === "ons" && (
+        <div>
+          <DiscoveredCategoryTable
+            title="Crédito corporativo detectado en mercado"
+            rows={universe.byCategory.corporate}
+            empty="No hay instrumentos corporativos adicionales detectados."
+          />
+          <ONsPanel />
+        </div>
+      )}
 
       {/* ── CALC LECAP ── */}
       {sub === "calclecap" && <LecapCalc />}
@@ -534,29 +621,40 @@ function RentaFijaViewInner() {
 
       {/* ── DUALES ── */}
       {sub === "duales" && (
-        <div style={tableCtr}>
-          <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr><Th>Ticker</Th><Th>Vto</Th><Th right>TEM Fija</Th><Th right>TNA Fija</Th><Th right>TEM Var</Th><Th right>TNA Var</Th><Th right>FX BE</Th></tr></thead>
-            <tbody>
-              {DUALES.map((d,i) => {
-                const live = bondPrices[d.t];
-                return (
-                  <tr key={i} style={trStyle}
-                    onMouseEnter={e=>(e.currentTarget.style.background=t.alt)}
-                    onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <Td bold><span style={{ fontFamily:"monospace" }}>{d.t}</span> {live?.price && <span style={{ fontFamily:FB, fontSize:9, color:t.gr }}>● mercado</span>}</Td>
-                    <Td>{d.vto}</Td>
-                    <Td right color={t.mu}>{d.temFija}</Td>
-                    <Td right color={t.mu}>{d.tnaFija}</Td>
-                    <Td right bold color={t.go}>{d.temVar}</Td>
-                    <Td right bold color={t.go}>{d.tnaVar}</Td>
-                    <Td right>{d.fxbe}</Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div>
+          <div style={tableCtr}>
+            <table style={{ width:"100%", borderCollapse:"collapse" }}>
+              <thead><tr><Th>Ticker</Th><Th>Vto</Th><Th right>TEM Fija</Th><Th right>TNA Fija</Th><Th right>TEM Var</Th><Th right>TNA Var</Th><Th right>FX BE</Th></tr></thead>
+              <tbody>
+                {DUALES.map((d,i) => {
+                  const live = bondPrices[d.t];
+                  return (
+                    <tr key={i} style={trStyle}
+                      onMouseEnter={e=>(e.currentTarget.style.background=t.alt)}
+                      onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+                      <Td bold><span style={{ fontFamily:"monospace" }}>{d.t}</span> {live?.price && <span style={{ fontFamily:FB, fontSize:9, color:t.gr }}>● mercado</span>}</Td>
+                      <Td>{d.vto}</Td>
+                      <Td right color={t.mu}>{d.temFija}</Td>
+                      <Td right color={t.mu}>{d.tnaFija}</Td>
+                      <Td right bold color={t.go}>{d.temVar}</Td>
+                      <Td right bold color={t.go}>{d.tnaVar}</Td>
+                      <Td right>{d.fxbe}</Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <DiscoveredCategoryTable title="Duals descubiertos en mercado" rows={universe.byCategory.dual} exclude={staticDualTickers} />
         </div>
+      )}
+
+      {sub === "bopreal" && (
+        <DiscoveredCategoryTable
+          title="BOPREAL detectados en mercado"
+          rows={universe.byCategory.bopreal}
+          empty="No hay BOPREAL detectados en el universo live."
+        />
       )}
 
       {/* ── TAMAR ── */}
@@ -592,6 +690,7 @@ function RentaFijaViewInner() {
               </tbody>
             </table>
           </div>
+          <DiscoveredCategoryTable title="CER detectados en mercado" rows={universe.byCategory.cer} exclude={staticCerTickers} />
         </div>
       )}
 
@@ -629,6 +728,7 @@ function RentaFijaViewInner() {
               </tbody>
             </table>
           </div>
+          <DiscoveredCategoryTable title="Dólar Linked descubiertos en mercado" rows={universe.byCategory.dollar_linked} exclude={staticDollarLinkedTickers} />
         </div>
       )}
 

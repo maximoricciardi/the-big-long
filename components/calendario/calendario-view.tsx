@@ -4,12 +4,13 @@ import { useMemo } from "react";
 import { useAppTheme } from "@/lib/theme-context";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Card } from "@/components/ui/card";
-import { LECAP, SOBERANOS } from "@/lib/data/renta-fija";
 import { BOND_SCHEDULES } from "@/lib/data/bonds-schedules";
 import { FB, FH } from "@/lib/constants";
+import { RentaFijaMarketProvider, useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
+import { normalizeFixedIncomeTicker, selectFixedIncomeUniverse, type DiscoveredInstrument, type FixedIncomeCategoryId } from "@/lib/renta-fija";
 
-type InstrumentoTipo = "LECAP" | "Soberano";
-type EventoTipo = "Renta" | "Amortización" | "Renta + Amort.";
+type InstrumentoTipo = "LECAP" | "BONCAP" | "Soberano" | "Dólar Linked" | "Dual" | "CER" | "BOPREAL" | "ON / Crédito";
+type EventoTipo = "Renta" | "Amortización" | "Renta + Amort." | "Vencimiento" | "Cronograma no disponible";
 
 type CalendarEvent = {
   fecha: Date;
@@ -18,6 +19,8 @@ type CalendarEvent = {
   evento: EventoTipo;
   montoPor1000: number;
   instrumento: InstrumentoTipo;
+  source: "schedule" | "maturity";
+  status: "defensible" | "metadata-only";
 };
 
 function startOfDay(d: Date) {
@@ -61,13 +64,15 @@ function getEventoTipo(cpn: number, amort: number): EventoTipo | null {
 
 function eventColor(t: ReturnType<typeof useAppTheme>, evento: EventoTipo) {
   if (evento === "Renta") return { fg: t.gr, bg: t.grBg, brd: `${t.gr}55` };
-  if (evento === "Amortización") return { fg: t.go, bg: t.goBg, brd: `${t.go}55` };
+  if (evento === "Amortización" || evento === "Vencimiento") return { fg: t.go, bg: t.goBg, brd: `${t.go}55` };
+  if (evento === "Cronograma no disponible") return { fg: t.fa, bg: t.alt, brd: `${t.brd}` };
   return { fg: t.tx, bg: t.alt, brd: `${t.brd}` };
 }
 
 function instrumentoColor(t: ReturnType<typeof useAppTheme>, instrumento: InstrumentoTipo) {
   if (instrumento === "LECAP") return { fg: t.go, bg: t.goBg, brd: `${t.go}55` };
-  return { fg: t.bl, bg: t.blBg, brd: `${t.bl}55` };
+  if (instrumento === "Soberano") return { fg: t.bl, bg: t.blBg, brd: `${t.bl}55` };
+  return { fg: t.mu, bg: t.alt, brd: `${t.brd}` };
 }
 
 type MonthGroup = {
@@ -90,6 +95,22 @@ function buildMonthGroups(events: CalendarEvent[]): MonthGroup[] {
   return [...map.values()].sort((a, b) => a.rows[0].fecha.getTime() - b.rows[0].fecha.getTime());
 }
 
+function labelForCategory(category: FixedIncomeCategoryId): InstrumentoTipo {
+  if (category === "lecap") return "LECAP";
+  if (category === "boncap") return "BONCAP";
+  if (category === "sovereign") return "Soberano";
+  if (category === "dollar_linked") return "Dólar Linked";
+  if (category === "dual") return "Dual";
+  if (category === "cer") return "CER";
+  if (category === "bopreal") return "BOPREAL";
+  return "ON / Crédito";
+}
+
+function scheduleFor(row: DiscoveredInstrument) {
+  const base = normalizeFixedIncomeTicker(row.ticker);
+  return BOND_SCHEDULES[row.ticker] ?? BOND_SCHEDULES[base] ?? BOND_SCHEDULES[`${base}D`] ?? [];
+}
+
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   const t = useAppTheme();
   return (
@@ -108,8 +129,9 @@ function Td({ children, right, bold, color }: { children: React.ReactNode; right
   );
 }
 
-export function CalendarioView() {
+function CalendarioViewInner() {
   const t = useAppTheme();
+  const { discovered } = useRentaFijaMarketContext();
 
   const events = useMemo<CalendarEvent[]>(() => {
     const today = startOfDay(new Date());
@@ -117,28 +139,12 @@ export function CalendarioView() {
     in90.setDate(in90.getDate() + 90);
 
     const out: CalendarEvent[] = [];
+    const universe = selectFixedIncomeUniverse(discovered);
+    const seen = new Set<string>();
 
-    // LECAP vencimientos: tratamos como amortización total al vencimiento.
-    for (const g of LECAP) {
-      const vto = g.vto ? parseDateDDMMYYYY(g.vto) : null;
-      if (!vto) continue;
-      const fecha = startOfDay(vto);
-      if (fecha < today || fecha > in90) continue;
-      for (const row of g.rows) {
-        out.push({
-          fecha,
-          fechaLabel: g.vto,
-          ticker: row.t,
-          evento: "Amortización",
-          montoPor1000: 1000,
-          instrumento: "LECAP",
-        });
-      }
-    }
-
-    // Soberanos: usar cronogramas completos de cupones/amortización.
-    for (const s of SOBERANOS) {
-      const flows = BOND_SCHEDULES[s.t] ?? [];
+    for (const row of universe.calendarEligible) {
+      const flows = scheduleFor(row);
+      let addedScheduleEvent = false;
       for (const flow of flows) {
         const fecha = parseISODate(flow.date);
         if (!fecha) continue;
@@ -146,20 +152,47 @@ export function CalendarioView() {
         if (f < today || f > in90) continue;
         const evento = getEventoTipo(flow.cpn, flow.amort);
         if (!evento) continue;
+        const key = `${normalizeFixedIncomeTicker(row.ticker)}-${flow.date}-${evento}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        addedScheduleEvent = true;
         out.push({
           fecha: f,
           fechaLabel: formatDate(f),
-          ticker: s.t,
+          ticker: row.ticker,
           evento,
           montoPor1000: (flow.cpn + flow.amort) * 10,
-          instrumento: "Soberano",
+          instrumento: labelForCategory(row.category),
+          source: "schedule",
+          status: "defensible",
         });
       }
+
+      if (addedScheduleEvent) continue;
+
+      const maturityLabel = row.maturity;
+      const maturity = maturityLabel ? parseDateDDMMYYYY(maturityLabel) : null;
+      if (!maturity || !maturityLabel) continue;
+      const fecha = startOfDay(maturity);
+      if (fecha < today || fecha > in90) continue;
+      const key = `${normalizeFixedIncomeTicker(row.ticker)}-${maturityLabel}-maturity`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        fecha,
+        fechaLabel: maturityLabel,
+        ticker: row.ticker,
+        evento: row.hasSchedule ? "Vencimiento" : "Cronograma no disponible",
+        montoPor1000: row.category === "lecap" || row.category === "boncap" ? 1000 : 0,
+        instrumento: labelForCategory(row.category),
+        source: "maturity",
+        status: row.hasSchedule ? "defensible" : "metadata-only",
+      });
     }
 
     out.sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.ticker.localeCompare(b.ticker));
     return out;
-  }, []);
+  }, [discovered]);
 
   const monthGroups = useMemo(() => buildMonthGroups(events), [events]);
 
@@ -198,19 +231,20 @@ export function CalendarioView() {
               <Th>Tipo de evento</Th>
               <Th right>Monto por c/$1.000 VN</Th>
               <Th>Instrumento</Th>
+              <Th>Fuente</Th>
             </tr>
           </thead>
           <tbody>
             {events.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding:"26px 14px", textAlign:"center", fontFamily:FB, color:t.mu }}>
-                  No hay pagos ni vencimientos de LECAPs/soberanos dentro de los próximos 90 días.
+                <td colSpan={6} style={{ padding:"26px 14px", textAlign:"center", fontFamily:FB, color:t.mu }}>
+                  No hay pagos ni vencimientos con metadata disponible dentro de los próximos 90 días.
                 </td>
               </tr>
             ) : (
               monthGroups.flatMap(group => [
                 <tr key={`month-${group.key}`} style={{ background: t.alt, borderTop:`1px solid ${t.brd}`, borderBottom:`1px solid ${t.brd}` }}>
-                  <td colSpan={5} style={{ padding:"8px 12px", fontFamily:FB, fontSize:10, fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:t.mu }}>
+                  <td colSpan={6} style={{ padding:"8px 12px", fontFamily:FB, fontSize:10, fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:t.mu }}>
                     {group.label}
                   </td>
                 </tr>,
@@ -238,7 +272,7 @@ export function CalendarioView() {
                         </span>
                       </Td>
                       <Td right bold>
-                        ${ev.montoPor1000.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {ev.montoPor1000 > 0 ? `$${ev.montoPor1000.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                       </Td>
                       <Td>
                         <span style={{
@@ -256,6 +290,11 @@ export function CalendarioView() {
                           {ev.instrumento}
                         </span>
                       </Td>
+                      <Td>
+                        <span style={{ fontFamily:FB, fontSize:9, color:ev.status === "defensible" ? t.gr : t.fa }}>
+                          {ev.source === "schedule" ? "Cronograma" : ev.status === "defensible" ? "Vencimiento" : "Solo vencimiento · sin cronograma"}
+                        </span>
+                      </Td>
                     </tr>
                   );
                 }),
@@ -266,9 +305,16 @@ export function CalendarioView() {
       </div>
 
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, textAlign:"center", marginTop:10 }}>
-        Soberanos: flujos desde `BOND_SCHEDULES` (renta/amortización). LECAP: vencimiento tratado como amortización al 100% de VN.
+        Universo live DATA912 + metadata confiable disponible. No se inventan cupones, amortizaciones ni fechas de pago.
       </p>
     </div>
   );
 }
 
+export function CalendarioView() {
+  return (
+    <RentaFijaMarketProvider>
+      <CalendarioViewInner />
+    </RentaFijaMarketProvider>
+  );
+}

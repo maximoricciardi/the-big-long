@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { LECAP, SOBERANOS } from "@/lib/data/renta-fija";
+import { BONOS_CER, DOLARLINKED, DUALES, LECAP, SOBERANOS, TAMAR } from "@/lib/data/renta-fija";
+import { BOND_SCHEDULES } from "@/lib/data/bonds-schedules";
 import {
   REFRESH_MS,
   buildLecapRows,
@@ -12,6 +13,7 @@ import {
   type PriceMap,
   type RentaFijaMarketSnapshot,
   type RentaFijaMarketStatus,
+  type InstrumentMetadata,
 } from "@/lib/renta-fija";
 
 type ProviderEnvelope = { map?: PriceMap; _meta?: { status?: string } };
@@ -23,6 +25,25 @@ function mapFromApi(json: ProviderEnvelope): PriceMap {
 function isUsableProviderResponse(responseOk: boolean, json: ProviderEnvelope): boolean {
   const status = json._meta?.status;
   return responseOk && (status == null || status === "ok" || status === "partial") && Object.keys(json.map ?? {}).length > 0;
+}
+
+function staticMetadata(): Record<string, InstrumentMetadata> {
+  const out: Record<string, InstrumentMetadata> = {};
+  const add = (ticker: string, maturity?: string, hasSchedule = false) => {
+    if (!ticker) return;
+    out[ticker] = { maturity, hasSchedule };
+  };
+
+  for (const group of LECAP) {
+    for (const row of group.rows) add(row.t, group.vto, true);
+  }
+  for (const row of DUALES) add(row.t, row.vto, false);
+  for (const row of DOLARLINKED) add(row.t, row.vto, false);
+  for (const row of TAMAR) add(row.t, row.vto, false);
+  for (const row of BONOS_CER) add(row.t, row.vto, false);
+  for (const row of SOBERANOS) add(row.t, row.vto, Boolean(BOND_SCHEDULES[row.t]?.length));
+
+  return out;
 }
 
 export function useRentaFijaMarket(): RentaFijaMarketSnapshot {
@@ -97,10 +118,11 @@ export function useRentaFijaMarket(): RentaFijaMarketSnapshot {
   }, [load]);
 
   const maps = useMemo(() => ({ bonds: bondPrices, notes: lecapLive }), [bondPrices, lecapLive]);
+  const metadata = useMemo(() => staticMetadata(), []);
 
   const lecapRows = useMemo(() => buildLecapRows(LECAP, maps), [maps]);
   const sovRows = useMemo(() => buildSovRows(SOBERANOS, maps), [maps]);
-  const discovered = useMemo(() => discoverFixedIncomeUniverse(maps), [maps]);
+  const discovered = useMemo(() => discoverFixedIncomeUniverse(maps, metadata), [maps, metadata]);
   const lecapByTicker = useMemo(() => indexLecapByTicker(lecapRows), [lecapRows]);
   const sovByTicker = useMemo(() => indexSovByTicker(sovRows), [sovRows]);
 

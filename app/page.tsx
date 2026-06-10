@@ -27,13 +27,13 @@ import { CONTACT, WA_LINK, FH, FB, FD } from "@/lib/constants";
 import type { ExtraItem } from "@/types";
 
 const TABS = [
-  { id:"inicio",        label:"Inicio",        Icon:Home,          desc:"Dashboard y resumen del día" },
+  { id:"inicio",        label:"Inicio",        Icon:Home,          desc:"Dashboard e inteligencia diaria" },
   { id:"mercados",      label:"Mercados",       Icon:DollarSign,    desc:"Cotizaciones, FX y noticias live" },
   { id:"rentafija",     label:"Renta Fija",     Icon:ClipboardList, desc:"LECAPs, soberanos, ONs y plazos fijos" },
   { id:"calendario",    label:"Calendario",     Icon:CalendarDays,  desc:"Próximos vencimientos de renta fija" },
   { id:"rentavariable", label:"Renta Variable", Icon:BarChart3,     desc:"CEDEARs y screener de equities" },
   { id:"productos",     label:"Productos",      Icon:Package,       desc:"FCIs y ETPs Balanz" },
-  { id:"research",      label:"Research",       Icon:Search,        desc:"Resúmenes, balances y recomendaciones" },
+  { id:"research",      label:"Research",       Icon:Search,        desc:"Canal, balances e inteligencia" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];

@@ -25,6 +25,24 @@ export type DiscoveredInstrument = {
   pct?: number;
   source: "DATA912";
   confidence: "high" | "medium" | "low";
+  maturity?: string;
+  maturitySource?: "static" | "ticker-inferred";
+  hasSchedule: boolean;
+  reviewReasons: string[];
+};
+
+export type FixedIncomeUniverse = {
+  all: DiscoveredInstrument[];
+  byCategory: Record<FixedIncomeCategoryId, DiscoveredInstrument[]>;
+  calendarEligible: DiscoveredInstrument[];
+  curveEligible: DiscoveredInstrument[];
+  calculationEligible: DiscoveredInstrument[];
+  needsReview: DiscoveredInstrument[];
+};
+
+export type InstrumentMetadata = {
+  maturity?: string;
+  hasSchedule?: boolean;
 };
 
 export const FIXED_INCOME_CATEGORIES: FixedIncomeCategory[] = [
@@ -41,13 +59,47 @@ export const FIXED_INCOME_CATEGORIES: FixedIncomeCategory[] = [
 const SOV_PREFIXES = ["AL", "GD", "AE", "AO", "AN"];
 const STATIC_SOV = new Set(["AL29D", "AL30D", "AL35D", "AL41D", "GD29D", "GD30D", "GD35D", "GD38D", "GD41D", "GD46D", "AE38D", "AO27D", "AO28D", "AN29D"]);
 const STATIC_CER = new Set(["TX26", "TX28", "TZX26", "TZX27", "TZX28", "TZXM6", "TZXO6", "TZXD6", "TZXM7", "TZXD7", "DICP", "PARP", "CUAP"]);
+const MATURITY_MONTH: Record<string, number> = {
+  E: 1,
+  F: 2,
+  M: 3,
+  A: 4,
+  Y: 5,
+  J: 6,
+  L: 7,
+  G: 8,
+  S: 9,
+  O: 10,
+  N: 11,
+  D: 12,
+};
+
+export function normalizeFixedIncomeTicker(ticker: string) {
+  const t = ticker.toUpperCase();
+  return t.length > 4 ? t.replace(/[CD]$/, "") : t;
+}
+
+export function inferMaturityFromTicker(ticker: string): string | null {
+  const base = normalizeFixedIncomeTicker(ticker);
+  const match = base.match(/(\d{1,2})([EFMAYJLGSOND])(\d)$/);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = MATURITY_MONTH[match[2]];
+  const year = 2020 + Number(match[3]);
+  if (!day || !month || !year) return null;
+
+  const lastDay = new Date(year, month, 0).getDate();
+  if (day < 1 || day > lastDay) return null;
+  return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+}
 
 export function classifyFixedIncomeTicker(ticker: string): {
   category: FixedIncomeCategoryId;
   confidence: "high" | "medium" | "low";
 } {
   const t = ticker.toUpperCase();
-  const base = t.length > 4 ? t.replace(/[CD]$/, "") : t;
+  const base = normalizeFixedIncomeTicker(t);
   if (STATIC_SOV.has(t) || STATIC_SOV.has(base) || SOV_PREFIXES.some(prefix => t.startsWith(prefix))) return { category: "sovereign", confidence: "high" };
   if (STATIC_CER.has(t) || STATIC_CER.has(base) || /^TZX/.test(t) || /^TX\d/.test(t)) return { category: "cer", confidence: "high" };
   if (/^(BP|BPO|BU)/.test(t)) return { category: "bopreal", confidence: "medium" };
@@ -58,12 +110,25 @@ export function classifyFixedIncomeTicker(ticker: string): {
   return { category: "corporate", confidence: "low" };
 }
 
-export function discoverFixedIncomeUniverse(maps: { bonds: PriceMap; notes: PriceMap }): DiscoveredInstrument[] {
+export function discoverFixedIncomeUniverse(
+  maps: { bonds: PriceMap; notes: PriceMap },
+  metadata: Record<string, InstrumentMetadata> = {}
+): DiscoveredInstrument[] {
   const rows: DiscoveredInstrument[] = [];
   for (const [ticker, quote] of Object.entries({ ...maps.bonds, ...maps.notes })) {
     if (!quote?.price || quote.price <= 0) continue;
     const { category, confidence } = classifyFixedIncomeTicker(ticker);
     const def = FIXED_INCOME_CATEGORIES.find(c => c.id === category);
+    const base = normalizeFixedIncomeTicker(ticker);
+    const meta = metadata[ticker] ?? metadata[base];
+    const inferredMaturity = inferMaturityFromTicker(ticker);
+    const maturity = meta?.maturity ?? inferredMaturity ?? undefined;
+    const hasSchedule = meta?.hasSchedule ?? false;
+    const reviewReasons = [
+      ...(confidence === "low" ? ["low_classification_confidence"] : []),
+      ...(!maturity ? ["missing_maturity"] : []),
+      ...(!hasSchedule ? ["missing_cashflow_schedule"] : []),
+    ];
     rows.push({
       ticker,
       category,
@@ -72,6 +137,10 @@ export function discoverFixedIncomeUniverse(maps: { bonds: PriceMap; notes: Pric
       pct: quote.pct,
       source: "DATA912",
       confidence,
+      maturity,
+      maturitySource: meta?.maturity ? "static" : inferredMaturity ? "ticker-inferred" : undefined,
+      hasSchedule,
+      reviewReasons,
     });
   }
   return rows.sort((a, b) => a.category.localeCompare(b.category) || a.ticker.localeCompare(b.ticker));
@@ -82,4 +151,22 @@ export function countByCategory(rows: DiscoveredInstrument[]): Record<FixedIncom
     acc[row.category] = (acc[row.category] ?? 0) + 1;
     return acc;
   }, {} as Record<FixedIncomeCategoryId, number>);
+}
+
+export function selectFixedIncomeUniverse(rows: DiscoveredInstrument[]): FixedIncomeUniverse {
+  const byCategory = FIXED_INCOME_CATEGORIES.reduce((acc, cat) => {
+    acc[cat.id] = [];
+    return acc;
+  }, {} as Record<FixedIncomeCategoryId, DiscoveredInstrument[]>);
+
+  for (const row of rows) byCategory[row.category].push(row);
+
+  return {
+    all: rows,
+    byCategory,
+    calendarEligible: rows.filter(row => Boolean(row.maturity)),
+    curveEligible: rows.filter(row => Boolean(row.maturity) && row.confidence !== "low"),
+    calculationEligible: rows.filter(row => Boolean(row.maturity) && row.hasSchedule),
+    needsReview: rows.filter(row => row.reviewReasons.length > 0),
+  };
 }

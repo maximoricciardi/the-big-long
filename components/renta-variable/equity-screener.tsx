@@ -146,8 +146,33 @@ export function EquityScreener() {
     };
   }), [livePrices, liveHistory]);
 
-  const filtered = useMemo(() => equitiesLive
-    .filter(e => {
+  const filtered = useMemo(() => {
+    type EquityScreenerRow = (typeof equitiesLive)[number];
+    type SortValue = string | number | null;
+
+    const sortValue = (row: EquityScreenerRow, column: string): SortValue => {
+      switch (column) {
+        case "t": return row.t;
+        case "e": return row.e;
+        case "an": return row.an;
+        case "cal": return row.cal;
+        case "val": return row.val;
+        case "p": return row.p;
+        case "_1d": return row._1d;
+        case "s1": return row.s1;
+        case "m1": return row.m1;
+        case "ytd": return row.ytd;
+        case "_d52": return row._d52;
+        case "_up": return row._up;
+        case "fpe": return row.fpe;
+        case "rw": return row.rw;
+        case "sc": return row.sc;
+        case "tg": return row.tg;
+        default: return null;
+      }
+    };
+
+    return equitiesLive.filter(e => {
       if (e.mkt === "ARG" && e.tg === null) return false; // skip placeholders
       if (mktFilter !== "Todos" && e.mkt !== mktFilter) return false;
       if (anFilter !== "Todos" && e.an !== anFilter) return false;
@@ -158,12 +183,17 @@ export function EquityScreener() {
       return true;
     })
     .sort((a, b) => {
-      const av = (a as Record<string, number|null>)[sortCol] as number | null;
-      const bv = (b as Record<string, number|null>)[sortCol] as number | null;
+      const av = sortValue(a, sortCol);
+      const bv = sortValue(b, sortCol);
       if (av == null && bv == null) return 0;
-      if (av == null) return 1; if (bv == null) return -1;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === "string" || typeof bv === "string") {
+        return String(av).localeCompare(String(bv)) * sortDir;
+      }
       return (av > bv ? 1 : -1) * sortDir;
-    }), [equitiesLive, mktFilter, anFilter, search, sortCol, sortDir]);
+    });
+  }, [equitiesLive, mktFilter, anFilter, search, sortCol, sortDir]);
 
   const sort = (col: string) => {
     if (sortCol === col) setSortDir(d => (d === 1 ? -1 : 1));

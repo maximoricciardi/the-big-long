@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing ?symbols=" }, { status: 400 });
   }
 
-  const key = process.env.FINNHUB_KEY;
+  const key = process.env.FINNHUB_KEY ?? null;
   const tickers = symbols.split(",").map((s) => s.trim()).filter(Boolean);
   if (tickers.length === 0) {
     return NextResponse.json({ error: "No valid symbols" }, { status: 400 });

@@ -2,6 +2,7 @@ export type PriceQuote = { price: number; pct?: number };
 export type PriceMap = Record<string, PriceQuote>;
 
 export type DataQualityFlag =
+  | "live"
   | "stale_ref"
   | "bad_live"
   | "tna_outlier"
@@ -13,7 +14,7 @@ export interface LecapComputed {
   mes: string;
   vto: string;
   pRef: number;
-  pLive: number;
+  pLive: number | null;
   vnVto: number;
   isLive: boolean;
   priceOk: boolean;

@@ -5,6 +5,23 @@ import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
 import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
+import type { LecapComputed } from "@/lib/renta-fija";
+
+type LiveLecapComputed = LecapComputed & {
+  pLive: number;
+  tnaLive: number;
+  temLive: number;
+  rendimiento: number;
+};
+
+function hasLiveLecapMetrics(row: LecapComputed): row is LiveLecapComputed {
+  return (
+    row.pLive != null &&
+    row.temLive != null &&
+    row.tnaLive != null &&
+    row.rendimiento != null
+  );
+}
 
 export function LecapCalc() {
   const t = useAppTheme();
@@ -15,9 +32,7 @@ export function LecapCalc() {
 
   const instruments = useMemo(
     () =>
-      lecapRows.filter(
-        r => r.temLive != null && r.tnaLive != null && r.rendimiento != null
-      ),
+      lecapRows.filter(hasLiveLecapMetrics),
     [lecapRows]
   );
 

@@ -19,7 +19,8 @@ function hasLiveLecapMetrics(row: LecapComputed): row is LiveLecapComputed {
     row.pLive != null &&
     row.temLive != null &&
     row.tnaLive != null &&
-    row.rendimiento != null
+    row.rendimiento != null &&
+    !row.flags.includes("tna_outlier")
   );
 }
 
@@ -115,10 +116,10 @@ export function LecapCalc() {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 8, marginBottom: 20 }}>
             {[
-              { l: "TEM ref", v: `${sel.temRef.toFixed(2)}%`, c: t.mu },
-              { l: "TEM live", v: fmtPct(sel.temLive!), c: t.go },
-              { l: "TNA ref", v: `${sel.tnaRef.toFixed(2)}%`, c: t.mu },
-              { l: "TNA live", v: fmtPct(sel.tnaLive!), c: t.bl },
+              { l: "TEM base", v: `${sel.temRef.toFixed(2)}%`, c: t.mu },
+              { l: "TEM mercado", v: fmtPct(sel.temLive!), c: t.go },
+              { l: "TNA base", v: `${sel.tnaRef.toFixed(2)}%`, c: t.mu },
+              { l: "TNA mercado", v: fmtPct(sel.tnaLive!), c: t.bl },
               { l: "Rendto. total", v: fmtPct(sel.rendimiento!), c: t.go },
               { l: "Ret. anualizado", v: fmtPct(retAnual), c: t.go },
               { l: "Láminas (VN)", v: `${laminas}`, c: t.tx },
@@ -159,7 +160,7 @@ export function LecapCalc() {
           </div>
 
           <p style={{ fontFamily: FB, fontSize: 10, color: t.fa, marginTop: 12, lineHeight: 1.6 }}>
-            Cálculo con precio live validado · Días al vencimiento por calendario.
+            Cálculo con precio de mercado validado · Días al vencimiento por calendario.
             Instrumentos con TNA fuera de rango se excluyen del selector.
           </p>
         </>
@@ -173,7 +174,7 @@ export function LecapCalc() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 11 }}>
               <thead><tr>
-                {["Ticker", "Tipo", "Vto.", "Días", "Precio", "TEM live", "TNA live", "Rdto."].map((h, i) => (
+                {["Ticker", "Tipo", "Vto.", "Días", "Precio", "TEM mercado", "TNA mercado", "Rdto."].map((h, i) => (
                   <th key={i} style={{ padding: "8px 10px", textAlign: i > 3 ? "right" : "left", fontSize: 9, fontWeight: 700, color: t.mu, letterSpacing: ".06em", borderBottom: `2px solid ${t.brd}`, background: t.alt, position: "sticky", top: 0, zIndex: 2 }}>{h}</th>
                 ))}
               </tr></thead>

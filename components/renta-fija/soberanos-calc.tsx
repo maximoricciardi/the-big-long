@@ -79,7 +79,7 @@ export function SoberanosCalc() {
   if (!sel) {
     return (
       <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, padding: "18px 0" }}>
-        No hay bonos soberanos con precio live disponible para calcular.
+        No hay bonos soberanos con precio de mercado confiable disponible para calcular.
       </div>
     );
   }
@@ -137,7 +137,7 @@ export function SoberanosCalc() {
         <strong style={{ color: t.tx }}>{sel.ticker}</strong> · Precio: <strong style={{ color: sel.isLive ? t.gr : t.mu }}>${precioUso.toFixed(2)}</strong>
         <DataQualityBadge flags={sel.flags} isLive={sel.isLive} />
         {sel.tirLive != null && (
-          <span style={{ marginLeft: 8 }}>· TIR live: <strong style={{ color: t.go }}>{sel.tirLive.toFixed(2)}%</strong> (ref {sel.tirRef.toFixed(2)}%)</span>
+          <span style={{ marginLeft: 8 }}>· TIR mercado: <strong style={{ color: t.go }}>{sel.tirLive.toFixed(2)}%</strong> (base {sel.tirRef.toFixed(2)}%)</span>
         )}
         {" "}· Precio+com: ${precioComp.toFixed(2)} · VN: {vnComprado.toFixed(2)}
       </div>

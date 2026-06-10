@@ -79,7 +79,7 @@ function LecapCurva() {
   const { lecapRows } = useRentaFijaMarketContext();
 
   const points = lecapRows
-    .filter((r: LecapComputed) => r.temLive != null && r.temLive > 0 && r.temLive < 10 && !r.flags.includes("tna_outlier"))
+    .filter((r: LecapComputed) => r.temLive != null && r.tnaLive != null && r.temLive > 0 && r.temLive <= 4 && r.tnaLive <= 50 && !r.flags.includes("tna_outlier"))
     .map(r => ({
       ticker: r.ticker,
       dias: r.diasRest,
@@ -127,7 +127,7 @@ function LecapCurva() {
       <div style={{ fontFamily:FB, fontSize:10, fontWeight:700, color:t.go, letterSpacing:".1em", textTransform:"uppercase", marginBottom:12 }}>
         CURVA DE RENDIMIENTOS ARS · TEM % vs Días al Vencimiento
         <span style={{ marginLeft:8, fontFamily:FB, fontSize:9, color:t.fa, fontWeight:400 }}>
-          {points.filter(p=>p.isLive).length} con precio live · se excluyen vencidos automáticamente
+          {points.filter(p=>p.isLive).length} con precio de mercado · se excluyen vencidos y outliers automáticamente
         </span>
       </div>
       <svg width={W} height={H} style={{ overflow:"visible", fontFamily:FB, maxWidth:"100%" }}>
@@ -182,12 +182,12 @@ function LecapCurva() {
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:5 }}>
           <span style={{ width:10, height:10, borderRadius:"50%", background:t.go, border:"1.5px solid rgba(0,0,0,.2)", display:"inline-block" }}/>
-          <span style={{ fontFamily:FB, fontSize:9, color:t.mu }}>Precio live</span>
+          <span style={{ fontFamily:FB, fontSize:9, color:t.mu }}>Precio de mercado</span>
         </div>
       </div>
       <p style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:8 }}>
-        Curva TEM calculada con precios live DATA912 donde disponible.
-        Instrumentos vencidos excluidos automáticamente.
+        Curva TEM calculada solo con precios de mercado DATA912 dentro de rangos válidos.
+        Instrumentos vencidos u outliers excluidos automáticamente.
       </p>
     </div>
   );
@@ -268,8 +268,8 @@ function RentaFijaViewInner() {
                 </div>
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
                   <thead><tr>
-                    <Th>Ticker</Th><Th right>Precio Ref</Th><Th right>Precio Live</Th>
-                    <Th right>TEM ref</Th><Th right>TEM live</Th><Th right>TNA ref</Th><Th right>TNA live</Th>
+                    <Th>Ticker</Th><Th right>Precio base</Th><Th right>Precio mercado</Th>
+                    <Th right>TEM base</Th><Th right>TEM mercado</Th><Th right>TNA base</Th><Th right>TNA mercado</Th>
                     <Th right>Rdto</Th><Th right>Días</Th>
                   </tr></thead>
                   <tbody>
@@ -310,8 +310,8 @@ function RentaFijaViewInner() {
         <div style={tableCtr}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead><tr>
-              <Th>Ticker</Th><Th>Vto</Th><Th right>Precio Ref</Th><Th right>Precio Live</Th>
-              <Th right>TIR ref</Th><Th right>TIR live</Th><Th right>CY ref</Th><Th right>Var 1D</Th><Th right>Paridad</Th><Th>Ley</Th>
+              <Th>Ticker</Th><Th>Vto</Th><Th right>Precio base</Th><Th right>Precio mercado</Th>
+              <Th right>TIR base</Th><Th right>TIR mercado</Th><Th right>CY base</Th><Th right>Var 1D</Th><Th right>Paridad</Th><Th>Ley</Th>
             </tr></thead>
             <tbody>
               {sovRows.map((s, i) => {
@@ -367,7 +367,7 @@ function RentaFijaViewInner() {
                   <tr key={i} style={trStyle}
                     onMouseEnter={e=>(e.currentTarget.style.background=t.alt)}
                     onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-                    <Td bold><span style={{ fontFamily:"monospace" }}>{d.t}</span> {live?.price && <span style={{ fontFamily:FB, fontSize:9, color:t.gr }}>● live</span>}</Td>
+                    <Td bold><span style={{ fontFamily:"monospace" }}>{d.t}</span> {live?.price && <span style={{ fontFamily:FB, fontSize:9, color:t.gr }}>● mercado</span>}</Td>
                     <Td>{d.vto}</Td>
                     <Td right color={t.mu}>{d.temFija}</Td>
                     <Td right color={t.mu}>{d.tnaFija}</Td>
@@ -432,7 +432,7 @@ function RentaFijaViewInner() {
           )}
           <div style={tableCtr}>
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
-              <thead><tr><Th>Ticker</Th><Th>Descripción</Th><Th>Vto</Th><Th right>Precio Live</Th><Th right>Tipo</Th><Th right>Ley</Th></tr></thead>
+              <thead><tr><Th>Ticker</Th><Th>Descripción</Th><Th>Vto</Th><Th right>Precio mercado</Th><Th right>Tipo</Th><Th right>Ley</Th></tr></thead>
               <tbody>
                 {BONOS_CER.filter(d => isVtoActive(d.vto)).map((d,i) => {
                   const live = bondPrices[d.t];
@@ -466,7 +466,7 @@ function RentaFijaViewInner() {
           </Card>
           <div style={tableCtr}>
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
-              <thead><tr><Th>Ticker</Th><Th>Vto</Th><Th right>Precio Ref</Th><Th right>Precio Live</Th><Th right>TNA</Th><Th right>Rend.</Th></tr></thead>
+              <thead><tr><Th>Ticker</Th><Th>Vto</Th><Th right>Precio base</Th><Th right>Precio mercado</Th><Th right>TNA</Th><Th right>Rend.</Th></tr></thead>
               <tbody>
                 {DOLARLINKED.filter(d => isVtoActive(d.vto)).map((d,i) => {
                   const live = bondPrices[d.t];

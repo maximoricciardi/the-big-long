@@ -5,7 +5,7 @@
 import { BOND_SCHEDULES, calcSovTIR } from "@/lib/data/bonds-schedules";
 import type { SoberanoBond } from "@/types";
 import { parseARSPriceStrict, parseNum, parsePctStrict } from "./parse";
-import { resolveQuote } from "./prices";
+import { resolveQuote, validateLivePrice } from "./prices";
 import type { DataQualityFlag, PriceMap, SovComputed } from "./types";
 
 export function computeSovMetrics(
@@ -21,7 +21,9 @@ export function computeSovMetrics(
 
   // ── Solo precio LIVE de DATA912 ─────────────────────────────────
   const quote   = resolveQuote(bond.t, maps);
-  const hasLive = !!(quote?.price && quote.price > 0);
+  const hasRawLive = !!(quote?.price && quote.price > 0);
+  const liveValidation = hasRawLive ? validateLivePrice(quote!.price, pRef) : { ok: false, reason: "no_price" };
+  const hasLive = hasRawLive && liveValidation.ok;
 
   const flags: DataQualityFlag[] = [];
 
@@ -29,7 +31,8 @@ export function computeSovMetrics(
   const pLive = hasLive ? quote!.price! : null;
   const isLive = hasLive;
 
-  if (!hasLive) flags.push("stale_ref");
+  if (!hasRawLive) flags.push("stale_ref");
+  else if (!liveValidation.ok) flags.push("bad_live");
   else flags.push("live");
 
   // TIR live: solo se calcula con precio live real
@@ -39,7 +42,7 @@ export function computeSovMetrics(
   if (flows?.length && pLive && pLive > 0) {
     if (flows.some(f => new Date(f.date) > now)) {
       const tir = calcSovTIR(pLive, flows, now) * 100;
-      if (tir > -50 && tir < 100 && Number.isFinite(tir)) {
+      if (tir > 0 && tir < 100 && Number.isFinite(tir)) {
         tirLive = tir;
       } else {
         flags.push("tir_unavailable");

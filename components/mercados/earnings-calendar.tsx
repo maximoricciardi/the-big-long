@@ -80,13 +80,14 @@ function CompanyLogo({
   }, [primary, fallback]);
 
   if (!activeSrc || failed) {
+    const initials = symbol.replace(/[^A-Z0-9]/gi, "").slice(0, 3).toUpperCase() || "•";
     return (
       <div
         style={{
           width: 42,
           height: 42,
           borderRadius: 12,
-          background: t.alt,
+          background: `linear-gradient(135deg, ${t.bl}22, ${t.go}18), ${t.alt}`,
           border: `1px solid ${t.brd}`,
           display: "flex",
           alignItems: "center",
@@ -95,7 +96,7 @@ function CompanyLogo({
         }}
       >
         <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: t.mu }}>
-          {symbol.slice(0, 3)}
+          {initials}
         </span>
       </div>
     );
@@ -417,7 +418,7 @@ export function EarningsCalendar() {
 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                       <div style={{ fontFamily: FB, fontSize: 10, color: t.mu }}>
-                        {item.companyDomain ?? "Logo pendiente de mapear"}
+                        {item.companyDomain ?? `Ticker ${item.symbol}`}
                       </div>
                       <div style={{ fontFamily: FB, fontSize: 9, fontWeight: 700, color: item.reported ? t.gr : t.mu, background: item.reported ? t.grBg : t.alt, border: `1px solid ${item.reported ? `${t.gr}33` : t.brd}`, borderRadius: 999, padding: "4px 8px", letterSpacing: ".08em", textTransform: "uppercase" }}>
                         {item.reported ? "Reportado" : "Pendiente"}

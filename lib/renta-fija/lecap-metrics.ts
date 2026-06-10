@@ -4,6 +4,7 @@
 
 import type { LecapMes } from "@/types";
 import {
+  TEM_LIVE_MAX,
   TNA_LIVE_MAX,
   TNA_LIVE_MIN,
 } from "./constants";
@@ -78,7 +79,8 @@ export function computeLecapMetrics(
     if (
       tnaLive  < TNA_LIVE_MIN ||
       tnaLive  > TNA_LIVE_MAX ||
-      temLive  < 0
+      temLive  < 0 ||
+      temLive  > TEM_LIVE_MAX
     ) {
       flags.push("tna_outlier");
       tnaLive  = null;

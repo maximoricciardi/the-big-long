@@ -5,7 +5,7 @@
  * Canal de difusión WhatsApp — acceso directo con diseño profesional
  */
 
-import { MessageCircle } from "lucide-react";
+import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 
@@ -22,13 +22,14 @@ export function WhatsAppCTA() {
       style={{ textDecoration: "none", display: "block" }}
     >
       <div style={{
-        background: `linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)), ${t.srf}`,
+        background: `linear-gradient(135deg, rgba(31,61,91,.20), rgba(255,255,255,.035) 48%, rgba(20,83,45,.10)), ${t.srf}`,
         border: `1px solid ${t.brd}`,
         borderRadius: 8,
-        padding: "14px 16px",
-        display: "flex",
+        padding: "18px 20px",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
         alignItems: "center",
-        gap: 14,
+        gap: 16,
         cursor: "pointer",
         transition: "border-color .18s ease, transform .18s ease, background .18s ease",
         position: "relative",
@@ -44,12 +45,12 @@ export function WhatsAppCTA() {
       }}>
 
         <div style={{
-          width: 38, height: 38, borderRadius: 8, flexShrink: 0,
-          background: t.alt,
-          border: `1px solid ${t.brd}`,
+          width: 44, height: 44, borderRadius: 8, flexShrink: 0,
+          background: t.goBg,
+          border: `1px solid ${t.go}33`,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <MessageCircle size={18} color={t.go} strokeWidth={1.8} />
+          <MessageCircle size={20} color={t.go} strokeWidth={1.9} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -58,31 +59,32 @@ export function WhatsAppCTA() {
             color: t.go, letterSpacing: ".12em",
             textTransform: "uppercase", marginBottom: 4,
           }}>
-            Canal privado
+            Inteligencia diaria por WhatsApp
           </div>
           <div style={{
-            fontFamily: FH, fontSize: 17, fontWeight: 700,
+            fontFamily: FH, fontSize: 20, fontWeight: 800,
             color: t.tx, lineHeight: 1.3, marginBottom: 4,
           }}>
-            Research & Mercados
+            Sumate al canal de The Big Long
           </div>
           <div style={{
-            fontFamily: FB, fontSize: 11,
+            fontFamily: FB, fontSize: 12,
             color: t.mu, lineHeight: 1.5,
           }}>
-            Actualizaciones de mercado y oportunidades para clientes e inversores calificados.
+            Resúmenes diarios, seguimiento de mercado, contexto local e internacional e ideas según distintos perfiles de riesgo y objetivos.
           </div>
         </div>
 
         <div style={{
-          flexShrink: 0, textAlign: "center",
-          background: t.goBg,
-          border: `1px solid ${t.go}33`,
-          borderRadius: 8, padding: "8px 12px",
+          flexShrink: 0, textAlign: "center", display: "flex", alignItems: "center", gap: 7,
+          background: t.go,
+          border: `1px solid ${t.go}`,
+          borderRadius: 8, padding: "10px 13px",
         }}>
-          <div style={{ fontFamily: FB, fontSize: 11, fontWeight: 700, color: t.go, whiteSpace: "nowrap" }}>
-            Solicitar acceso
+          <div style={{ fontFamily: FB, fontSize: 11, fontWeight: 800, color: "#090D14", whiteSpace: "nowrap" }}>
+            Unirme al canal
           </div>
+          <ArrowUpRight size={14} color="#090D14" />
         </div>
       </div>
     </a>

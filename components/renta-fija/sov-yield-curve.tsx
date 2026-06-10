@@ -113,7 +113,7 @@ export function SovYieldCurve() {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontFamily: FB, fontSize: 10, fontWeight: 700, color, letterSpacing: ".1em", textTransform: "uppercase" }}>
-            {label} · TIR live vs Duration · {pts.length} bonos
+            {label} · TIR mercado vs Duration · {pts.length} bonos
           </div>
           <button
             onClick={() => {
@@ -187,7 +187,7 @@ export function SovYieldCurve() {
               <div style={{ fontFamily: FH, fontSize: 12, fontWeight: 700, color: p.tir >= 12 ? t.gr : p.tir >= 8 ? t.go : t.mu }}>
                 {p.tir.toFixed(2)}%
               </div>
-              <div style={{ fontFamily: FB, fontSize: 8, color: t.fa }}>{p.dur.toFixed(1)}a · ref {p.tirRef.toFixed(1)}%</div>
+              <div style={{ fontFamily: FB, fontSize: 8, color: t.fa }}>{p.dur.toFixed(1)}a · base {p.tirRef.toFixed(1)}%</div>
             </div>
           ))}
         </div>
@@ -206,12 +206,12 @@ export function SovYieldCurve() {
           minWidth: 160,
         }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{hover.ticker}</div>
-          <div style={{ color: t.mu }}>TIR live: <b style={{ color: t.go }}>{(hover.tirLive ?? hover.tir).toFixed(2)}%</b></div>
-          <div style={{ color: t.mu }}>TIR ref: {hover.tirRef.toFixed(2)}%</div>
+          <div style={{ color: t.mu }}>TIR mercado: <b style={{ color: t.go }}>{(hover.tirLive ?? hover.tir).toFixed(2)}%</b></div>
+          <div style={{ color: t.mu }}>TIR base: {hover.tirRef.toFixed(2)}%</div>
           <div style={{ color: t.mu }}>Duration: {hover.dur.toFixed(2)} años</div>
           <div style={{ color: t.mu }}>Precio: <b>{hover.price != null ? `$${hover.price.toFixed(2)}` : "—"}</b></div>
           <div style={{ color: hover.isLive ? t.gr : t.fa, fontSize: 9, marginTop: 4 }}>
-            {hover.isLive ? "● Precio en vivo" : "Precio teórico/ref"}
+            {hover.isLive ? "● Precio de mercado" : "Precio base no usado en curva"}
           </div>
         </div>
       )}
@@ -222,7 +222,7 @@ export function SovYieldCurve() {
       </div>
 
       <p style={{ fontFamily: FB, fontSize: 9, color: t.fa, marginTop: 10, lineHeight: 1.7 }}>
-        TIR live por bisección sobre flujos y precio DATA912. TIR ref = snapshot 19/03/2026.
+        TIR de mercado por bisección sobre flujos y precio DATA912. Puntos sin precio confiable se excluyen.
         No constituye asesoramiento de inversión.
       </p>
     </div>

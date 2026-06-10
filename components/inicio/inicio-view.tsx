@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DollarSign, ClipboardList, BarChart3, Search, ChevronRight, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, DollarSign, ClipboardList, BarChart3, Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { useIsMobile } from "@/hooks/use-window-size";
 import { useClock } from "@/hooks/use-clock";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SUMMARIES } from "@/lib/data/summaries";
-import { NOTICIAS } from "@/lib/data/noticias";
 import { LECAP } from "@/lib/data/renta-fija";
 import { useLiveNews } from "@/hooks/use-live-news";
+import { useCuratedReports } from "@/hooks/use-curated-reports";
 import { FH, FB, FD } from "@/lib/constants";
 import type { DolarData, RiesgoPaisData, LiveMarket } from "@/types";
 import { WhatsAppCTA } from "@/components/inicio/whatsapp-cta";
@@ -27,12 +26,12 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
   const isMobile = useIsMobile(640);
   const clock    = useClock();
   const { breakingNews } = useLiveNews();
+  const { reports, status: reportsStatus } = useCuratedReports({ featured: true, limit: 2 });
   const [mounted, setMounted] = useState(false);
   const [topMovers, setTopMovers] = useState<Array<{ ticker: string; price: number; pct: number }>>([]);
 
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
-  const latest = SUMMARIES[0];
 
   const topStk = liveMarket.topArgStock;
 
@@ -144,43 +143,10 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
         ))}
       </div>
 
-      {/* ── RESUMEN DEL DÍA ── */}
-      {latest && (
-        <div style={{ background:`linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)), ${t.srf}`, border:`1px solid ${t.brd}`, borderLeft:`3px solid ${t.go}`, borderRadius:8, padding:isMobile?"16px 14px":"22px 26px", marginBottom:18, boxShadow:t.sh }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
-            <span style={{ fontFamily:FB, fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:t.go, background:t.goBg, padding:"3px 10px", borderRadius:20 }}>
-              ● {latest.date}
-            </span>
-            <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{latest.label ?? "CIERRE DE MERCADO"}</span>
-          </div>
-
-          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
-            {latest.kpis?.slice(0,6).map((k, i) => {
-              const bcMap: Record<string, string> = {green:t.gr,red:t.rd,blue:t.bl,gold:t.go,gray:t.mu};
-              const col  = bcMap[k.bc] ?? t.mu;
-              const tabMap: Record<string, string> = {"SPOT ARS/USD":"mercados","RIESGO PAÍS":"mercados","MERVAL USD":"mercados","TASAS TEM":"rentafija","LECAP CORTA":"rentafija","LECAP MAYO":"rentafija"};
-              const dest = tabMap[k.k] ?? "mercados";
-              return (
-              <button key={i} onClick={() => setTab(dest)} style={{ background:t.alt, borderRadius:6, padding:"8px 10px", fontFamily:FB, fontSize:10, display:"flex", flexDirection:"column", gap:3, border:`1px solid ${t.brd}`, cursor:"pointer", textAlign:"left" }}>
-                  <span style={{ fontSize:8, color:t.fa, letterSpacing:".06em", textTransform:"uppercase" }}>{k.k}</span>
-                  <span style={{ fontWeight:700, color:t.tx }}>{k.v}</span>
-                  {k.b && <span style={{ fontSize:8, fontWeight:600, color:col, background:`${col}15`, padding:"0 5px", borderRadius:4, width:"fit-content" }}>{k.b}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {latest.cards?.slice(0,2).map((c, i) => (
-            <div key={i} style={{ padding:"10px 0", borderTop:`1px solid ${t.brd}33`, cursor:"pointer" }} onClick={() => setTab("mercados")}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, color:c.ac, letterSpacing:".08em", textTransform:"uppercase" }}>{c.cat}</span>
-              </div>
-              <div style={{ fontFamily:FH, fontSize:14, fontWeight:700, color:t.tx, marginBottom:4 }}>{c.title}</div>
-              {c.note && <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }} dangerouslySetInnerHTML={{__html:c.note.length>180?c.note.slice(0,180)+"...":c.note}} />}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* ── INTELIGENCIA DIARIA ── */}
+      <div style={{ marginBottom:18 }}>
+        <WhatsAppCTA />
+      </div>
 
       {/* ── TOP MOVERS ── */}
       {mounted && topMovers.length >= 6 && (
@@ -204,33 +170,51 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
         </div>
       )}
 
-      {/* ── INFORMES ESTRELLA ── */}
-      {(() => {
-        const stars = NOTICIAS.filter(n => n.estrella);
-        if (!stars.length) return null;
-        const acMap: Record<string, string> = { blue:t.bl, green:t.gr, gold:t.go, red:t.rd };
-        return (
-          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)", gap:10, marginBottom:16 }}>
-            {stars.map((n) => {
-              const ac = acMap[n.catColor] ?? t.go;
-              return (
-                <button key={n.id} onClick={() => goResearch("informes")} className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${ac}`, borderRadius:8, padding:"18px 20px", textAlign:"left", cursor:"pointer", transition:"all .18s", display:"flex", flexDirection:"column", gap:10 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".1em", color:ac, background:`${ac}18`, padding:"2px 8px", borderRadius:10 }}>{n.cat}</span>
-                    <span style={{ marginLeft:"auto", fontFamily:FB, fontSize:8, fontWeight:700, color:t.rd, background:t.rdBg, padding:"2px 7px", borderRadius:6 }}>INFORME HOY</span>
-                  </div>
-                  <div style={{ fontFamily:FH, fontSize:isMobile?15:17, fontWeight:700, color:t.tx, lineHeight:1.3 }}>{n.titulo}</div>
-                  <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }}>{n.subtitulo}</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:2 }}>
-                    <span style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:ac }}>Leer informe completo</span>
-                    <ChevronRight size={14} color={ac} />
-                  </div>
-                </button>
-              );
-            })}
+      {/* ── REPORTES CURADOS ── */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, marginBottom:8 }}>
+          <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".12em", textTransform:"uppercase" }}>
+            REPORTES CURADOS · 48H
           </div>
-        );
-      })()}
+          <button onClick={() => goResearch("reports")} style={{ background:"transparent", border:"none", color:t.go, fontFamily:FB, fontSize:10, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:4 }}>
+            Ver biblioteca <ChevronRight size={13} />
+          </button>
+        </div>
+
+        {reportsStatus === "loading" && (
+          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)", gap:10 }}>
+            <Skeleton w="100%" h={146} />
+            <Skeleton w="100%" h={146} />
+          </div>
+        )}
+
+        {reportsStatus !== "loading" && reports.length === 0 && (
+          <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"18px 20px", fontFamily:FB, fontSize:12, color:t.mu, lineHeight:1.6 }}>
+            La curación de reportes está temporalmente sin piezas disponibles. Volvé a revisar en la próxima actualización editorial.
+          </div>
+        )}
+
+        {reports.length > 0 && (
+          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)", gap:10 }}>
+            {reports.slice(0,2).map((report) => (
+              <a key={report.id} href={report.reportUrl} target="_blank" rel="noreferrer" className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderTop:`2px solid ${t.go}`, borderRadius:8, padding:"18px 20px", textAlign:"left", transition:"all .18s", display:"flex", flexDirection:"column", gap:10, textDecoration:"none" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                  <span style={{ fontFamily:FB, fontSize:8, fontWeight:700, textTransform:"uppercase", letterSpacing:".1em", color:t.go, background:t.goBg, padding:"2px 8px", borderRadius:10 }}>{report.source}</span>
+                  <span style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{report.publishedLabel}</span>
+                </div>
+                <div style={{ fontFamily:FH, fontSize:isMobile?15:17, fontWeight:700, color:t.tx, lineHeight:1.3 }}>{report.title}</div>
+                <div style={{ fontFamily:FB, fontSize:11, color:t.mu, lineHeight:1.55 }}>{report.summary}</div>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginTop:"auto" }}>
+                  <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>{report.reportType.toUpperCase()} · {report.cadence}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:5, fontFamily:FB, fontSize:10, fontWeight:700, color:t.go }}>
+                    Abrir fuente <ArrowUpRight size={13} />
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── QUICK NAV ── */}
       <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:8, marginBottom:16 }}>
@@ -246,10 +230,6 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
             <div style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{n.desc}</div>
           </button>
         ))}
-      </div>
-
-      <div style={{ marginBottom:16 }}>
-        <WhatsAppCTA />
       </div>
 
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, textAlign:"center" }}>

@@ -36,7 +36,34 @@ const DOMAIN_MAP: Record<string, string> = {
   HON:"honeywell.com",BA:"boeing.com",CAT:"caterpillar.com",DE:"deere.com",
   HOOD:"robinhood.com",SCHW:"schwab.com",AMGN:"amgen.com",
   PYPL:"paypal.com",SNAP:"snap.com",UBER:"uber.com",SHOP:"shopify.com",
+  TGT:"target.com",HD:"homedepot.com",LOW:"lowes.com",T:"att.com",
+  VZ:"verizon.com",CMCSA:"comcast.com",TMUS:"t-mobile.com",
+  GE:"ge.com",GEV:"gevernova.com",GM:"gm.com",F:"ford.com",
+  DAL:"delta.com",UAL:"united.com",AAL:"aa.com",LUV:"southwest.com",
+  MAR:"marriott.com",HLT:"hilton.com",BKNG:"bookingholdings.com",
+  ABNB:"airbnb.com",DASH:"doordash.com",CMG:"chipotle.com",
+  C:"citigroup.com",MS:"morganstanley.com",WFC:"wellsfargo.com",
+  BLK:"blackrock.com",AXP:"americanexpress.com",COF:"capitalone.com",
+  TSM:"tsmc.com",ASML:"asml.com",MU:"micron.com",TXN:"ti.com",
+  NOW:"servicenow.com",PANW:"paloaltonetworks.com",CRWD:"crowdstrike.com",
+  DDOG:"datadoghq.com",NET:"cloudflare.com",MDB:"mongodb.com",
+  WDAY:"workday.com",SNOW:"snowflake.com",TEAM:"atlassian.com",
+  ZS:"zscaler.com",ROKU:"roku.com",SPOT:"spotify.com",
+  RBLX:"roblox.com",EA:"ea.com",TTWO:"take2games.com",
+  PG:"pg.com",CL:"colgatepalmolive.com",KMB:"kimberly-clark.com",
+  MO:"altria.com",PM:"pmi.com",EL:"esteelauder.com",
+  TMO:"thermofisher.com",DHR:"danaher.com",ISRG:"intuitive.com",
+  MDT:"medtronic.com",BMY:"bms.com",GILD:"gilead.com",
+  REGN:"regeneron.com",VRTX:"vrtx.com",BIIB:"biogen.com",
 };
+
+function tickerLogoUrl(symbol: string): string {
+  return `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`;
+}
+
+function domainLogoUrl(domain: string): string {
+  return `https://logo.clearbit.com/${domain}`;
+}
 
 function dateStr(offset: number): string {
   const d = new Date();
@@ -78,13 +105,9 @@ export async function GET() {
             epsEstimate: row.epsForecast
               ? parseFloat(row.epsForecast.replace(/[^0-9.-]/g,"")) || null
               : null,
-            logo: DOMAIN_MAP[sym]
-              ? `https://logo.clearbit.com/${DOMAIN_MAP[sym]}`
-              : null,
+            logo: DOMAIN_MAP[sym] ? domainLogoUrl(DOMAIN_MAP[sym]) : tickerLogoUrl(sym),
             companyDomain: DOMAIN_MAP[sym] ?? null,
-            logoFallback: DOMAIN_MAP[sym]
-              ? `https://www.google.com/s2/favicons?domain=${DOMAIN_MAP[sym]}&sz=128`
-              : null,
+            logoFallback: DOMAIN_MAP[sym] ? tickerLogoUrl(sym) : null,
           });
         }
       } catch {}
@@ -100,7 +123,7 @@ export async function GET() {
     to:       dates[dates.length - 1],
     windowDays: WINDOW_DAYS,
     source: "Nasdaq public earnings calendar",
-    logoStrategy: "Clearbit with Google favicon fallback",
+    logoStrategy: "Mapped domains, ticker image fallback, generated initials",
   }, {
     headers: {
       "Cache-Control": `s-maxage=${EARNINGS_CACHE_SECONDS}, stale-while-revalidate=${EARNINGS_CACHE_SECONDS * 2}`,

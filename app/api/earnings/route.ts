@@ -4,7 +4,9 @@
 
 import { NextResponse } from "next/server";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+
+const EARNINGS_CACHE_SECONDS = 3600;
 const WINDOW_DAYS = 14;
 
 const HEADERS = {
@@ -99,5 +101,9 @@ export async function GET() {
     windowDays: WINDOW_DAYS,
     source: "Nasdaq public earnings calendar",
     logoStrategy: "Clearbit with Google favicon fallback",
+  }, {
+    headers: {
+      "Cache-Control": `s-maxage=${EARNINGS_CACHE_SECONDS}, stale-while-revalidate=${EARNINGS_CACHE_SECONDS * 2}`,
+    },
   });
 }

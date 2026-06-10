@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { LiveNewsArticle } from "@/types";
 
-export const revalidate = 900;
+export const dynamic = "force-dynamic";
+
+const NEWS_CACHE_SECONDS = 900;
 
 const GOOGLE_NEWS_BASE = "https://news.google.com/rss/search";
 
@@ -185,7 +187,7 @@ async function fetchFeed(query: string, locale: "global" | "regional"): Promise<
       "User-Agent": "Mozilla/5.0 (compatible; TheBigLong/2.0; +https://thebiglong.local)",
       Accept: "application/rss+xml, application/xml, text/xml",
     },
-    next: { revalidate },
+    next: { revalidate: NEWS_CACHE_SECONDS },
   });
 
   if (!response.ok) {
@@ -243,7 +245,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "s-maxage=900, stale-while-revalidate=1800",
+          "Cache-Control": `s-maxage=${NEWS_CACHE_SECONDS}, stale-while-revalidate=${NEWS_CACHE_SECONDS * 2}`,
         },
       }
     );

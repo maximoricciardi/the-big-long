@@ -44,25 +44,41 @@ async function fetchYahooCandles(symbol: string, resolution: string, from: strin
 
   const result = json.chart?.result?.[0];
   const quote = result?.indicators?.quote?.[0];
-  const t = result?.timestamp ?? [];
-  const c = (quote?.close ?? []).filter((v): v is number => typeof v === "number");
-  const o = (quote?.open ?? []).filter((v): v is number => typeof v === "number");
-  const h = (quote?.high ?? []).filter((v): v is number => typeof v === "number");
-  const l = (quote?.low ?? []).filter((v): v is number => typeof v === "number");
-  const v = (quote?.volume ?? []).filter((v): v is number => typeof v === "number");
+  const timestamps = result?.timestamp ?? [];
+  const open = quote?.open ?? [];
+  const high = quote?.high ?? [];
+  const low = quote?.low ?? [];
+  const close = quote?.close ?? [];
+  const volume = quote?.volume ?? [];
+  const rows = timestamps
+    .map((time, index) => ({
+      t: time,
+      o: open[index],
+      h: high[index],
+      l: low[index],
+      c: close[index],
+      v: volume[index],
+    }))
+    .filter((row): row is { t: number; o: number; h: number; l: number; c: number; v: number | null } =>
+      typeof row.t === "number" &&
+      typeof row.o === "number" &&
+      typeof row.h === "number" &&
+      typeof row.l === "number" &&
+      typeof row.c === "number"
+    );
 
-  if (!t.length || !c.length) {
+  if (!rows.length) {
     return { s: "no_data" };
   }
 
   return {
     s: "ok",
-    t,
-    c,
-    o,
-    h,
-    l,
-    v,
+    t: rows.map(row => row.t),
+    c: rows.map(row => row.c),
+    o: rows.map(row => row.o),
+    h: rows.map(row => row.h),
+    l: rows.map(row => row.l),
+    v: rows.map(row => typeof row.v === "number" ? row.v : 0),
   };
 }
 

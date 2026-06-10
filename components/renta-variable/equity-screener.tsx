@@ -72,7 +72,7 @@ export function EquityScreener() {
     const tickers = EQUITIES.map(e => e.t).filter(t => t && t !== "ARG" && t !== "US");
     const NOW   = Math.floor(Date.now() / 1000);
     const W52   = NOW - 366 * 86400;
-    const JAN1  = 1735689600;
+    const yearStart = Math.floor(Date.UTC(new Date().getUTCFullYear(), 0, 1) / 1000);
     const M1    = NOW - 30 * 86400;
     const W1    = NOW - 7 * 86400;
 
@@ -95,7 +95,7 @@ export function EquityScreener() {
               const hi52   = Math.max(...d.c);
               const s1Base = findClose(d.t, d.c, W1);
               const m1Base = findClose(d.t, d.c, M1);
-              const ytdBase= findClose(d.t, d.c, JAN1);
+              const ytdBase= findClose(d.t, d.c, yearStart);
               if (!cancelled) setLiveHistory(prev => ({
                 ...prev,
                 [ticker]: {

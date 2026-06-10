@@ -5,7 +5,7 @@ import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
 import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
-import type { LecapComputed } from "@/lib/renta-fija";
+import { parseNumStrict, type LecapComputed } from "@/lib/renta-fija";
 
 type LiveLecapComputed = LecapComputed & {
   pLive: number;
@@ -39,8 +39,8 @@ export function LecapCalc() {
   const sel = instruments.find(i => i.ticker === selTicker) ?? instruments[0];
   const ticker = sel?.ticker ?? "";
 
-  const montoNum = parseFloat(monto.replace(/\./g, "")) || 0;
-  const comPct = parseFloat(comision.replace(",", ".")) || 0;
+  const montoNum = parseNumStrict(monto) ?? 0;
+  const comPct = parseNumStrict(comision) ?? 0;
 
   const precioC = sel ? sel.pLive * (1 + comPct / 100) : 0;
   const laminas = sel && montoNum > 0 ? Math.floor(montoNum / precioC) : 0;
@@ -82,7 +82,7 @@ export function LecapCalc() {
           </label>
           <input
             type="text"
-            value={Number(monto.replace(/\./g, "")).toLocaleString("es-AR")}
+            value={(parseNumStrict(monto) ?? 0).toLocaleString("es-AR")}
             onChange={e => setMonto(e.target.value.replace(/\./g, "").replace(/[^0-9]/g, ""))}
             style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 14, fontWeight: 600, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}
           />
@@ -159,7 +159,7 @@ export function LecapCalc() {
           </div>
 
           <p style={{ fontFamily: FB, fontSize: 10, color: t.fa, marginTop: 12, lineHeight: 1.6 }}>
-            Cálculo con precio {sel.isLive ? "live validado" : "teórico"} · Días al vencimiento por calendario.
+            Cálculo con precio live validado · Días al vencimiento por calendario.
             Instrumentos con TNA fuera de rango se excluyen del selector.
           </p>
         </>

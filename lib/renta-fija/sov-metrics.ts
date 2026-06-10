@@ -4,7 +4,7 @@
 
 import { BOND_SCHEDULES, calcSovTIR } from "@/lib/data/bonds-schedules";
 import type { SoberanoBond } from "@/types";
-import { parseARSPrice, parseNum, parsePct } from "./parse";
+import { parseARSPriceStrict, parseNum, parsePctStrict } from "./parse";
 import { resolveQuote } from "./prices";
 import type { DataQualityFlag, PriceMap, SovComputed } from "./types";
 
@@ -13,10 +13,10 @@ export function computeSovMetrics(
   maps: { bonds: PriceMap; notes: PriceMap },
   now = new Date()
 ): SovComputed {
-  const pRef   = parseARSPrice(bond.p);
-  const tirRef  = parsePct(bond.tir);
+  const pRef   = parseARSPriceStrict(bond.p) ?? 0;
+  const tirRef  = parsePctStrict(bond.tir) ?? 0;
   const durRef  = parseNum(bond.dur);
-  const cyRef   = parsePct(bond.cy);
+  const cyRef   = parsePctStrict(bond.cy) ?? 0;
   const ley: "ARG" | "NY" = bond.ley === "NY" ? "NY" : "ARG";
 
   // ── Solo precio LIVE de DATA912 ─────────────────────────────────
@@ -37,10 +37,9 @@ export function computeSovMetrics(
   let tirLive: number | null = null;
 
   if (flows?.length && pLive && pLive > 0) {
-    const futureFlows = flows.filter(f => new Date(f.date) > now);
-    if (futureFlows.length) {
-      const tir = calcSovTIR(pLive, futureFlows) * 100;
-      if (tir > 0 && tir < 100 && Number.isFinite(tir)) {
+    if (flows.some(f => new Date(f.date) > now)) {
+      const tir = calcSovTIR(pLive, flows, now) * 100;
+      if (tir > -50 && tir < 100 && Number.isFinite(tir)) {
         tirLive = tir;
       } else {
         flags.push("tir_unavailable");
@@ -57,7 +56,7 @@ export function computeSovMetrics(
     vto:     bond.vto,
     ley,
     pRef,
-    pLive:   pLive ?? pRef,    // UI usa pRef solo para mostrar "referencia", no para calcular
+    pLive,
     isLive,
     priceOk: isLive,
     tirRef,

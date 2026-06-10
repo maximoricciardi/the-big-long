@@ -12,7 +12,7 @@ import { LecapCalc } from "@/components/renta-fija/lecap-calc";
 import { SoberanosCalc } from "@/components/renta-fija/soberanos-calc";
 import { RentaFijaMarketProvider, useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
 import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
-import { REFERENCE_AS_OF, REFRESH_MS, daysToMaturity, isVtoActive, type LecapComputed } from "@/lib/renta-fija";
+import { REFERENCE_AS_OF, REFRESH_MS, daysToMaturity, isVtoActive, parseNumStrict, type LecapComputed } from "@/lib/renta-fija";
 
 const LECAP_ACTIVE = LECAP.filter(g => !g.vto || isVtoActive(g.vto));
 
@@ -204,16 +204,18 @@ function RentaFijaViewInner() {
     try {
       const r = await fetch("https://api.argentinadatos.com/v1/finanzas/indices/uva");
       const data = await r.json();
-      if (Array.isArray(data) && data.length > 0) setUvaIndex(parseFloat(data[data.length - 1].valor));
+      const latestUva = Array.isArray(data) ? parseNumStrict(data[data.length - 1]?.valor) : null;
+      if (latestUva != null) setUvaIndex(latestUva);
     } catch {}
     try {
       const r = await fetch("/api/bcra?list=1");
       const data = await r.json();
-      const tamar = (data.results || []).find((v: { descripcion?: string; ultValorInformado?: number }) =>
+      const tamar = (data.results || []).find((v: { descripcion?: string; ultValorInformado?: number | string }) =>
         (v.descripcion || "").toLowerCase().includes("tamar") &&
         (v.descripcion || "").toLowerCase().includes("privad")
       );
-      if (tamar?.ultValorInformado) setTamarRate(parseFloat(tamar.ultValorInformado));
+      const tamarValue = parseNumStrict(tamar?.ultValorInformado);
+      if (tamarValue != null) setTamarRate(tamarValue);
     } catch {}
   }, []);
 
@@ -325,7 +327,7 @@ function RentaFijaViewInner() {
                     </Td>
                     <Td>{s.vto}</Td>
                     <Td right>${s.pRef.toFixed(2)}</Td>
-                    <Td right bold color={s.isLive ? t.gr : t.tx}>${s.pLive.toFixed(2)}</Td>
+                    <Td right bold color={s.pLive != null ? t.gr : t.fa}>{s.pLive != null ? `$${s.pLive.toFixed(2)}` : "—"}</Td>
                     <Td right color={t.mu}>{s.tirRef > 0 ? `${s.tirRef.toFixed(2)}%` : "—"}</Td>
                     <Td right bold color={s.tirLive != null ? t.go : t.fa}>{s.tirLive != null ? `${s.tirLive.toFixed(2)}%` : "—"}</Td>
                     <Td right>{s.cyRef > 0 ? `${s.cyRef.toFixed(2)}%` : "—"}</Td>

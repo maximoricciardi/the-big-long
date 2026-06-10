@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { BarChart3, LineChart, AlertTriangle, Search } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
+import { parseNumStrict } from "@/lib/renta-fija";
 
 export interface OnData {
   t:    string;
@@ -199,8 +200,8 @@ function ONsCalc({ allONs, corpPrices }: { allONs: OnData[]; corpPrices: Record<
 
   const live     = corpPrices[sel.t];
   const precio   = live?.price ?? sel.p;
-  const montoNum = parseFloat(monto.replace(/\./g,"")) || 0;
-  const comPct   = parseFloat(comision.replace(",",".")) || 0;
+  const montoNum = parseNumStrict(monto) ?? 0;
+  const comPct   = parseNumStrict(comision) ?? 0;
   const precioC  = precio * (1 + comPct/100);
 
   // Láminas: cada lámina = $100 VN, comprada al precio (por $100 VN)
@@ -245,7 +246,7 @@ function ONsCalc({ allONs, corpPrices }: { allONs: OnData[]; corpPrices: Record<
         </div>
         <div>
           <label style={{ fontFamily:FB, fontSize:10, fontWeight:600, color:t.mu, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:6 }}>Monto (USD)</label>
-          <input type="text" value={Number(monto.replace(/\./g,"")).toLocaleString("es-AR")}
+          <input type="text" value={(parseNumStrict(monto) ?? 0).toLocaleString("es-AR")}
             onChange={e=>setMonto(e.target.value.replace(/\./g,"").replace(/[^0-9]/g,""))}
             style={{ width:"100%", padding:"10px 12px", borderRadius:10, fontFamily:FB, fontSize:14, fontWeight:600, border:`1.5px solid ${t.brd}`, background:t.srf, color:t.tx, outline:"none" }} />
         </div>
@@ -408,14 +409,8 @@ export function ONsPanel() {
     );
   };
 
-  // Sell signals with live TIR recalc
+  // Sell signals use reference TIR only. Repricing TIR requires full bond cash-flow schedules.
   const sellCandidates = allONs
-    .map(o => {
-      const live = corpPrices[o.t];
-      if (!live || !o.p) return o;
-      const tirLive = o.tir * (o.p / live.price);
-      return { ...o, tir:parseFloat(tirLive.toFixed(2)), _live:true, _price:live.price, _pct:live.pct };
-    })
     .filter(o => o.tir > 0 && o.tir < TIR_THRESHOLD)
     .sort((a,b) => a.tir-b.tir);
 
@@ -475,7 +470,7 @@ export function ONsPanel() {
             <CurvaChart data={ONS_NY_DATA}  color={t.bl} label="LEY NUEVA YORK" corpPrices={corpPrices}/>
           </div>
           <p style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:10, lineHeight:1.7 }}>
-            TIR calculada sobre precio de mercado · Puntos con relleno = precio live · Instrumentos con TIR &gt; 20% excluidos.
+            TIR de referencia por duration · Puntos con relleno = precio live disponible · Instrumentos con TIR &gt; 20% excluidos.
           </p>
         </div>
       )}
@@ -488,7 +483,7 @@ export function ONsPanel() {
         <div>
           <div style={{ background:t.rdBg, border:`1px solid ${t.rd}44`, borderRadius:10, padding:"14px 18px", fontFamily:FB, fontSize:12, color:t.rd, marginBottom:16, lineHeight:1.6, display:"flex", alignItems:"flex-start", gap:10 }}>
             <AlertTriangle size={16} style={{ flexShrink:0, marginTop:2 }}/>
-            <div><strong>Señales de venta:</strong> ONs con TIR ajustada (con precio live) menor a {TIR_THRESHOLD}%. Considerá rotar a mayor rendimiento.</div>
+            <div><strong>Señales de venta:</strong> ONs con TIR de referencia menor a {TIR_THRESHOLD}%. Considerá rotar a mayor rendimiento.</div>
           </div>
           {sellCandidates.length===0 ? (
             <div style={{ textAlign:"center", padding:"40px 0", fontFamily:FB, fontSize:14, color:t.mu }}>
@@ -514,10 +509,9 @@ export function ONsPanel() {
                           <td style={{ padding:"6px 10px", fontSize:10, color:t.tx }}>{o.em}</td>
                           <td style={{ padding:"6px 10px", fontWeight:700, color:t.rd }}>
                             {o.tir.toFixed(2)}%
-                            {"_live" in o && o._live && <span style={{ marginLeft:4, fontSize:7, background:"#22c55e", color:"#fff", padding:"1px 4px", borderRadius:3 }}>LIVE</span>}
                           </td>
                           <td style={{ padding:"6px 10px", color:t.mu }}>{o.cup.toFixed(1)}%</td>
-                          <td style={{ padding:"6px 10px", fontWeight:600, color:t.tx }}>${("_price" in o?o._price:o.p).toFixed(2)}</td>
+                          <td style={{ padding:"6px 10px", fontWeight:600, color:t.tx }}>${o.p.toFixed(2)}</td>
                           <td style={{ padding:"6px 10px", color:t.mu }}>{o.dur.toFixed(1)}a</td>
                           <td style={{ padding:"6px 10px", fontSize:10, color:t.mu }}>{o.vto}</td>
                           <td style={{ padding:"6px 10px" }}>

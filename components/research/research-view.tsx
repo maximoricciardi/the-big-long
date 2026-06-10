@@ -5,7 +5,6 @@ import {
   ClipboardList,
   BarChart3,
   FileText,
-  Activity,
   Briefcase,
   CircleDot,
   Lock,
@@ -23,7 +22,6 @@ import { useIsMobile } from "@/hooks/use-window-size";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SectionLabel } from "@/components/ui/section-label";
-import { PolymarketPanel } from "@/components/polymarket/polymarket-panel";
 import { EarningsCalendar } from "@/components/mercados/earnings-calendar";
 import { ReportsPanel } from "@/components/research/reports-panel";
 import { useLiveNews } from "@/hooks/use-live-news";
@@ -36,7 +34,6 @@ const SUBTABS = [
   { id: "balances", label: "Earnings", Icon: BarChart3 },
   { id: "informes", label: "Inteligencia", Icon: FileText },
   { id: "reports", label: "Reports", Icon: Globe },
-  { id: "polymarket", label: "Sentimiento", Icon: Activity },
   { id: "recos", label: "Recomendaciones", Icon: Briefcase },
 ];
 
@@ -90,7 +87,6 @@ export function ResearchView({ initialSub = "resumen", onSubChange }: ResearchVi
       {sub === "balances" && <BalancesPanel />}
       {sub === "informes" && <InformesPanel />}
       {sub === "reports" && <ReportsPanel />}
-      {sub === "polymarket" && <PolymarketPanel standalone />}
       {sub === "recos" && <RecomendacionesPanel />}
     </div>
   );

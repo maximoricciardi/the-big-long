@@ -6,10 +6,11 @@ import { FB, FH } from "@/lib/constants";
 import { BOND_SCHEDULES, calcSovTIR } from "@/lib/data/bonds-schedules";
 import { useRentaFijaMarketContext } from "@/components/renta-fija/renta-fija-market-context";
 import { DataQualityBadge } from "@/components/renta-fija/data-quality-badge";
+import { parseNumStrict } from "@/lib/renta-fija";
 
 export function SoberanosCalc() {
   const t = useAppTheme();
-  const { sovRows, sovByTicker } = useRentaFijaMarketContext();
+  const { sovRows } = useRentaFijaMarketContext();
 
   const [selTicker, setSelTicker] = useState("GD30D");
   const [monto,     setMonto]     = useState("10000");
@@ -18,11 +19,16 @@ export function SoberanosCalc() {
   const [showPaid,  setShowPaid]  = useState(false);
 
   // ── Todos los hooks ANTES de cualquier early return ──────────
-  const selRow   = sovByTicker[selTicker] ?? sovRows[0];
+  const instruments = useMemo(
+    () => sovRows.filter(s => s.pLive != null && BOND_SCHEDULES[s.ticker]),
+    [sovRows]
+  );
+  const selRow   = instruments.find(s => s.ticker === selTicker) ?? instruments[0];
   const sel      = selRow;
-  const precioUso = sel ? sel.pLive : 0;
-  const montoNum   = parseFloat(monto.replace(/\./g, "").replace(",", ".")) || 0;
-  const comPct     = parseFloat(comision.replace(",", ".")) || 0;
+  const ticker = sel?.ticker ?? "";
+  const precioUso = sel?.pLive ?? 0;
+  const montoNum   = parseNumStrict(monto) ?? 0;
+  const comPct     = parseNumStrict(comision) ?? 0;
   const precioComp = precioUso * (1 + comPct / 100);
   const vnComprado = montoNum > 0 && precioComp > 0 ? montoNum / (precioComp / 100) : 0;
 
@@ -37,44 +43,56 @@ export function SoberanosCalc() {
     [fechaComp]
   );
 
-  const paidFlows = useMemo(() => {
+  const scheduledFlows = useMemo(() => {
     if (!vnComprado || !allFlows.length) return [];
-    return allFlows
-      .filter(f => {
-        const d = new Date(f.date);
-        return d <= today && (!compDate || d >= compDate);
-      })
-      .map(f => ({
-        ...f,
-        cpnUSD:   f.cpn   * vnComprado / 100,
-        amortUSD: f.amort * vnComprado / 100,
-        totalUSD: (f.cpn + f.amort) * vnComprado / 100,
-      }));
-  }, [allFlows, vnComprado, today, compDate]);
+    let outstanding = vnComprado;
+    return [...allFlows]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(f => {
+        const amortUSD = Math.min(outstanding, vnComprado * f.amort / 100);
+        const cpnUSD = outstanding * f.cpn / 100;
+        const totalUSD = cpnUSD + amortUSD;
+        outstanding = Math.max(0, outstanding - amortUSD);
+        return {
+          ...f,
+          cpnUSD,
+          amortUSD,
+          totalUSD,
+        };
+      });
+  }, [allFlows, vnComprado]);
+
+  const paidFlows = useMemo(() => {
+    if (!scheduledFlows.length) return [];
+    return scheduledFlows.filter(f => {
+      const d = new Date(f.date);
+      return d <= today && (!compDate || d >= compDate);
+    });
+  }, [scheduledFlows, today, compDate]);
 
   const flows = useMemo(() => {
-    if (!vnComprado || !allFlows.length) return [];
-    return allFlows
-      .filter(f => new Date(f.date) > today)
-      .map(f => ({
-        ...f,
-        cpnUSD:   f.cpn   * vnComprado / 100,
-        amortUSD: f.amort * vnComprado / 100,
-        totalUSD: (f.cpn + f.amort) * vnComprado / 100,
-      }));
-  }, [allFlows, vnComprado, today]);
+    if (!scheduledFlows.length) return [];
+    return scheduledFlows.filter(f => new Date(f.date) > today);
+  }, [scheduledFlows, today]);
 
   // ── Early return DESPUÉS de todos los hooks ───────────────────
-  if (!sel) return null;
+  if (!sel) {
+    return (
+      <div style={{ fontFamily: FB, fontSize: 12, color: t.mu, padding: "18px 0" }}>
+        No hay bonos soberanos con precio live disponible para calcular.
+      </div>
+    );
+  }
 
   const totalPendiente = flows.reduce((s, f) => s + f.totalUSD, 0);
   const totalPagado    = paidFlows.reduce((s, f) => s + f.totalUSD, 0);
   const capitalInv     = vnComprado * precioComp / 100;
   const ganancia       = totalPendiente - capitalInv + totalPagado;
   const retPct         = capitalInv > 0 ? (ganancia / capitalInv) * 100 : 0;
-  const tirCalc        = flows.length
-    ? calcSovTIR(precioComp, allFlows.filter(f => new Date(f.date) > today)) * 100
-    : 0;
+  const tirRaw         = flows.length && precioComp > 0
+    ? calcSovTIR(precioComp, allFlows, today) * 100
+    : null;
+  const tirCalc        = tirRaw != null && Number.isFinite(tirRaw) ? tirRaw : null;
 
   const totalTodo    = totalPagado + totalPendiente;
   const paidWidth    = totalTodo > 0 ? (totalPagado / totalTodo) * 100 : 0;
@@ -89,9 +107,9 @@ export function SoberanosCalc() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginBottom: 16 }}>
         <div>
           <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Bono</label>
-          <select value={selTicker} onChange={e => setSelTicker(e.target.value)}
+          <select value={ticker} onChange={e => setSelTicker(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: "monospace", fontSize: 13, fontWeight: 700, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }}>
-            {sovRows.filter(s => BOND_SCHEDULES[s.ticker]).map(s => (
+            {instruments.map(s => (
               <option key={s.ticker} value={s.ticker}>{s.ticker.replace(/D$/, "")} — {s.vto ?? ""}</option>
             ))}
           </select>
@@ -99,7 +117,7 @@ export function SoberanosCalc() {
         <div>
           <label style={{ fontFamily: FB, fontSize: 10, fontWeight: 600, color: t.mu, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Inversión (USD)</label>
           <input type="text"
-            value={Number(monto.replace(/\./g, "")).toLocaleString("es-AR")}
+            value={(parseNumStrict(monto) ?? 0).toLocaleString("es-AR")}
             onChange={e => setMonto(e.target.value.replace(/\./g, "").replace(/[^0-9]/g, ""))}
             style={{ width: "100%", padding: "10px 12px", borderRadius: 10, fontFamily: FB, fontSize: 14, fontWeight: 600, border: `1.5px solid ${t.brd}`, background: t.srf, color: t.tx, outline: "none" }} />
         </div>
@@ -130,7 +148,7 @@ export function SoberanosCalc() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8, marginBottom: 16 }}>
             {[
               { l: "Capital invertido", v: fmtUSD(capitalInv),       c: t.tx },
-              { l: "TIR calculada",     v: `${tirCalc.toFixed(2)}%`, c: t.go },
+              { l: "TIR calculada",     v: tirCalc != null ? `${tirCalc.toFixed(2)}%` : "—", c: tirCalc != null ? t.go : t.fa },
               { l: "Flujos pendientes", v: fmtUSD(totalPendiente),   c: t.bl },
               { l: "Ya cobrado",        v: fmtUSD(totalPagado),      c: paidFlows.length ? t.gr : t.fa },
               { l: "Ganancia estimada", v: fmtUSD(ganancia),         c: ganancia >= 0 ? t.gr : t.rd },

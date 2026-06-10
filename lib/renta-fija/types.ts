@@ -33,7 +33,7 @@ export interface SovComputed {
   vto: string;
   ley: "ARG" | "NY";
   pRef: number;
-  pLive: number;
+  pLive: number | null;
   isLive: boolean;
   priceOk: boolean;
   tirRef: number;

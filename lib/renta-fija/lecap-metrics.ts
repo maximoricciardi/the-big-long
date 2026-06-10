@@ -8,7 +8,7 @@ import {
   TNA_LIVE_MIN,
 } from "./constants";
 import { daysToMaturity, isVtoActive } from "./dates";
-import { parseARSPrice, parsePct } from "./parse";
+import { parseARSPriceStrict, parsePctStrict } from "./parse";
 import { resolveQuote } from "./prices";
 import type { DataQualityFlag, LecapComputed, PriceMap } from "./types";
 
@@ -18,12 +18,13 @@ export function computeLecapMetrics(
   maps: { bonds: PriceMap; notes: PriceMap },
   now = new Date()
 ): LecapComputed | null {
-  const pBase = parseARSPrice(row.pre);
-  const rBase  = parsePct(row.r)   / 100;
-  const tnaRef = parsePct(row.tna);
-  const temRef = parsePct(row.tem);
+  const pBase = parseARSPriceStrict(row.pre);
+  const rPct   = parsePctStrict(row.r);
+  const tnaRef = parsePctStrict(row.tna);
+  const temRef = parsePctStrict(row.tem);
+  const rBase  = rPct != null ? rPct / 100 : null;
 
-  if (!pBase || !group.vto) return null;
+  if (pBase == null || rBase == null || tnaRef == null || temRef == null || !group.vto) return null;
   if (!isVtoActive(group.vto, now)) return null;
 
   const diasRest = daysToMaturity(group.vto, now);

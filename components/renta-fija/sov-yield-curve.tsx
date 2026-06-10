@@ -12,7 +12,7 @@ interface CurvePoint {
   tir: number;
   tirRef: number;
   tirLive: number | null;
-  price: number;
+  price: number | null;
   ley: "ARG" | "NY";
   isLive: boolean;
 }
@@ -47,7 +47,7 @@ export function SovYieldCurve() {
           ley: s.ley,
           isLive: s.isLive,
         }))
-        .filter(p => p.price > 0 && p.dur > 0 && p.tir > 0)
+        .filter(p => p.price != null && p.price > 0 && p.dur > 0 && p.tir > 0)
         .sort((a, b) => a.dur - b.dur),
     [sovRows]
   );
@@ -209,7 +209,7 @@ export function SovYieldCurve() {
           <div style={{ color: t.mu }}>TIR live: <b style={{ color: t.go }}>{(hover.tirLive ?? hover.tir).toFixed(2)}%</b></div>
           <div style={{ color: t.mu }}>TIR ref: {hover.tirRef.toFixed(2)}%</div>
           <div style={{ color: t.mu }}>Duration: {hover.dur.toFixed(2)} años</div>
-          <div style={{ color: t.mu }}>Precio: <b>${hover.price.toFixed(2)}</b></div>
+          <div style={{ color: t.mu }}>Precio: <b>{hover.price != null ? `$${hover.price.toFixed(2)}` : "—"}</b></div>
           <div style={{ color: hover.isLive ? t.gr : t.fa, fontSize: 9, marginTop: 4 }}>
             {hover.isLive ? "● Precio en vivo" : "Precio teórico/ref"}
           </div>

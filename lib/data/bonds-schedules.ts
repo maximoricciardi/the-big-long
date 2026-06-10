@@ -214,24 +214,45 @@ export const BOND_SCHEDULES: Record<string, BondFlow[]> = {
 // ── TIR Calculator (bisection method) ────────────────────────────────
 export function calcSovTIR(
   priceWithCom: number,
-  flows: Array<{ date: string; cpn: number; amort: number }>
+  flows: Array<{ date: string; cpn: number; amort: number }>,
+  valuationDate = new Date()
 ): number {
-  const today = new Date();
-  const futureFlows = flows
-    .filter(f => new Date(f.date) > today)
-    .map(f => ({
-      t: (new Date(f.date).getTime() - today.getTime()) / (365.25 * 86400000),
-      cf: (f.cpn + f.amort) / 100,
-    }))
-    .filter(f => f.t > 0);
+  if (!Number.isFinite(priceWithCom) || priceWithCom <= 0) return Number.NaN;
 
-  if (!futureFlows.length) return 0;
+  const futureFlows: Array<{ t: number; cf: number }> = [];
+  let outstanding = 100;
 
-  let lo = -0.5, hi = 5.0;
+  [...flows]
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+    .forEach((f) => {
+      const flowDate = new Date(f.date);
+      const amort = Math.min(Math.max(f.amort, 0), outstanding);
+      const coupon = outstanding * f.cpn / 100;
+      const cashFlow = coupon + amort;
+
+      if (flowDate > valuationDate && cashFlow > 0) {
+        futureFlows.push({
+          t: (flowDate.getTime() - valuationDate.getTime()) / (365.25 * 86400000),
+          cf: cashFlow / 100,
+        });
+      }
+
+      outstanding = Math.max(0, outstanding - amort);
+    });
+
+  if (!futureFlows.length) return Number.NaN;
+
+  const target = priceWithCom / 100;
+  const pvAt = (rate: number) =>
+    futureFlows.reduce((s, f) => s + f.cf / Math.pow(1 + rate, f.t), 0);
+
+  let lo = -0.95, hi = 5.0;
+  if (target > pvAt(lo) || target < pvAt(hi)) return Number.NaN;
+
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    const pv = futureFlows.reduce((s, f) => s + f.cf / Math.pow(1 + mid, f.t), 0);
-    if (pv > priceWithCom / 100) lo = mid; else hi = mid;
+    const pv = pvAt(mid);
+    if (pv > target) lo = mid; else hi = mid;
   }
   return (lo + hi) / 2;
 }

@@ -34,7 +34,7 @@ export const TABS: TabDef[] = [
 export const VALID_TABS = TABS.map(t => t.id);
 
 /* ── API endpoints ───────────────────────────────────────── */
-export const FINNHUB_PROXY = "/api/quote?symbol";
+export const FINNHUB_PROXY = "/api/quote?symbol=";
 
 /* ── FX Fallback values (verified 09 ABR 2026) ──────────── */
 export const FX_FALLBACK = {

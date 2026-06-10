@@ -3,11 +3,17 @@
 import useSWR from "swr";
 import type { BatchResult } from "@/types";
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = async (url: string) => {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+};
 
 export function useQuotes(symbols: string[], enabled = true) {
   const key = enabled && symbols.length > 0
-    ? `/api/batch?symbols=${symbols.join(",")}`
+    ? `/api/batch?symbols=${encodeURIComponent(symbols.join(","))}`
     : null;
 
   const { data, error, isLoading, mutate } = useSWR<BatchResult>(
@@ -29,7 +35,7 @@ export function useQuotes(symbols: string[], enabled = true) {
 
 export function useSingleQuote(symbol: string | null) {
   const { data, error, isLoading } = useSWR(
-    symbol ? `/api/quote?symbol=${symbol}` : null,
+    symbol ? `/api/quote?symbol=${encodeURIComponent(symbol)}` : null,
     fetcher,
     { refreshInterval: 60_000 }
   );

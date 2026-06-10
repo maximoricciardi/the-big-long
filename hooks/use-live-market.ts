@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import type { LiveMarket } from "@/types";
 import { FINNHUB_PROXY, LIVE_MARKET_KEY } from "@/lib/constants";
 
+function quoteUrl(symbol: string) {
+  return `${FINNHUB_PROXY}${encodeURIComponent(symbol)}`;
+}
+
 function loadFromStorage(): LiveMarket {
   try {
     return JSON.parse(localStorage.getItem(LIVE_MARKET_KEY) || "null") || {};
@@ -19,19 +23,19 @@ export function useLiveMarket(): LiveMarket {
     const updates: Partial<LiveMarket> = {};
 
     try {
-      const r = await fetch(`${FINNHUB_PROXY}=SPY`);
+      const r = await fetch(quoteUrl("SPY"), { cache: "no-store" });
       const d = await r.json() as { c: number; dp: number };
       if (d.c > 0) updates.spy = { price: d.c, changePct: d.dp };
     } catch { /* silent */ }
 
     try {
-      const rg = await fetch(`${FINNHUB_PROXY}=GLD`);
+      const rg = await fetch(quoteUrl("GLD"), { cache: "no-store" });
       const dg = await rg.json() as { c: number; dp: number };
       if (dg.c > 0) updates.gold = { price: dg.c, changePct: dg.dp };
     } catch { /* silent */ }
 
     try {
-      const rb = await fetch(`${FINNHUB_PROXY}=BNO`);
+      const rb = await fetch(quoteUrl("BNO"), { cache: "no-store" });
       const db = await rb.json() as { c: number; dp: number };
       if (db.c > 0) updates.brent = { price: db.c, changePct: db.dp };
     } catch { /* silent */ }
@@ -40,7 +44,7 @@ export function useLiveMarket(): LiveMarket {
       const ARG_STARS = ["GGAL","YPFD","PAM","BMA","BBAR"];
       const hits = await Promise.allSettled(
         ARG_STARS.map(async (sym) => {
-          const r = await fetch(`${FINNHUB_PROXY}=${sym}`);
+          const r = await fetch(quoteUrl(sym), { cache: "no-store" });
           const d = await r.json() as { c: number; dp: number };
           return { t: sym, c: d.c, dp: d.dp };
         })

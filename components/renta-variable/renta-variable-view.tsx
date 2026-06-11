@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Globe, Activity, LineChart, Search } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EQUITIES, tvUrl } from "@/lib/data/equities";
+import { useCuratedReports } from "@/hooks/use-curated-reports";
+import { useLiveNews } from "@/hooks/use-live-news";
+import {
+  buildCedearIntelligenceRows,
+  buildEquityIntelligenceRows,
+  buildMarketMovers,
+  buildSectorIntelligence,
+  formatUnavailable,
+  type EquityIntelligenceRow,
+} from "@/lib/equity/intelligence";
 import type { ThemeTokens } from "@/types";
 
 interface RentaVariableViewProps {
@@ -22,9 +32,32 @@ const SUBS = [
 
 const QUICK_TICKERS = ["AAPL","MSFT","NVDA","TSLA","GGAL","YPF","VIST","MELI","SPY","BTC"];
 
+const TOP_CEDEARS = [
+  { t:"AAPL",  n:"Apple",           sector:"Tech" },
+  { t:"MSFT",  n:"Microsoft",       sector:"Tech" },
+  { t:"NVDA",  n:"NVIDIA",          sector:"Tech" },
+  { t:"GOOGL", n:"Alphabet",        sector:"Tech" },
+  { t:"AMZN",  n:"Amazon",          sector:"Tech" },
+  { t:"TSLA",  n:"Tesla",           sector:"Auto" },
+  { t:"META",  n:"Meta Platforms",  sector:"Tech" },
+  { t:"JPM",   n:"JPMorgan Chase",  sector:"Fin." },
+  { t:"MELI",  n:"MercadoLibre",    sector:"Tech" },
+  { t:"GGAL",  n:"Grupo Galicia",   sector:"Fin." },
+  { t:"YPF",   n:"YPF",             sector:"Ener." },
+  { t:"VIST",  n:"Vista Energy",    sector:"Ener." },
+  { t:"BBAR",  n:"BBVA Argentina",  sector:"Fin." },
+  { t:"BMA",   n:"Banco Macro",     sector:"Fin." },
+  { t:"PAMP",  n:"Pampa Energia",   sector:"Ener." },
+  { t:"SPY",   n:"S&P 500 ETF",     sector:"ETF" },
+  { t:"QQQ",   n:"Nasdaq 100 ETF",  sector:"ETF" },
+  { t:"GLD",   n:"Gold ETF",        sector:"ETF" },
+];
+
 // ─────────────────────────────────────────────
 export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVariableViewProps) {
   const t        = useAppTheme();
+  const { reports, status: reportsStatus } = useCuratedReports({ tag: "Equities", limit: 3 });
+  const { articles, status: newsStatus } = useLiveNews();
   const [sub, setSub]             = useState(initialTicker ? "charts" : "cedears");
   const [chartTicker, setChartTicker] = useState(initialTicker || "AAPL");
   const [chartInput,  setChartInput]  = useState(initialTicker || "AAPL");
@@ -60,6 +93,9 @@ export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVari
           </button>
         ))}
       </div>
+
+      <EquityResearchContext reports={reports} articles={articles.slice(0, 3)} reportsStatus={reportsStatus} newsStatus={newsStatus} />
+      <EquityEarningsFocus />
 
       {/* ── CEDEARs ── */}
       {sub === "cedears" && <CEDEARsPanel />}
@@ -116,6 +152,138 @@ export function RentaVariableView({ initialTicker, onTickerConsumed }: RentaVari
   );
 }
 
+interface EquityEarningsItem {
+  symbol: string;
+  name: string;
+  date: string;
+  hour: string;
+  epsEstimate: number | null;
+  revenueEstimate?: number | null;
+}
+
+function EquityEarningsFocus() {
+  const t = useAppTheme();
+  const [earnings, setEarnings] = useState<EquityEarningsItem[]>([]);
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch("/api/earnings", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json() as { earnings?: EquityEarningsItem[] };
+        if (!cancelled) {
+          const universe = new Set(EQUITIES.map((equity) => equity.t));
+          setEarnings((data.earnings ?? []).filter((item) => universe.has(item.symbol)).slice(0, 8));
+          setStatus("ok");
+        }
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    };
+    load();
+    const id = setInterval(load, 60 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = earnings.filter((item) => item.date === today).length;
+  const nextThree = earnings.slice(0, 3);
+  const fmtDate = (date: string) => {
+    const [year, month, day] = date.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("es-AR", { day:"2-digit", month:"short" });
+  };
+  const fmtHour = (hour: string) => hour === "bmo" ? "Pre-market" : hour === "amc" ? "Post-market" : "Sin hora";
+
+  return (
+    <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px", marginBottom:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, flexWrap:"wrap", marginBottom:10 }}>
+        <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase" }}>
+          Earnings intelligence
+        </div>
+        <div style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
+          Hoy: {todayCount} · Ventana Nasdaq 14 dias · {status === "ok" ? `${earnings.length} companias del universo` : status === "loading" ? "sincronizando" : "sin datos"}
+        </div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))", gap:8 }}>
+        {nextThree.length ? nextThree.map((item) => (
+          <div key={`${item.symbol}-${item.date}`} style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"9px 10px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", gap:8, marginBottom:5 }}>
+              <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{item.symbol}</span>
+              <span style={{ fontFamily:FB, fontSize:9, color:t.go }}>{fmtDate(item.date)} · {fmtHour(item.hour)}</span>
+            </div>
+            <div style={{ fontFamily:FB, fontSize:10, color:t.mu, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginBottom:6 }}>{item.name}</div>
+            <div style={{ display:"flex", justifyContent:"space-between", gap:8, fontFamily:FB, fontSize:10 }}>
+              <span style={{ color:t.fa }}>EPS est.</span>
+              <span style={{ color:item.epsEstimate !== null ? t.tx : t.fa, fontWeight:700 }}>{item.epsEstimate !== null ? `$${item.epsEstimate.toFixed(2)}` : "—"}</span>
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", gap:8, fontFamily:FB, fontSize:10, marginTop:3 }}>
+              <span style={{ color:t.fa }}>Revenue est.</span>
+              <span style={{ color:t.fa }}>{item.revenueEstimate != null ? `$${item.revenueEstimate.toLocaleString("es-AR")}` : "No disponible"}</span>
+            </div>
+          </div>
+        )) : (
+          <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
+            {status === "loading" ? "Cargando calendario..." : "No hay resultados próximos para el universo de Renta Variable."}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EquityResearchContext({
+  reports,
+  articles,
+  reportsStatus,
+  newsStatus,
+}: {
+  reports: Array<{ id: string; title: string; source: string; reportUrl: string; publishedLabel: string }>;
+  articles: Array<{ id: string; title: string; articleUrl: string; sourceName: string; publishedLabel: string }>;
+  reportsStatus: "loading" | "ok" | "error";
+  newsStatus: "loading" | "ok" | "error";
+}) {
+  const t = useAppTheme();
+  const hasReports = reports.length > 0;
+  const hasArticles = articles.length > 0;
+
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:10, marginBottom:16 }}>
+      <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px" }}>
+        <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, letterSpacing:".1em", textTransform:"uppercase", color:t.fa, marginBottom:8 }}>
+          Research conectado
+        </div>
+        {hasReports ? reports.map((report) => (
+          <a key={report.id} href={report.reportUrl} target="_blank" rel="noreferrer" style={{ display:"block", textDecoration:"none", marginBottom:7 }}>
+            <div style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:t.tx, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{report.title}</div>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{report.source} · {report.publishedLabel}</div>
+          </a>
+        )) : (
+          <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
+            {reportsStatus === "loading" ? "Sincronizando informes..." : "Sin informes equity filtrados."}
+          </div>
+        )}
+      </div>
+      <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px" }}>
+        <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, letterSpacing:".1em", textTransform:"uppercase", color:t.fa, marginBottom:8 }}>
+          Noticias de mercado
+        </div>
+        {hasArticles ? articles.map((article) => (
+          <a key={article.id} href={article.articleUrl} target="_blank" rel="noreferrer" style={{ display:"block", textDecoration:"none", marginBottom:7 }}>
+            <div style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:t.tx, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{article.title}</div>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.fa }}>{article.sourceName} · {article.publishedLabel}</div>
+          </a>
+        )) : (
+          <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>
+            {newsStatus === "loading" ? "Sincronizando noticias..." : "Sin noticias disponibles."}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────
 function CEDEARsPanel() {
   const t = useAppTheme();
@@ -144,26 +312,32 @@ function CEDEARsPanel() {
     return () => clearInterval(id);
   }, []);
 
-  const TOP_CEDEARS = [
-    { t:"AAPL",  n:"Apple",           sector:"Tech" },
-    { t:"MSFT",  n:"Microsoft",       sector:"Tech" },
-    { t:"NVDA",  n:"NVIDIA",          sector:"Tech" },
-    { t:"GOOGL", n:"Alphabet",        sector:"Tech" },
-    { t:"AMZN",  n:"Amazon",          sector:"Tech" },
-    { t:"TSLA",  n:"Tesla",           sector:"Auto" },
-    { t:"META",  n:"Meta Platforms",  sector:"Tech" },
-    { t:"JPM",   n:"JPMorgan Chase",  sector:"Fin." },
-    { t:"MELI",  n:"MercadoLibre",    sector:"Tech" },
-    { t:"GGAL",  n:"Grupo Galicia",   sector:"Fin." },
-    { t:"YPF",   n:"YPF",             sector:"Ener." },
-    { t:"VIST",  n:"Vista Energy",    sector:"Ener." },
-    { t:"BBAR",  n:"BBVA Argentina",  sector:"Fin." },
-    { t:"BMA",   n:"Banco Macro",     sector:"Fin." },
-    { t:"PAMP",  n:"Pampa Energía",   sector:"Ener." },
-    { t:"SPY",   n:"S&P 500 ETF",     sector:"ETF" },
-    { t:"QQQ",   n:"Nasdaq 100 ETF",  sector:"ETF" },
-    { t:"GLD",   n:"Gold ETF",        sector:"ETF" },
-  ];
+  const cedearRows = useMemo(
+    () => buildCedearIntelligenceRows(TOP_CEDEARS, prices),
+    [prices]
+  );
+  const cedearMovers = useMemo(() => buildMarketMovers(cedearRows), [cedearRows]);
+  const cedearSectors = useMemo(() => buildSectorIntelligence(cedearRows), [cedearRows]);
+  const liveCount = cedearRows.filter((row) => row.availability.price === "live").length;
+
+  const MiniMoverList = ({ title, rows }: { title: string; rows: EquityIntelligenceRow[] }) => (
+    <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"10px 12px" }}>
+      <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>{title}</div>
+      {rows.length ? rows.slice(0, 3).map((row) => (
+        <div key={`${title}-${row.ticker}`} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{row.ticker}</div>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.name}</div>
+          </div>
+          <div style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:(row.changePct ?? 0) >= 0 ? t.gr : t.rd }}>
+            {row.changePct !== null ? `${row.changePct >= 0 ? "+" : ""}${row.changePct.toFixed(2)}%` : "—"}
+          </div>
+        </div>
+      )) : (
+        <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>Sin datos vivos suficientes.</div>
+      )}
+    </div>
+  );
 
   return (
     <div className="fade-up">
@@ -177,27 +351,44 @@ function CEDEARsPanel() {
           </span>
         )}
       </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:8, marginBottom:12 }}>
+        <MiniMoverList title="Ganadores" rows={cedearMovers.topGainers} />
+        <MiniMoverList title="Perdedores" rows={cedearMovers.topLosers} />
+        <MiniMoverList title="Mayor volumen" rows={cedearMovers.mostActive} />
+        <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"10px 12px" }}>
+          <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>Sectores</div>
+          {cedearSectors.slice(0, 4).map((sector) => (
+            <div key={sector.sector} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
+              <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{sector.sector}</span>
+              <span style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:sector.avgChangePct !== null && sector.avgChangePct >= 0 ? t.gr : t.rd }}>
+                {sector.avgChangePct !== null ? `${sector.avgChangePct >= 0 ? "+" : ""}${sector.avgChangePct.toFixed(2)}%` : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
-        {TOP_CEDEARS.map((c, i) => {
-          const live = prices[c.t];
-          const pct = live?.changePct;
+        {cedearRows.map((c) => {
+          const pct = c.changePct;
           const col = pct != null ? (pct >= 0 ? t.gr : t.rd) : t.mu;
           return (
-            <div key={i} className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px", cursor:"pointer" }}
+            <div key={c.ticker} className="premium-hover" style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px", cursor:"pointer" }}
               onClick={() => {
-                (window as typeof window & { __goChart?: (t: string) => void }).__goChart?.(c.t);
+                (window as typeof window & { __goChart?: (t: string) => void }).__goChart?.(c.ticker);
               }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
-                <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:t.tx }}>{c.t}</span>
+                <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:t.tx }}>{c.ticker}</span>
                 <span style={{ fontFamily:FB, fontSize:8, color:t.fa, background:t.alt, padding:"1px 5px", borderRadius:4 }}>{c.sector}</span>
               </div>
-              <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginBottom:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.n}</div>
+              <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</div>
+              <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginBottom:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.industry} · {c.country}</div>
               {loading ? (
                 <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>cargando…</div>
-              ) : live ? (
+              ) : c.price !== null ? (
                 <>
-                  <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>${live.price.toFixed(2)}</div>
+                  <div style={{ fontFamily:FH, fontSize:16, fontWeight:700, color:t.tx }}>${c.price.toFixed(2)}</div>
                   <div style={{ fontFamily:FB, fontSize:11, fontWeight:700, color:col }}>{pct!=null?`${pct>=0?"+":""}${pct.toFixed(2)}%`:"—"}</div>
+                  <div style={{ fontFamily:FB, fontSize:9, color:t.fa, marginTop:4 }}>Liquidez: {c.liquidity ?? formatUnavailable()}</div>
                 </>
               ) : (
                 <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>sin datos</div>
@@ -207,7 +398,7 @@ function CEDEARsPanel() {
         })}
       </div>
       <p style={{ fontFamily:FB, fontSize:10, color:t.fa, textAlign:"center", marginTop:12 }}>
-        Precios en ARS · DATA912 · Actualización cada 5 min
+        Precios en ARS · DATA912 · {liveCount}/{cedearRows.length} CEDEARs con precio vivo · Market cap, beta, dividend yield y earnings no se muestran porque DATA912 no los provee en este endpoint.
       </p>
     </div>
   );
@@ -384,6 +575,30 @@ function EquityScreener() {
     };
   });
 
+  const intelligenceRows = useMemo(
+    () => buildEquityIntelligenceRows(EQUITIES, livePrices, liveHistory),
+    [livePrices, liveHistory]
+  );
+  const intelligenceByTicker = useMemo(
+    () => new Map(intelligenceRows.map((row) => [row.ticker, row])),
+    [intelligenceRows]
+  );
+  const moversByMarket = useMemo(() => ({
+    ARG: buildMarketMovers(intelligenceRows.filter((row) => row.market === "ARG")),
+    US: buildMarketMovers(intelligenceRows.filter((row) => row.market === "US")),
+    ETF: buildMarketMovers(intelligenceRows.filter((row) => row.market === "ETF")),
+  }), [intelligenceRows]);
+  const sectorRows = useMemo(
+    () => buildSectorIntelligence(intelligenceRows.filter((row) => row.market !== "ETF")).slice(0, 6),
+    [intelligenceRows]
+  );
+  const availabilitySummary = useMemo(() => {
+    const livePriceCount = intelligenceRows.filter((row) => row.availability.price === "live").length;
+    const liveHistoryCount = intelligenceRows.filter((row) => row.availability.history === "live").length;
+    const peCount = intelligenceRows.filter((row) => row.peForward !== null).length;
+    return { livePriceCount, liveHistoryCount, peCount };
+  }, [intelligenceRows]);
+
   const sort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === 1 ? -1 : 1);
     else { setSortCol(col); setSortDir(col === "sc" ? -1 : 1); }
@@ -447,6 +662,20 @@ function EquityScreener() {
     );
   };
 
+  const StaticTh = ({ label, tip, right, center }: { label: string; tip?: string; right?: boolean; center?: boolean }) => (
+    <th title={tip} style={{
+      padding:"10px 10px", textAlign:center?"center":right?"right":"left",
+      fontSize:9, fontWeight:750,
+      color:t.fa,
+      letterSpacing:".1em", textTransform:"uppercase",
+      borderBottom:`1px solid ${t.brd}`,
+      background:t.alt, whiteSpace:"nowrap",
+      position:"sticky", top:0, zIndex:5,
+    }}>
+      {label}
+    </th>
+  );
+
   const Pill = ({ label, active, onClick, color }: { label: string; active: boolean; onClick: () => void; color?: string }) => (
     <button onClick={onClick} style={{
       padding:"6px 11px", borderRadius:6, fontFamily:FB, fontSize:11,
@@ -459,6 +688,26 @@ function EquityScreener() {
 
   const clearAll = () => { setFMkt("Todos"); setFCal("Todas"); setFVal("Todas"); setFMom("Todos"); setFAn("Todos"); setSearch(""); };
   const hasFilters = fMkt!=="Todos"||fCal!=="Todas"||fVal!=="Todas"||fMom!=="Todos"||fAn!=="Todos"||!!search;
+  const fmtCompact = (n: number | null) => n === null ? "—" : n.toLocaleString("es-AR", { maximumFractionDigits: 0 });
+
+  const MoverColumn = ({ title, rows }: { title: string; rows: EquityIntelligenceRow[] }) => (
+    <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"10px 12px" }}>
+      <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>{title}</div>
+      {rows.length ? rows.slice(0, 4).map((row) => (
+        <div key={`${title}-${row.ticker}`} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{row.ticker}</div>
+            <div style={{ fontFamily:FB, fontSize:9, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.sector}</div>
+          </div>
+          <div style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:(row.changePct ?? 0) >= 0 ? t.gr : t.rd }}>
+            {row.changePct !== null ? `${row.changePct >= 0 ? "+" : ""}${row.changePct.toFixed(2)}%` : "—"}
+          </div>
+        </div>
+      )) : (
+        <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>Sin datos vivos suficientes.</div>
+      )}
+    </div>
+  );
 
   return (
     <div className="fade-up">
@@ -480,7 +729,27 @@ function EquityScreener() {
           labelError="Historial: usando datos estáticos"
         />
         <div style={{ flex:1, fontFamily:FB, fontSize:10, color:t.fa, textAlign:"right" }}>
-          Fundamentales (PE, Score): snapshot 19 MAR 2026 · Cotizaciones en tiempo real vía Finnhub
+          Precios live: {availabilitySummary.livePriceCount}/{EQUITIES.length} · Historial live: {availabilitySummary.liveHistoryCount}/{EQUITIES.length} · Fwd P/E snapshot: {availabilitySummary.peCount}/{EQUITIES.length}
+        </div>
+      </div>
+
+      {/* ── MARKET INTELLIGENCE ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:8, marginBottom:14 }}>
+        <MoverColumn title="Argentina" rows={moversByMarket.ARG.topGainers.length ? moversByMarket.ARG.topGainers : moversByMarket.ARG.topLosers} />
+        <MoverColumn title="USA" rows={moversByMarket.US.topGainers.length ? moversByMarket.US.topGainers : moversByMarket.US.topLosers} />
+        <MoverColumn title="ETFs" rows={moversByMarket.ETF.topGainers.length ? moversByMarket.ETF.topGainers : moversByMarket.ETF.topLosers} />
+        <div style={{ background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"10px 12px" }}>
+          <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>Sectores</div>
+          {sectorRows.length ? sectorRows.slice(0, 4).map((sector) => (
+            <div key={sector.sector} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
+              <span style={{ fontFamily:FB, fontSize:10, color:t.mu }}>{sector.sector}</span>
+              <span style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:sector.avgChangePct !== null && sector.avgChangePct >= 0 ? t.gr : t.rd }}>
+                {sector.avgChangePct !== null ? `${sector.avgChangePct >= 0 ? "+" : ""}${sector.avgChangePct.toFixed(2)}%` : "—"}
+              </span>
+            </div>
+          )) : (
+            <div style={{ fontFamily:FB, fontSize:11, color:t.fa }}>Sin cambios sectoriales vivos.</div>
+          )}
         </div>
       </div>
 
@@ -562,6 +831,11 @@ function EquityScreener() {
                   <Th label="Target"    col="tg"   tip="Precio objetivo consenso" right />
                   <Th label="Potencial" col="_up"  tip="Upside al target" right />
                   <Th label="Fwd P/E"   col="fpe"  tip="Precio / ganancias est. fwd" right />
+                  <StaticTh label="Sector" tip="Clasificación interna de sector e industria" />
+                  <StaticTh label="Vol." tip="Volumen vivo si el proveedor lo entrega" right />
+                  <StaticTh label="EV/EBITDA" tip="No disponible en los endpoints actuales" right />
+                  <StaticTh label="Div." tip="Dividend yield no disponible en los endpoints actuales" right />
+                  <StaticTh label="Earnings" tip="Fecha de resultados no disponible en el screener actual" center />
                   <Th label="ROIC−WACC" col="rw"   tip="Creación de valor económico" right />
                   <Th label="Calidad"   col="cal"  tip="Calidad del negocio" center />
                   <Th label="Valuación" col="val"  tip="Múltiplos vs histórico" center />
@@ -576,6 +850,7 @@ function EquityScreener() {
               {filtered.map((e, i) => {
                 const mb      = mktBadge[e.mkt] ?? mktBadge.US;
                 const lp      = livePrices[e.t];
+                const intel   = intelligenceByTicker.get(e.t);
                 const hasHist = !!liveHistory[e.t];
                 const histLoading = !hasHist && quotesComplete && histStatus !== "error";
                 const ud      = e._up;
@@ -670,6 +945,22 @@ function EquityScreener() {
                       <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12 }}>
                         {e.fpe ? <span style={{ color:e.fpe<20?t.gr:e.fpe<35?t.mu:t.rd }}>{e.fpe}</span>
                                : <span style={{ color:t.fa }}>—</span>}
+                      </td>
+                      <td style={{ padding:"7px 10px", minWidth:120 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:intel?.sector === "Sin clasificar" ? t.fa : t.mu }}>{intel?.sector ?? "—"}</div>
+                        <div style={{ fontSize:8, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:130 }}>{intel?.industry ?? formatUnavailable()}</div>
+                      </td>
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12, color:intel?.volume ? t.mu : t.fa }}>
+                        {fmtCompact(intel?.volume ?? null)}
+                      </td>
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12, color:t.fa }}>
+                        {formatUnavailable("—")}
+                      </td>
+                      <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12, color:t.fa }}>
+                        {formatUnavailable("—")}
+                      </td>
+                      <td style={{ padding:"7px 10px", textAlign:"center", fontSize:12, color:t.fa }}>
+                        {formatUnavailable("—")}
                       </td>
                       <td style={{ padding:"7px 10px", textAlign:"right", fontSize:12 }}>
                         {e.rw !== null

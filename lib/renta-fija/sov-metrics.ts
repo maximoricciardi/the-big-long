@@ -4,8 +4,10 @@
 
 import { BOND_SCHEDULES, calcSovTIR } from "@/lib/data/bonds-schedules";
 import type { SoberanoBond } from "@/types";
+import { buildFixedIncomeMetadata } from "./metadata";
 import { parseARSPriceStrict, parseNum, parsePctStrict } from "./parse";
 import { resolveQuote, validateLivePrice } from "./prices";
+import { canCalculateWithSchedule } from "./calculation-safety";
 import type { DataQualityFlag, PriceMap, SovComputed } from "./types";
 
 export function computeSovMetrics(
@@ -38,8 +40,25 @@ export function computeSovMetrics(
   // TIR live: solo se calcula con precio live real
   const flows = BOND_SCHEDULES[bond.t];
   let tirLive: number | null = null;
+  const metadata = buildFixedIncomeMetadata({
+    ticker: bond.t,
+    category: "sovereign",
+    confidence: "medium",
+    maturity: bond.vto,
+    maturitySource: "static",
+    staticMetadata: {
+      maturity: bond.vto,
+      category: "sovereign",
+      currency: "USD",
+      law: ley,
+      paymentFrequency: bond.pago,
+      cashflows: flows,
+      hasSchedule: Boolean(flows?.length),
+    },
+  });
+  const safety = canCalculateWithSchedule(metadata, pLive, "medium");
 
-  if (flows?.length && pLive && pLive > 0) {
+  if (safety.ok && flows?.length && pLive && pLive > 0) {
     if (flows.some(f => new Date(f.date) > now)) {
       const tir = calcSovTIR(pLive, flows, now) * 100;
       if (tir > 0 && tir < 100 && Number.isFinite(tir)) {
@@ -51,6 +70,8 @@ export function computeSovMetrics(
       flags.push("tir_unavailable");
     }
   } else if (!flows?.length) {
+    flags.push("tir_unavailable");
+  } else if (!safety.ok) {
     flags.push("tir_unavailable");
   }
 

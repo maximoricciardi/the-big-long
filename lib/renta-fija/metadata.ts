@@ -1,8 +1,10 @@
 import { BONOS_CER, DOLARLINKED, DUALES, LECAP, SOBERANOS, TAMAR } from "@/lib/data/renta-fija";
 import { BOND_SCHEDULES, type BondFlow } from "@/lib/data/bonds-schedules";
 import type { FixedIncomeCategoryId } from "./taxonomy";
+import { confidenceFromSource, reviewStatusFromConfidence, type ValidationStatus } from "./confidence";
+import { nextScheduleEvent, validateSchedule } from "./schedule-engine";
 
-export type MetadataConfidence = "high" | "medium" | "low";
+export type MetadataConfidence = "highest" | "high" | "medium" | "low";
 export type MetadataReviewStatus = "verified" | "inferred" | "needs_review" | "unavailable";
 export type MetadataSourceKind = "provider" | "static_schedule" | "static_snapshot" | "ticker_inference" | "unavailable";
 export type CashflowScheduleStatus = "reliable" | "partial" | "maturity_only" | "unavailable";
@@ -11,6 +13,7 @@ export type FieldSource<T> = {
   value: T;
   source: MetadataSourceKind;
   confidence: MetadataConfidence;
+  validationStatus?: ValidationStatus;
 };
 
 export type FixedIncomeCashflowEvent = {
@@ -45,6 +48,8 @@ export type FixedIncomeMetadata = {
   cashflows: FixedIncomeCashflowEvent[];
   metadataSource: MetadataSourceKind;
   metadataConfidence: MetadataConfidence;
+  confidenceScore: number;
+  validationStatus: ValidationStatus;
   lastUpdated: string;
   reviewStatus: MetadataReviewStatus;
   reviewReasons: string[];
@@ -140,14 +145,9 @@ function cashflowsFromSchedule(flows: BondFlow[] | undefined): FixedIncomeCashfl
       amortizationAmount: hasAmort ? flow.amort : undefined,
       source: "static_schedule",
       confidence: "medium",
+      validationStatus: "validated",
     };
   });
-}
-
-function nextPaymentFromCashflows(cashflows: FixedIncomeCashflowEvent[], now = new Date()) {
-  return cashflows
-    .filter((flow) => new Date(flow.date) > now)
-    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))[0]?.date;
 }
 
 export function buildStaticInstrumentMetadata(): Record<string, InstrumentMetadata> {
@@ -192,19 +192,22 @@ export function buildFixedIncomeMetadata({
 }): FixedIncomeMetadata {
   const normalizedTicker = normalizeFixedIncomeTicker(ticker);
   const schedule = staticMetadata?.cashflows;
-  const cashflows = cashflowsFromSchedule(schedule);
-  const nextPaymentDate = nextPaymentFromCashflows(cashflows, now);
-  const hasSchedule = Boolean(cashflows.length);
+  const rawCashflows = cashflowsFromSchedule(schedule);
+  const source = rawCashflows.length ? "static_schedule" : staticMetadata ? "static_snapshot" : maturitySource === "ticker-inferred" ? "ticker_inference" : "unavailable";
+  const scheduleResult = validateSchedule({ ticker, events: rawCashflows, source, confidence });
+  const cashflows = scheduleResult.events;
+  const nextPaymentDate = nextScheduleEvent(cashflows, now)?.date;
+  const hasSchedule = scheduleResult.status === "reliable";
   const maturityKind: MetadataSourceKind = staticMetadata?.maturity ? "static_snapshot" : maturitySource === "ticker-inferred" ? "ticker_inference" : "unavailable";
-  const source = hasSchedule ? "static_schedule" : staticMetadata ? "static_snapshot" : maturitySource === "ticker-inferred" ? "ticker_inference" : "unavailable";
-  const scheduleStatus: CashflowScheduleStatus = hasSchedule ? "reliable" : maturity ? "maturity_only" : "unavailable";
+  const scheduleStatus: CashflowScheduleStatus = hasSchedule ? "reliable" : maturity ? "maturity_only" : scheduleResult.status;
+  const confidenceProfile = confidenceFromSource(source);
   const reviewReasons = [
     ...(confidence === "low" ? ["low_classification_confidence"] : []),
     ...(!maturity ? ["missing_maturity"] : []),
     ...(!hasSchedule ? ["missing_cashflow_schedule"] : []),
     ...(source === "ticker_inference" ? ["metadata_inferred"] : []),
   ];
-  const reviewStatus: MetadataReviewStatus = hasSchedule ? "verified" : source === "ticker_inference" || maturitySource === "ticker-inferred" ? "inferred" : reviewReasons.length ? "needs_review" : "verified";
+  const reviewStatus: MetadataReviewStatus = hasSchedule ? "verified" : source === "ticker_inference" || maturitySource === "ticker-inferred" ? "inferred" : reviewReasons.length ? "needs_review" : reviewStatusFromConfidence(confidenceProfile.confidence, source);
 
   return {
     ticker,
@@ -225,7 +228,9 @@ export function buildFixedIncomeMetadata({
     cashflowScheduleStatus: scheduleStatus,
     cashflows,
     metadataSource: source,
-    metadataConfidence: hasSchedule ? "medium" : confidence,
+    metadataConfidence: hasSchedule ? confidenceProfile.confidence : confidence,
+    confidenceScore: hasSchedule ? confidenceProfile.score : confidenceFromSource(source).score,
+    validationStatus: scheduleResult.validation.status,
     lastUpdated: new Date().toISOString(),
     reviewStatus,
     reviewReasons,

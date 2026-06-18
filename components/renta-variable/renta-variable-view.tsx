@@ -6,7 +6,9 @@ import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EquityIdentityMark } from "@/components/equity/equity-identity-mark";
 import { EQUITIES, tvUrl } from "@/lib/data/equities";
+import { resolveEquityIdentity } from "@/lib/equity/identity";
 import { useCuratedReports } from "@/hooks/use-curated-reports";
 import { useLiveNews } from "@/hooks/use-live-news";
 import {
@@ -17,6 +19,7 @@ import {
   formatUnavailable,
   type EquityIntelligenceRow,
 } from "@/lib/equity/intelligence";
+import { readLivePricesCache, writeLivePricesCache } from "@/lib/equity/live-price-cache";
 import type { ThemeTokens } from "@/types";
 
 interface RentaVariableViewProps {
@@ -210,7 +213,10 @@ function EquityEarningsFocus() {
         {nextThree.length ? nextThree.map((item) => (
           <div key={`${item.symbol}-${item.date}`} style={{ background:t.alt, border:`1px solid ${t.brd}`, borderRadius:8, padding:"9px 10px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", gap:8, marginBottom:5 }}>
-              <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{item.symbol}</span>
+              <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                <EquityIdentityMark identity={resolveEquityIdentity({ ticker:item.symbol, name:item.name, market:"US" })} t={t} size="sm" />
+                <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{item.symbol}</span>
+              </div>
               <span style={{ fontFamily:FB, fontSize:9, color:t.go }}>{fmtDate(item.date)} · {fmtHour(item.hour)}</span>
             </div>
             <div style={{ fontFamily:FB, fontSize:10, color:t.mu, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginBottom:6 }}>{item.name}</div>
@@ -325,9 +331,12 @@ function CEDEARsPanel() {
       <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>{title}</div>
       {rows.length ? rows.slice(0, 3).map((row) => (
         <div key={`${title}-${row.ticker}`} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
-          <div style={{ minWidth:0 }}>
-            <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{row.ticker}</div>
-            <div style={{ fontFamily:FB, fontSize:9, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.name}</div>
+          <div style={{ minWidth:0, display:"flex", alignItems:"center", gap:7 }}>
+            <EquityIdentityMark identity={row.identity} t={t} size="sm" />
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{row.ticker}</div>
+              <div style={{ fontFamily:FB, fontSize:9, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.name}</div>
+            </div>
           </div>
           <div style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:(row.changePct ?? 0) >= 0 ? t.gr : t.rd }}>
             {row.changePct !== null ? `${row.changePct >= 0 ? "+" : ""}${row.changePct.toFixed(2)}%` : "—"}
@@ -376,8 +385,14 @@ function CEDEARsPanel() {
               onClick={() => {
                 (window as typeof window & { __goChart?: (t: string) => void }).__goChart?.(c.ticker);
               }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
-                <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:t.tx }}>{c.ticker}</span>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8, gap:8 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                  <EquityIdentityMark identity={c.identity} t={t} size="md" />
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{c.ticker}</div>
+                    {c.underlyingTicker !== c.ticker && <div style={{ fontFamily:FB, fontSize:8, color:t.fa }}>Suby. {c.underlyingTicker}</div>}
+                  </div>
+                </div>
                 <span style={{ fontFamily:FB, fontSize:8, color:t.fa, background:t.alt, padding:"1px 5px", borderRadius:4 }}>{c.sector}</span>
               </div>
               <div style={{ fontFamily:FB, fontSize:10, color:t.mu, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</div>
@@ -444,10 +459,8 @@ function EquityScreener() {
 
   // Load cached prices from localStorage (client-only)
   useEffect(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem("tbl-live-prices") || "{}") as Record<string, LivePrice>;
-      if (Object.keys(cached).length) setLivePrices(cached);
-    } catch {}
+    const cached = readLivePricesCache<LivePrice>();
+    if (Object.keys(cached.prices).length) setLivePrices(cached.prices);
   }, []);
 
   // Phase 1 — batch quotes
@@ -464,7 +477,7 @@ function EquityScreener() {
           livePricesRef.current = prices;
           setLivePrices(prev => {
             const next = { ...prev, ...prices };
-            try { localStorage.setItem("tbl-live-prices", JSON.stringify(next)); } catch {}
+            writeLivePricesCache(next);
             return next;
           });
           setLiveStatus(data._meta?.status === "partial" ? "degraded" : "ok");
@@ -695,9 +708,12 @@ function EquityScreener() {
       <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>{title}</div>
       {rows.length ? rows.slice(0, 4).map((row) => (
         <div key={`${title}-${row.ticker}`} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:6 }}>
-          <div style={{ minWidth:0 }}>
-            <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{row.ticker}</div>
-            <div style={{ fontFamily:FB, fontSize:9, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.sector}</div>
+          <div style={{ minWidth:0, display:"flex", alignItems:"center", gap:7 }}>
+            <EquityIdentityMark identity={row.identity} t={t} size="sm" />
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontFamily:"monospace", fontSize:11, fontWeight:800, color:t.tx }}>{row.ticker}</div>
+              <div style={{ fontFamily:FB, fontSize:9, color:t.fa, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.sector}</div>
+            </div>
           </div>
           <div style={{ fontFamily:FB, fontSize:11, fontWeight:800, color:(row.changePct ?? 0) >= 0 ? t.gr : t.rd }}>
             {row.changePct !== null ? `${row.changePct >= 0 ? "+" : ""}${row.changePct.toFixed(2)}%` : "—"}
@@ -872,15 +888,19 @@ function EquityScreener() {
                     {/* Ticker + empresa */}
                     <td style={{ padding:"7px 10px", minWidth:170 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ width:32, height:26, borderRadius:6, flexShrink:0, background:mb.bg, color:mb.tx, border:`1px solid ${mb.tx}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, letterSpacing:".06em" }}>
-                          {mb.label}
-                        </div>
+                        {intel ? <EquityIdentityMark identity={intel.identity} t={t} size="md" /> : (
+                          <div style={{ width:32, height:26, borderRadius:6, flexShrink:0, background:mb.bg, color:mb.tx, border:`1px solid ${mb.tx}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, letterSpacing:".06em" }}>
+                            {mb.label}
+                          </div>
+                        )}
                         <div>
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                             <span style={{ fontSize:12, fontWeight:700, color:t.tx }}>{e.t}</span>
+                            <span style={{ fontSize:8, color:mb.tx, background:mb.bg, border:`1px solid ${mb.tx}22`, borderRadius:4, padding:"1px 4px" }}>{mb.label}</span>
                             {lp && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", display:"inline-block" }} title="Precio en vivo"/>}
                           </div>
-                          <div style={{ fontSize:10, color:t.mu, maxWidth:130, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.e}</div>
+                          <div style={{ fontSize:10, color:t.mu, maxWidth:130, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{intel?.name ?? e.e}</div>
+                          {intel && intel.underlyingTicker !== e.t && <div style={{ fontSize:8, color:t.fa }}>Suby. {intel.underlyingTicker}</div>}
                         </div>
                       </div>
                     </td>

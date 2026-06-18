@@ -2,6 +2,7 @@
 // Cubre las próximas 2 semanas
 
 import { buildMeta, jsonWithMeta, normalizeError } from "@/lib/api/reliability";
+import { resolveEarningsLogo } from "@/lib/equity/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -15,54 +16,6 @@ const HEADERS = {
   "Origin": "https://www.nasdaq.com",
   "Referer": "https://www.nasdaq.com/",
 };
-
-const DOMAIN_MAP: Record<string, string> = {
-  AAPL:"apple.com",MSFT:"microsoft.com",GOOGL:"google.com",AMZN:"amazon.com",
-  META:"meta.com",NVDA:"nvidia.com",TSLA:"tesla.com",NFLX:"netflix.com",
-  JPM:"jpmorganchase.com",BAC:"bankofamerica.com",GS:"goldmansachs.com",
-  V:"visa.com",MA:"mastercard.com",AMD:"amd.com",INTC:"intel.com",
-  AVGO:"broadcom.com",ORCL:"oracle.com",ADBE:"adobe.com",CRM:"salesforce.com",
-  QCOM:"qualcomm.com",IBM:"ibm.com",CSCO:"cisco.com",COST:"costco.com",
-  WMT:"walmart.com",KO:"coca-cola.com",PEP:"pepsico.com",MCD:"mcdonalds.com",
-  SBUX:"starbucks.com",NKE:"nike.com",DIS:"disney.com",
-  XOM:"exxonmobil.com",CVX:"chevron.com",COP:"conocophillips.com",
-  JNJ:"jnj.com",PFE:"pfizer.com",ABBV:"abbvie.com",UNH:"unitedhealthgroup.com",
-  LLY:"lilly.com",ABT:"abbott.com",MRK:"merck.com",
-  COIN:"coinbase.com",MSTR:"microstrategy.com",PLTR:"palantir.com",
-  MELI:"mercadolibre.com",GLOB:"globant.com",BABA:"alibaba.com",
-  SPGI:"spglobal.com",BX:"blackstone.com",KKR:"kkr.com",
-  LMT:"lockheedmartin.com",NOC:"northropgrumman.com",RTX:"rtx.com",
-  HON:"honeywell.com",BA:"boeing.com",CAT:"caterpillar.com",DE:"deere.com",
-  HOOD:"robinhood.com",SCHW:"schwab.com",AMGN:"amgen.com",
-  PYPL:"paypal.com",SNAP:"snap.com",UBER:"uber.com",SHOP:"shopify.com",
-  TGT:"target.com",HD:"homedepot.com",LOW:"lowes.com",T:"att.com",
-  VZ:"verizon.com",CMCSA:"comcast.com",TMUS:"t-mobile.com",
-  GE:"ge.com",GEV:"gevernova.com",GM:"gm.com",F:"ford.com",
-  DAL:"delta.com",UAL:"united.com",AAL:"aa.com",LUV:"southwest.com",
-  MAR:"marriott.com",HLT:"hilton.com",BKNG:"bookingholdings.com",
-  ABNB:"airbnb.com",DASH:"doordash.com",CMG:"chipotle.com",
-  C:"citigroup.com",MS:"morganstanley.com",WFC:"wellsfargo.com",
-  BLK:"blackrock.com",AXP:"americanexpress.com",COF:"capitalone.com",
-  TSM:"tsmc.com",ASML:"asml.com",MU:"micron.com",TXN:"ti.com",
-  NOW:"servicenow.com",PANW:"paloaltonetworks.com",CRWD:"crowdstrike.com",
-  DDOG:"datadoghq.com",NET:"cloudflare.com",MDB:"mongodb.com",
-  WDAY:"workday.com",SNOW:"snowflake.com",TEAM:"atlassian.com",
-  ZS:"zscaler.com",ROKU:"roku.com",SPOT:"spotify.com",
-  RBLX:"roblox.com",EA:"ea.com",TTWO:"take2games.com",
-  PG:"pg.com",CL:"colgatepalmolive.com",KMB:"kimberly-clark.com",
-  MO:"altria.com",PM:"pmi.com",EL:"esteelauder.com",
-  TMO:"thermofisher.com",DHR:"danaher.com",ISRG:"intuitive.com",
-  MDT:"medtronic.com",BMY:"bms.com",GILD:"gilead.com",
-  REGN:"regeneron.com",VRTX:"vrtx.com",BIIB:"biogen.com",
-};
-
-function tickerLogoUrl(symbol: string): string {
-  return `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`;
-}
-
-function domainLogoUrl(domain: string): string {
-  return `https://logo.clearbit.com/${domain}`;
-}
 
 function dateStr(offset: number): string {
   const d = new Date();
@@ -101,6 +54,7 @@ export async function GET() {
         for (const row of rows) {
           if (!row.symbol) continue;
           const sym = row.symbol.toUpperCase();
+          const logo = resolveEarningsLogo(sym);
           allRows.push({
             symbol: sym,
             name:   row.name ?? sym,
@@ -110,9 +64,9 @@ export async function GET() {
             epsEstimate: row.epsForecast
               ? parseFloat(row.epsForecast.replace(/[^0-9.-]/g,"")) || null
               : null,
-            logo: DOMAIN_MAP[sym] ? domainLogoUrl(DOMAIN_MAP[sym]) : tickerLogoUrl(sym),
-            companyDomain: DOMAIN_MAP[sym] ?? null,
-            logoFallback: DOMAIN_MAP[sym] ? tickerLogoUrl(sym) : null,
+            logo: logo.logo,
+            companyDomain: logo.companyDomain,
+            logoFallback: logo.logoFallback,
           });
         }
       } catch (err) {

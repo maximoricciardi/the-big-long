@@ -1,3 +1,5 @@
+import { resolveEquityIdentity, type EquityIdentity } from "@/lib/equity/identity";
+
 export type EquityMarket = "ARG" | "US" | "ETF" | "CEDEAR";
 export type DataAvailability = "live" | "static" | "derived" | "unavailable";
 
@@ -46,6 +48,14 @@ export interface CedearSeedLike {
 export interface EquityIntelligenceRow {
   ticker: string;
   name: string;
+  identity: EquityIdentity;
+  underlyingTicker: string;
+  logoUrl: string | null;
+  logoFallbackUrl: string | null;
+  logoSource: string;
+  logoStatus: string;
+  identityConfidence: string;
+  fallbackInitials: string;
   market: EquityMarket;
   sector: string;
   industry: string;
@@ -205,17 +215,34 @@ export function buildEquityIntelligenceRows(
     const quote = quotes[equity.t];
     const hist = history[equity.t];
     const metadata = metaFor(equity.t, equity.mkt);
-    const price = quote?.price ?? equity.p ?? null;
-    const changePct = quote?.changePct ?? null;
-    const distance52wHigh = hist?.distHi52 ?? equity.ma ?? null;
-
-    return {
+    const identity = resolveEquityIdentity({
       ticker: equity.t,
       name: equity.e,
       market: equity.mkt,
       sector: metadata.sector,
       industry: metadata.industry,
       country: metadata.country,
+      assetType: equity.mkt === "ETF" ? "etf" : equity.t === "MERV" ? "index" : "stock",
+    });
+    const price = quote?.price ?? equity.p ?? null;
+    const changePct = quote?.changePct ?? null;
+    const distance52wHigh = hist?.distHi52 ?? equity.ma ?? null;
+
+    return {
+      ticker: equity.t,
+      name: identity.displayName,
+      identity,
+      underlyingTicker: identity.underlyingTicker,
+      logoUrl: identity.logoUrl,
+      logoFallbackUrl: identity.logoFallbackUrl,
+      logoSource: identity.logoSource,
+      logoStatus: identity.logoStatus,
+      identityConfidence: identity.identityConfidence,
+      fallbackInitials: identity.fallbackInitials,
+      market: equity.mkt,
+      sector: identity.sector,
+      industry: identity.industry,
+      country: identity.country,
       currency: equity.cur === "ARS" ? "ARS" : "USD",
       price,
       changePct,
@@ -265,15 +292,32 @@ export function buildCedearIntelligenceRows(
   return cedears.map((cedear) => {
     const quote = quotes[cedear.t];
     const metadata = metaFor(cedear.t, "CEDEAR", cedear.sector);
-    const volume = quote?.volume ?? null;
-
-    return {
+    const identity = resolveEquityIdentity({
       ticker: cedear.t,
       name: cedear.n,
       market: "CEDEAR",
       sector: metadata.sector,
       industry: metadata.industry,
       country: metadata.country,
+      assetType: metadata.sector === "ETF" || cedear.sector === "ETF" ? "etf" : "cedear",
+    });
+    const volume = quote?.volume ?? null;
+
+    return {
+      ticker: cedear.t,
+      name: identity.displayName,
+      identity,
+      underlyingTicker: identity.underlyingTicker,
+      logoUrl: identity.logoUrl,
+      logoFallbackUrl: identity.logoFallbackUrl,
+      logoSource: identity.logoSource,
+      logoStatus: identity.logoStatus,
+      identityConfidence: identity.identityConfidence,
+      fallbackInitials: identity.fallbackInitials,
+      market: "CEDEAR",
+      sector: identity.sector,
+      industry: identity.industry,
+      country: identity.country,
       currency: "ARS",
       price: quote?.price ?? null,
       changePct: quote?.changePct ?? null,

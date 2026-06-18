@@ -9,6 +9,8 @@ import { useState, useEffect } from "react";
 import { Search, LineChart } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
+import { EquityIdentityMark } from "@/components/equity/equity-identity-mark";
+import { resolveEquityIdentity } from "@/lib/equity/identity";
 
 interface Cedear {
   t: string;  // ticker
@@ -152,7 +154,8 @@ export function CEDEARsPanel() {
 
   const enriched = CEDEARS_LIST.map(c => {
     const live = prices[c.t] || prices[c.t + "D"] || prices[c.t.toUpperCase()] || null;
-    return { ...c, price: live?.price ?? null, pct: live?.pct ?? null, hasLive: !!live };
+    const identity = resolveEquityIdentity({ ticker: c.t, name: c.n, market: "CEDEAR", sector: c.s, assetType: c.s === "ETF" ? "etf" : "cedear" });
+    return { ...c, identity, price: live?.price ?? null, pct: live?.pct ?? null, hasLive: !!live };
   });
 
   const filtered = enriched
@@ -213,6 +216,7 @@ export function CEDEARsPanel() {
             <span style={{ fontFamily: FB, fontSize: 9, color: "rgba(255,255,255,.3)", marginRight: 4, textTransform: "uppercase", letterSpacing: ".08em" }}>HOY</span>
             {topGainers.map((c, i) => (
               <div key={i} style={{ background: "rgba(34,197,94,.15)", border: "1px solid rgba(34,197,94,.25)", borderRadius: 8, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                <EquityIdentityMark identity={c.identity} t={t} size="sm" />
                 <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, color: "#4ade80" }}>{c.t}</span>
                 <span style={{ fontFamily: FB, fontSize: 10, fontWeight: 700, color: "#22c55e" }}>+{c.pct!.toFixed(2)}%</span>
               </div>
@@ -220,6 +224,7 @@ export function CEDEARsPanel() {
             <span style={{ color: "rgba(255,255,255,.15)", fontSize: 12 }}>|</span>
             {topLosers.map((c, i) => (
               <div key={i} style={{ background: "rgba(239,68,68,.15)", border: "1px solid rgba(239,68,68,.25)", borderRadius: 8, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                <EquityIdentityMark identity={c.identity} t={t} size="sm" />
                 <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, color: "#f87171" }}>{c.t}</span>
                 <span style={{ fontFamily: FB, fontSize: 10, fontWeight: 700, color: "#ef4444" }}>{c.pct!.toFixed(2)}%</span>
               </div>
@@ -278,11 +283,15 @@ export function CEDEARsPanel() {
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 28px ${sc}22`; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "none"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}>
                 <div style={{ position: "absolute", right: -6, bottom: -14, fontSize: 56, opacity: .04, pointerEvents: "none", userSelect: "none" }}>{secEmoji(c.s)}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 800, color: sc, background: sc + "15", padding: "3px 8px", borderRadius: 6, border: `1px solid ${sc}30` }}>{c.t}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                    <EquityIdentityMark identity={c.identity} t={t} size="md" />
+                    <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 800, color: sc, background: sc + "15", padding: "3px 8px", borderRadius: 6, border: `1px solid ${sc}30` }}>{c.t}</div>
+                  </div>
                   <span style={{ fontFamily: FB, fontSize: 8, fontWeight: 700, color: sc, background: sc + "18", padding: "2px 7px", borderRadius: 10 }}>{c.s}</span>
                 </div>
-                <div style={{ fontFamily: FB, fontSize: 11, fontWeight: 600, color: t.tx, marginBottom: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.n}</div>
+                <div style={{ fontFamily: FB, fontSize: 11, fontWeight: 600, color: t.tx, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.identity.displayName}</div>
+                <div style={{ fontFamily: FB, fontSize: 8, color: t.fa, marginBottom: 10 }}>{c.identity.underlyingTicker !== c.t ? `Suby. ${c.identity.underlyingTicker}` : c.identity.country}</div>
                 {c.hasLive ? (
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
@@ -316,6 +325,9 @@ export function CEDEARsPanel() {
                 title={`${c.n} · ${c.pct !== null ? (c.pct >= 0 ? "+" : "") + c.pct.toFixed(2) + "%" : "sin dato"}`}
                 onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.07)")}
                 onMouseLeave={e => (e.currentTarget.style.transform = "none")}>
+                <div style={{ display:"flex", justifyContent:"center", marginBottom:5 }}>
+                  <EquityIdentityMark identity={c.identity} t={t} size="sm" showTooltip={false} />
+                </div>
                 <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, color: heatText(c.pct), marginBottom: 2 }}>{c.t}</div>
                 {c.pct !== null
                   ? <div style={{ fontFamily: FB, fontSize: 9, fontWeight: 700, color: heatText(c.pct) }}>{c.pct >= 0 ? "+" : ""}{c.pct.toFixed(1)}%</div>
@@ -356,11 +368,12 @@ export function CEDEARsPanel() {
                     <tr key={i} style={{ borderBottom: `1px solid ${t.brd}22` }}>
                       <td style={{ padding: "8px 12px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <EquityIdentityMark identity={c.identity} t={t} size="sm" />
                           <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, background: sc + "15", color: sc, padding: "2px 7px", borderRadius: 5, border: `1px solid ${sc}30` }}>{c.t}</span>
                           {c.hasLive && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 4px #22c55e" }} />}
                         </div>
                       </td>
-                      <td style={{ padding: "8px 12px", color: t.tx, fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.n}</td>
+                      <td style={{ padding: "8px 12px", color: t.tx, fontWeight: 500, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.identity.displayName}</td>
                       <td style={{ padding: "8px 12px" }}>
                         <span style={{ fontFamily: FB, fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 12, background: sc + "18", color: sc }}>{c.s}</span>
                       </td>

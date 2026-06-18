@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, DollarSign, ClipboardList, BarChart3, Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { useIsMobile } from "@/hooks/use-window-size";
@@ -9,9 +9,43 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LECAP } from "@/lib/data/renta-fija";
 import { useLiveNews } from "@/hooks/use-live-news";
 import { useCuratedReports } from "@/hooks/use-curated-reports";
-import { FH, FB, FD } from "@/lib/constants";
+import { FH, FB, FD, LIVE_PRICES_CACHE_KEY, LIVE_PRICES_CACHE_TTL_MS } from "@/lib/constants";
 import type { DolarData, RiesgoPaisData, LiveMarket } from "@/types";
 import { WhatsAppCTA } from "@/components/inicio/whatsapp-cta";
+import { EQUITIES } from "@/lib/data/equities";
+import { readTimestampedCache, writeTimestampedCache } from "@/lib/live-data-cache";
+
+type TopMover = { ticker: string; price: number; pct: number };
+type TopMoversStatus = "loading" | "live" | "cache" | "stale" | "error" | "empty";
+type CachedLivePrice = { price: number; changePct: number };
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function normalizeLivePrices(value: unknown): Record<string, CachedLivePrice> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const out: Record<string, CachedLivePrice> = {};
+
+  Object.entries(value as Record<string, unknown>).forEach(([ticker, entry]) => {
+    if (typeof entry !== "object" || entry === null) return;
+    const price = (entry as Partial<CachedLivePrice>).price;
+    const changePct = (entry as Partial<CachedLivePrice>).changePct;
+    if (isFiniteNumber(price) && price > 0 && isFiniteNumber(changePct)) {
+      out[ticker] = { price, changePct };
+    }
+  });
+
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function buildTopMovers(prices: Record<string, CachedLivePrice>): TopMover[] {
+  const withData = Object.entries(prices)
+    .filter(([, value]) => value.price > 0 && isFiniteNumber(value.changePct))
+    .map(([ticker, value]) => ({ ticker, price: value.price, pct: value.changePct }));
+  const sorted = [...withData].sort((a, b) => b.pct - a.pct);
+  return withData.length >= 6 ? [...sorted.slice(0, 3), ...sorted.slice(-3).reverse()] : [];
+}
 
 interface InicioViewProps {
   dolar:      DolarData | null;
@@ -28,7 +62,9 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
   const { breakingNews } = useLiveNews();
   const { reports, status: reportsStatus } = useCuratedReports({ featured: true, limit: 2 });
   const [mounted, setMounted] = useState(false);
-  const [topMovers, setTopMovers] = useState<Array<{ ticker: string; price: number; pct: number }>>([]);
+  const [topMovers, setTopMovers] = useState<TopMover[]>([]);
+  const [topMoversStatus, setTopMoversStatus] = useState<TopMoversStatus>("loading");
+  const topMoversLoadedAtRef = useRef<number | null>(null);
 
   const mep = dolar?.bolsa;
   const rp  = riesgoPais?.valor;
@@ -50,16 +86,79 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
 
   useEffect(() => {
     setMounted(true);
-    try {
-      const cached = JSON.parse(localStorage.getItem("tbl-live-prices") ?? "{}") as Record<string, { changePct: number; price: number }>;
-      const withData = Object.entries(cached)
-        .filter(([, v]) => v && typeof v.changePct === "number" && v.price > 0)
-        .map(([ticker, v]) => ({ ticker, price: v.price, pct: v.changePct }));
-      const sorted = [...withData].sort((a, b) => b.pct - a.pct);
-      setTopMovers(withData.length >= 6 ? [...sorted.slice(0,3), ...sorted.slice(-3).reverse()] : []);
-    } catch {
+
+    const cached = readTimestampedCache(LIVE_PRICES_CACHE_KEY, LIVE_PRICES_CACHE_TTL_MS, normalizeLivePrices);
+    if (cached.state === "fresh" && cached.data) {
+      setTopMovers(buildTopMovers(cached.data));
+      topMoversLoadedAtRef.current = cached.savedAt ?? Date.now();
+      setTopMoversStatus("cache");
+    } else if (cached.state === "stale") {
       setTopMovers([]);
+      topMoversLoadedAtRef.current = null;
+      setTopMoversStatus("stale");
     }
+
+    let cancelled = false;
+    let staleDataSeen = cached.state === "stale";
+    const tickers = EQUITIES.map((equity) => equity.t).filter((ticker) => ticker && ticker !== "ARG" && ticker !== "US");
+    const hasFreshTopMovers = () => (
+      topMoversLoadedAtRef.current !== null &&
+      Date.now() - topMoversLoadedAtRef.current <= LIVE_PRICES_CACHE_TTL_MS
+    );
+    const clearExpiredTopMovers = () => {
+      if (topMoversLoadedAtRef.current !== null && !hasFreshTopMovers()) {
+        staleDataSeen = true;
+        topMoversLoadedAtRef.current = null;
+        setTopMovers([]);
+        setTopMoversStatus("stale");
+      }
+    };
+
+    const refreshTopMovers = async () => {
+      clearExpiredTopMovers();
+      try {
+        const response = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`, { cache: "no-store" });
+        const data = await response.json() as {
+          prices?: Record<string, CachedLivePrice>;
+          ts?: number;
+          _meta?: { status?: string; fetchedAt?: string };
+        };
+        if (cancelled) return;
+
+        const prices = normalizeLivePrices(data.prices);
+        if (response.ok && prices && data._meta?.status !== "error") {
+          writeTimestampedCache(LIVE_PRICES_CACHE_KEY, prices, { ts: data.ts, meta: data._meta });
+          const movers = buildTopMovers(prices);
+          topMoversLoadedAtRef.current = Date.now();
+          setTopMovers(movers);
+          setTopMoversStatus(movers.length ? "live" : "empty");
+          return;
+        }
+
+        if (hasFreshTopMovers()) {
+          setTopMoversStatus("cache");
+          return;
+        }
+        setTopMovers([]);
+        setTopMoversStatus(staleDataSeen ? "stale" : "error");
+      } catch {
+        if (!cancelled) {
+          if (hasFreshTopMovers()) {
+            setTopMoversStatus("cache");
+            return;
+          }
+          setTopMovers([]);
+          setTopMoversStatus(staleDataSeen ? "stale" : "error");
+        }
+      }
+    };
+
+    refreshTopMovers();
+    const id = setInterval(refreshTopMovers, 90_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   return (
@@ -149,9 +248,11 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
       </div>
 
       {/* ── TOP MOVERS ── */}
-      {mounted && topMovers.length >= 6 && (
+      {mounted && topMovers.length >= 6 && (topMoversStatus === "live" || topMoversStatus === "cache") && (
         <div style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".12em", textTransform:"uppercase", marginBottom:8 }}>ACCIONES DESTACADAS · EN VIVO</div>
+          <div style={{ fontFamily:FB, fontSize:9, fontWeight:700, color:t.fa, letterSpacing:".12em", textTransform:"uppercase", marginBottom:8 }}>
+            ACCIONES DESTACADAS · {topMoversStatus === "cache" ? "CACHE FRESCO" : "EN VIVO"}
+          </div>
           <div style={{ display:"grid", gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(6,1fr)", gap:8 }}>
             {topMovers.map((m, i) => {
               const col = m.pct >= 0 ? t.gr : t.rd;
@@ -167,6 +268,11 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
               );
             })}
           </div>
+        </div>
+      )}
+      {mounted && topMoversStatus === "stale" && topMovers.length === 0 && (
+        <div style={{ marginBottom:16, background:t.srf, border:`1px solid ${t.brd}`, borderRadius:8, padding:"12px 14px", fontFamily:FB, fontSize:11, color:t.mu }}>
+          ACCIONES DESTACADAS · cache vencido. Actualizando precios antes de mostrar movers.
         </div>
       )}
 

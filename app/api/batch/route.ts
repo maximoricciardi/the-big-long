@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildMeta, fetchJsonWithRetry, jsonWithMeta, normalizeError } from "@/lib/api/reliability";
 
+export const dynamic = "force-dynamic";
+
 function yahooCandidates(symbol: string): string[] {
   const base = symbol.trim().toUpperCase();
   const out = new Set<string>([base]);
@@ -47,6 +49,7 @@ async function fetchYahooQuote(symbol: string) {
           Accept: "application/json",
           "User-Agent": "Mozilla/5.0",
         },
+        cache: "no-store",
         timeoutMs: 8_000,
         retries: 1,
       });
@@ -76,7 +79,7 @@ async function fetchYahooQuote(symbol: string) {
 async function fetchFinnhubQuote(symbol: string, key: string) {
   const d = await fetchJsonWithRetry<{ c?: number; d?: number; dp?: number; h?: number; l?: number; o?: number }>(
     `https://finnhub.io/api/v1/quote?token=${key}&symbol=${encodeURIComponent(symbol)}`,
-    { provider: "Finnhub", timeoutMs: 8_000, retries: 1 }
+    { provider: "Finnhub", cache: "no-store", timeoutMs: 8_000, retries: 1 }
   );
   return { price: d.c ?? 0, change: d.d ?? 0, changePct: d.dp ?? 0, high: d.h ?? 0, low: d.l ?? 0, open: d.o ?? 0 };
 }

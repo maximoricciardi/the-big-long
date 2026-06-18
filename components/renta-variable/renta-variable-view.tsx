@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Globe, Activity, LineChart, Search } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
-import { FB, FH } from "@/lib/constants";
+import { FB, FH, LIVE_PRICES_CACHE_KEY, LIVE_PRICES_CACHE_TTL_MS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EQUITIES, tvUrl } from "@/lib/data/equities";
 import { useCuratedReports } from "@/hooks/use-curated-reports";
 import { useLiveNews } from "@/hooks/use-live-news";
+import { readTimestampedCache, writeTimestampedCache } from "@/lib/live-data-cache";
 import {
   buildCedearIntelligenceRows,
   buildEquityIntelligenceRows,
@@ -413,6 +414,7 @@ interface EquityLive {
   rw: number | null; val: string | null; cal: string | null; mom: string;
   sc: number | null; s1: number | null; m1: number | null; ytd: number | null;
   cur?: "ARS";
+  _priceSource: "live" | "static";
   _1d: number | null; _d52: number | null; _isAtHigh: boolean;
   _upsideVsTarget: number | null; _upsideVs52H: number | null; _up: number | null;
   up: string | null;
@@ -421,6 +423,32 @@ interface EquityLive {
 const calColor:  Record<string, string> = { EXCELENTE:"green", ALTA:"blue",  MEDIA:"gold", BAJA:"red" };
 const valColor:  Record<string, string> = { BARATA:"green",    RAZONABLE:"blue", CARA:"red" };
 const momColor:  Record<string, string> = { "MUY FUERTE":"green", FUERTE:"blue", NEUTRO:"gray", "DÉBIL":"red" };
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function normalizeLivePrices(value: unknown): Record<string, LivePrice> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const out: Record<string, LivePrice> = {};
+
+  Object.entries(value as Record<string, unknown>).forEach(([ticker, entry]) => {
+    if (typeof entry !== "object" || entry === null) return;
+    const quote = entry as Partial<LivePrice>;
+    if (isFiniteNumber(quote.price) && quote.price > 0 && isFiniteNumber(quote.changePct)) {
+      out[ticker] = {
+        price: quote.price,
+        change: isFiniteNumber(quote.change) ? quote.change : 0,
+        changePct: quote.changePct,
+        high: isFiniteNumber(quote.high) ? quote.high : quote.price,
+        low: isFiniteNumber(quote.low) ? quote.low : quote.price,
+        open: isFiniteNumber(quote.open) ? quote.open : quote.price,
+      };
+    }
+  });
+
+  return Object.keys(out).length > 0 ? out : null;
+}
 
 function EquityScreener() {
   const t = useAppTheme();
@@ -437,41 +465,73 @@ function EquityScreener() {
 
   const [livePrices,     setLivePrices]     = useState<Record<string, LivePrice>>({});
   const [liveHistory,    setLiveHistory]    = useState<Record<string, LiveHist>>({});
-  const [liveStatus,     setLiveStatus]     = useState<"loading"|"ok"|"degraded"|"error">("loading");
+  const [liveStatus,     setLiveStatus]     = useState<"loading"|"ok"|"degraded"|"cached"|"stale"|"error">("loading");
   const [histStatus,     setHistStatus]     = useState<"loading"|"ok"|"error">("loading");
   const [quotesComplete, setQuotesComplete] = useState(false);
   const livePricesRef = useRef<Record<string, LivePrice>>({});
+  const livePricesLoadedAtRef = useRef<number | null>(null);
 
-  // Load cached prices from localStorage (client-only)
+  // Load only timestamped, still-fresh cache from localStorage.
   useEffect(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem("tbl-live-prices") || "{}") as Record<string, LivePrice>;
-      if (Object.keys(cached).length) setLivePrices(cached);
-    } catch {}
+    const cached = readTimestampedCache(LIVE_PRICES_CACHE_KEY, LIVE_PRICES_CACHE_TTL_MS, normalizeLivePrices);
+    if (cached.state === "fresh" && cached.data) {
+      livePricesRef.current = cached.data;
+      livePricesLoadedAtRef.current = cached.savedAt ?? Date.now();
+      setLivePrices(cached.data);
+      setLiveStatus("cached");
+    } else if (cached.state === "stale") {
+      livePricesRef.current = {};
+      livePricesLoadedAtRef.current = null;
+      setLivePrices({});
+      setLiveStatus("stale");
+    }
   }, []);
 
   // Phase 1 — batch quotes
   useEffect(() => {
     let cancelled = false;
+    let staleDataSeen = readTimestampedCache(LIVE_PRICES_CACHE_KEY, LIVE_PRICES_CACHE_TTL_MS, normalizeLivePrices).state === "stale";
     const tickers = EQUITIES.map(e => e.t).filter(t => t && t !== "ARG" && t !== "US");
+    const hasFreshLoadedPrices = () => (
+      livePricesLoadedAtRef.current !== null &&
+      Date.now() - livePricesLoadedAtRef.current <= LIVE_PRICES_CACHE_TTL_MS &&
+      Object.keys(livePricesRef.current).length > 0
+    );
+    const clearExpiredPrices = () => {
+      if (!hasFreshLoadedPrices() && Object.keys(livePricesRef.current).length > 0) {
+        staleDataSeen = true;
+        livePricesRef.current = {};
+        livePricesLoadedAtRef.current = null;
+        setLivePrices({});
+        setLiveStatus("stale");
+      }
+    };
     const run = async () => {
+      clearExpiredPrices();
       try {
-        const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`);
-        const data = await r.json() as { prices?: Record<string, LivePrice>; _meta?: { status?: string } };
+        const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`, { cache: "no-store" });
+        const data = await r.json() as { prices?: Record<string, LivePrice>; ts?: number; _meta?: { status?: string; fetchedAt?: string } };
         if (cancelled) return;
-        const prices = data.prices ?? {};
-        if (r.ok && Object.keys(prices).length > 0 && data._meta?.status !== "error") {
+        const prices = normalizeLivePrices(data.prices);
+        if (r.ok && prices && data._meta?.status !== "error") {
           livePricesRef.current = prices;
-          setLivePrices(prev => {
-            const next = { ...prev, ...prices };
-            try { localStorage.setItem("tbl-live-prices", JSON.stringify(next)); } catch {}
-            return next;
-          });
+          livePricesLoadedAtRef.current = Date.now();
+          setLivePrices(prices);
+          writeTimestampedCache(LIVE_PRICES_CACHE_KEY, prices, { ts: data.ts, meta: data._meta });
           setLiveStatus(data._meta?.status === "partial" ? "degraded" : "ok");
         } else {
-          setLiveStatus("error");
+          if (hasFreshLoadedPrices()) setLiveStatus("cached");
+          else setLiveStatus(staleDataSeen ? "stale" : "error");
         }
-      } catch { if (!cancelled) setLiveStatus("error"); }
+      } catch {
+        if (!cancelled) {
+          if (hasFreshLoadedPrices()) setLiveStatus("cached");
+          else {
+            clearExpiredPrices();
+            setLiveStatus(staleDataSeen ? "stale" : "error");
+          }
+        }
+      }
       if (!cancelled) setQuotesComplete(true);
     };
     run();
@@ -562,6 +622,7 @@ function EquityScreener() {
       t: e.t, e: e.e, mkt: e.mkt, tg: e.tg, an: e.an, fpe: e.fpe,
       rw: e.rw, val: e.val, cal: e.cal, mom: e.mom, sc: e.sc, cur: e.cur,
       p:   price,
+      _priceSource: lp ? "live" : "static",
       s1:  hist?.s1   ?? e.s1,
       m1:  hist?.m1   ?? e.m1,
       ytd: hist?.ytd  ?? e.ytd,
@@ -715,11 +776,15 @@ function EquityScreener() {
       {/* ── STATUS BAR ── */}
       <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
         <StatusPill
-          ok={liveStatus==="ok" || liveStatus==="degraded"} error={liveStatus==="error"} loading={liveStatus==="loading"}
+          ok={liveStatus==="ok" || liveStatus==="degraded" || liveStatus==="cached"} error={liveStatus==="error" || liveStatus==="stale"} loading={liveStatus==="loading"}
           t={t}
           labelLoading="Cargando precios..."
-          labelOk={liveStatus === "degraded" ? `Precios parciales · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers` : `Precios en vivo · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`}
-          labelError="Sin conexión · Precios estáticos"
+          labelOk={liveStatus === "cached"
+            ? `Precios cache fresco · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`
+            : liveStatus === "degraded"
+              ? `Precios parciales · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`
+              : `Precios en vivo · ${Object.keys(livePrices).length}/${EQUITIES.length} tickers`}
+          labelError={liveStatus === "stale" ? "Cache vencido · actualizando precios" : "Sin conexión · precios de referencia"}
         />
         <StatusPill
           ok={histStatus==="ok"} error={histStatus==="error"} loading={histStatus==="loading"||!quotesComplete}
@@ -729,7 +794,7 @@ function EquityScreener() {
           labelError="Historial: usando datos estáticos"
         />
         <div style={{ flex:1, fontFamily:FB, fontSize:10, color:t.fa, textAlign:"right" }}>
-          Precios live: {availabilitySummary.livePriceCount}/{EQUITIES.length} · Historial live: {availabilitySummary.liveHistoryCount}/{EQUITIES.length} · Fwd P/E snapshot: {availabilitySummary.peCount}/{EQUITIES.length}
+          Precios live/cache: {availabilitySummary.livePriceCount}/{EQUITIES.length} · Historial live: {availabilitySummary.liveHistoryCount}/{EQUITIES.length} · Fwd P/E snapshot: {availabilitySummary.peCount}/{EQUITIES.length}
         </div>
       </div>
 
@@ -816,7 +881,7 @@ function EquityScreener() {
               <tr>
                 <Th label="#"        col="_rank"  tip="Ranking" />
                 <Th label="Ticker"   col="t"      tip="Símbolo · Empresa · Mercado" />
-                <Th label="Precio"   col="p"      tip="Precio en vivo" right />
+                <Th label="Precio"   col="p"      tip="Precio vivo/cache fresco; referencia interna si no hay cotización" right />
                 <Th label="Hoy"      col="_1d"    tip="Variación del día %" right />
                 <Th label="Score"    col="sc"     tip="Score compuesto 0–100" right />
 
@@ -878,7 +943,7 @@ function EquityScreener() {
                         <div>
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                             <span style={{ fontSize:12, fontWeight:700, color:t.tx }}>{e.t}</span>
-                            {lp && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", display:"inline-block" }} title="Precio en vivo"/>}
+                            {lp && <span style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", display:"inline-block" }} title={liveStatus === "cached" ? "Precio de cache fresco" : "Precio vivo"}/>}
                           </div>
                           <div style={{ fontSize:10, color:t.mu, maxWidth:130, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.e}</div>
                         </div>
@@ -890,6 +955,9 @@ function EquityScreener() {
                       <div style={{ fontSize:13, fontWeight:700, color:t.tx }}>
                         {e.cur==="ARS" ? `$${e.p.toLocaleString("es-AR")}` : `$${e.p.toFixed(2)}`}
                       </div>
+                      {e._priceSource === "static" && (
+                        <div style={{ fontSize:8, color:t.fa, marginTop:1 }}>ref.</div>
+                      )}
                     </td>
 
                     {/* Hoy 1D% */}
@@ -1011,7 +1079,7 @@ function EquityScreener() {
 
         {/* Footer */}
         <div style={{ padding:"8px 18px", borderTop:`1px solid ${t.brd}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
-          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>Precios y datos en vivo · Research Desk</span>
+          <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>Precios live/cache fresco cuando disponibles · referencias internas si falta cotización</span>
           <span style={{ fontFamily:FB, fontSize:10, color:t.fa }}>
             {filtered.length} resultados · Ordenado por {sortCol} {sortDir === 1 ? "↑" : "↓"}
           </span>

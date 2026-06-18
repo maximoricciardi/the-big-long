@@ -46,12 +46,21 @@ export interface BatchResult {
 }
 
 /* ── Live market (header ticker) ──────────────────────────── */
+export interface LiveMarketMeta {
+  status?: "empty" | "cache" | "live" | "partial" | "stale" | "error";
+  fetchedAt?: number;
+  ageMs?: number | null;
+  ttlMs?: number;
+  errors?: string[];
+}
+
 export interface LiveMarket {
   spy?:         { price: number; changePct: number };
   gold?:        { price: number; changePct: number };
   brent?:       { price: number; changePct: number };
   mervalARS?:   { value: number; changePct: number };
   topArgStock?: { ticker: string; price: number; changePct: number };
+  _meta?:       LiveMarketMeta;
 }
 
 /* ── Renta Fija instruments ───────────────────────────────── */

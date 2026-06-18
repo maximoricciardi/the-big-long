@@ -53,3 +53,6 @@ export const ADMIN_PIN = "1243";
 
 /* ── Live market localStorage key ───────────────────────── */
 export const LIVE_MARKET_KEY = "tbl-live-market";
+export const LIVE_MARKET_CACHE_TTL_MS = 2 * 60 * 1000;
+export const LIVE_PRICES_CACHE_KEY = "tbl-live-prices";
+export const LIVE_PRICES_CACHE_TTL_MS = 3 * 60 * 1000;

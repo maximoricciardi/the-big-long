@@ -43,7 +43,7 @@ export function EquityScreener() {
     const tickers = EQUITIES.map(e => e.t).filter(t => t && t !== "ARG" && t !== "US");
     const run = async () => {
       try {
-        const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`);
+        const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`, { cache: "no-store" });
         const data: { prices?: Record<string, BatchPrice>; _meta?: { status?: string } } = await r.json();
         const prices = data.prices ?? {};
         if (r.ok && Object.keys(prices).length > 0 && data._meta?.status !== "error") {

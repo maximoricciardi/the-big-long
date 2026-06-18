@@ -9,9 +9,11 @@ type UnknownRecord = Record<string, unknown>;
 type FinancialFreshnessMeta = {
   sourceUpdatedAt?: string;
   fetchedAt?: string;
+  generatedAt?: string;
   ageSeconds?: number;
   stale?: boolean;
   staleReason?: string | null;
+  cached?: boolean;
 };
 
 type FinancialDashboardMeta = {
@@ -54,12 +56,13 @@ function toBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
-function pickRecord(record: UnknownRecord, keys: string[]): UnknownRecord | null {
-  for (const key of keys) {
-    const value = record[key];
-    if (isRecord(value)) return value;
-  }
-  return null;
+function normalizeLookupKey(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function pickValue(records: UnknownRecord[], keys: string[]): unknown {
@@ -67,6 +70,22 @@ function pickValue(records: UnknownRecord[], keys: string[]): unknown {
     for (const key of keys) {
       if (record[key] !== undefined) return record[key];
     }
+  }
+  return undefined;
+}
+
+function pickNumberFrom(records: UnknownRecord[], keys: string[]): number | null {
+  for (const record of records) {
+    const value = pickNumber(record, keys);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
+function pickStringFrom(records: UnknownRecord[], keys: string[]): string | undefined {
+  for (const record of records) {
+    const value = pickString(record, keys);
+    if (value) return value;
   }
   return undefined;
 }
@@ -87,6 +106,66 @@ function pickString(record: UnknownRecord, keys: string[]): string | undefined {
   return undefined;
 }
 
+const FX_RATE_ALIASES: Record<string, string[]> = {
+  official: ["official", "oficial", "dolar oficial", "usd oficial"],
+  blue: ["blue", "dolar blue", "usd blue"],
+  mep: ["mep", "bolsa", "dolar mep", "usd mep", "dolar bolsa", "usd bolsa"],
+  ccl: [
+    "ccl",
+    "contadoconliqui",
+    "contado con liqui",
+    "contado con liquidacion",
+    "dolar ccl",
+    "usd ccl",
+  ],
+  wholesale: ["wholesale", "mayorista", "dolar mayorista", "usd mayorista"],
+};
+
+function buildRateKeySet(keys: string[]): Set<string> {
+  const target = new Set(keys.map(normalizeLookupKey).filter((key): key is string => Boolean(key)));
+
+  for (const aliases of Object.values(FX_RATE_ALIASES)) {
+    const normalizedAliases = aliases
+      .map(normalizeLookupKey)
+      .filter((key): key is string => Boolean(key));
+
+    if (normalizedAliases.some((alias) => target.has(alias))) {
+      normalizedAliases.forEach((alias) => target.add(alias));
+    }
+  }
+
+  return target;
+}
+
+function findRateInArray(raw: unknown, keys: string[]): unknown {
+  if (!Array.isArray(raw)) return undefined;
+
+  const target = buildRateKeySet(keys);
+  for (const item of raw) {
+    if (!isRecord(item)) continue;
+
+    const identifiers = [item.type, item.key, item.code, item.name, item.label, item.casa]
+      .map(normalizeLookupKey)
+      .filter((key): key is string => Boolean(key));
+
+    if (identifiers.some((identifier) => target.has(identifier))) return item;
+  }
+
+  return undefined;
+}
+
+function pickRate(raw: unknown, dashboard: UnknownRecord, keys: string[]): unknown {
+  const fromArray = findRateInArray(raw, keys);
+  if (fromArray !== undefined) return fromArray;
+
+  if (isRecord(raw)) {
+    const direct = pickValue([raw], keys);
+    if (direct !== undefined) return direct;
+  }
+
+  return pickValue([dashboard], keys);
+}
+
 function normalizeRate(raw: unknown, fallback: FXRate): FXRate {
   const scalarValue = toNumber(raw);
   if (scalarValue !== null) {
@@ -95,10 +174,11 @@ function normalizeRate(raw: unknown, fallback: FXRate): FXRate {
 
   if (!isRecord(raw)) return fallback;
 
-  const singleValue = pickNumber(raw, ["value", "valor", "price", "rate", "last"]);
-  const compra = pickNumber(raw, ["compra", "buy", "bid", "purchase", "bidPrice"]) ?? singleValue ?? fallback.compra;
-  const venta = pickNumber(raw, ["venta", "sell", "ask", "sale", "askPrice"]) ?? singleValue ?? fallback.venta;
-  const casa = pickString(raw, ["casa", "name", "label", "source"]) ?? fallback.casa;
+  const records = isRecord(raw.data) ? [raw.data, raw] : [raw];
+  const singleValue = pickNumberFrom(records, ["value", "valor", "price", "rate", "last"]);
+  const compra = pickNumberFrom(records, ["compra", "buy", "bid", "purchase", "bidPrice"]) ?? singleValue ?? fallback.compra;
+  const venta = pickNumberFrom(records, ["venta", "sell", "ask", "sale", "askPrice"]) ?? singleValue ?? fallback.venta;
+  const casa = pickStringFrom(records, ["casa", "name", "label", "source"]) ?? fallback.casa;
 
   return { ...fallback, compra, venta, casa };
 }
@@ -110,15 +190,19 @@ function normalizeFreshness(raw: unknown): FinancialFreshnessMeta | null {
   const meta: FinancialFreshnessMeta = {};
   const sourceUpdatedAt = pickString(source, ["sourceUpdatedAt", "source_updated_at"]);
   const fetchedAt = pickString(source, ["fetchedAt", "fetched_at"]);
+  const generatedAt = pickString(source, ["generatedAt", "generated_at"]);
   const ageSeconds = pickNumber(source, ["ageSeconds", "age_seconds"]);
   const stale = toBoolean(source.stale);
   const staleReason = pickString(source, ["staleReason", "stale_reason"]);
+  const cached = toBoolean(source.cached);
 
   if (sourceUpdatedAt) meta.sourceUpdatedAt = sourceUpdatedAt;
   if (fetchedAt) meta.fetchedAt = fetchedAt;
+  if (generatedAt) meta.generatedAt = generatedAt;
   if (ageSeconds !== null) meta.ageSeconds = ageSeconds;
   if (stale !== undefined) meta.stale = stale;
   if (staleReason !== undefined) meta.staleReason = staleReason;
+  if (cached !== undefined) meta.cached = cached;
 
   return Object.keys(meta).length > 0 ? meta : null;
 }
@@ -132,14 +216,13 @@ function getDashboardRoot(payload: unknown): UnknownRecord {
 function buildDolarData(payload: unknown): { dolar: DolarData; meta: FinancialDashboardMeta } {
   const root = isRecord(payload) ? payload : {};
   const dashboard = getDashboardRoot(payload);
-  const fxRoot = pickRecord(dashboard, ["fx", "dolar", "dollars", "exchangeRates", "rates"]) ?? dashboard;
-  const sources = fxRoot === dashboard ? [fxRoot] : [fxRoot, dashboard];
+  const fxRaw = pickValue([dashboard], ["fx", "dolar", "dollars", "exchangeRates", "rates"]) ?? dashboard;
 
-  const officialRaw = pickValue(sources, ["official", "oficial"]);
-  const blueRaw = pickValue(sources, ["blue"]);
-  const mepRaw = pickValue(sources, ["mep", "bolsa"]);
-  const cclRaw = pickValue(sources, ["ccl", "contadoconliqui", "contadoConLiqui"]);
-  const wholesaleRaw = pickValue(sources, ["wholesale", "mayorista"]);
+  const officialRaw = pickRate(fxRaw, dashboard, ["official", "oficial"]);
+  const blueRaw = pickRate(fxRaw, dashboard, ["blue"]);
+  const mepRaw = pickRate(fxRaw, dashboard, ["mep", "bolsa"]);
+  const cclRaw = pickRate(fxRaw, dashboard, ["ccl", "contadoconliqui", "contadoConLiqui"]);
+  const wholesaleRaw = pickRate(fxRaw, dashboard, ["wholesale", "mayorista"]);
   const riesgoPaisRaw = pickValue(
     [dashboard, root],
     ["countryRisk", "riesgoPais", "riesgo_pais", "riskCountry", "risk"]
@@ -204,7 +287,7 @@ export function useFX(): UseFXResult {
       const timeoutId = setTimeout(() => ctrl.abort(), 8_000);
 
       try {
-        const res = await fetch("/api/financial-dashboard", { signal: ctrl.signal });
+        const res = await fetch("/api/financial-dashboard", { cache: "no-store", signal: ctrl.signal });
         if (!res.ok) throw new Error(`Financial dashboard HTTP ${res.status}`);
 
         const payload: unknown = await res.json();

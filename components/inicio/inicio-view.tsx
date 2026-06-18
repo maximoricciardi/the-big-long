@@ -10,6 +10,7 @@ import { LECAP } from "@/lib/data/renta-fija";
 import { useLiveNews } from "@/hooks/use-live-news";
 import { useCuratedReports } from "@/hooks/use-curated-reports";
 import { FH, FB, FD } from "@/lib/constants";
+import { readLivePricesCache } from "@/lib/equity/live-price-cache";
 import type { DolarData, RiesgoPaisData, LiveMarket } from "@/types";
 import { WhatsAppCTA } from "@/components/inicio/whatsapp-cta";
 
@@ -51,8 +52,8 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
   useEffect(() => {
     setMounted(true);
     try {
-      const cached = JSON.parse(localStorage.getItem("tbl-live-prices") ?? "{}") as Record<string, { changePct: number; price: number }>;
-      const withData = Object.entries(cached)
+      const cached = readLivePricesCache<{ changePct: number; price: number }>();
+      const withData = Object.entries(cached.prices)
         .filter(([, v]) => v && typeof v.changePct === "number" && v.price > 0)
         .map(([ticker, v]) => ({ ticker, price: v.price, pct: v.changePct }));
       const sorted = [...withData].sort((a, b) => b.pct - a.pct);

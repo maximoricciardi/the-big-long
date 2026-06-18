@@ -71,6 +71,26 @@ function pickValue(records: UnknownRecord[], keys: string[]): unknown {
   return undefined;
 }
 
+function normalizeFxArray(raw: unknown): UnknownRecord | null {
+  if (!Array.isArray(raw)) return null;
+
+  const out: UnknownRecord = {};
+  raw.forEach((entry) => {
+    if (!isRecord(entry)) return;
+    const key = pickString(entry, ["key", "code", "type", "name", "label", "slug"]);
+    if (!key) return;
+
+    const normalized = key.toLowerCase().replace(/[\s_-]+/g, "");
+    if (["official", "oficial", "dolaroficial"].includes(normalized)) out.official = entry;
+    if (["blue", "dolarblue"].includes(normalized)) out.blue = entry;
+    if (["mep", "bolsa", "dolarbolsa"].includes(normalized)) out.mep = entry;
+    if (["ccl", "contadoconliqui", "contadoconliquidacion"].includes(normalized)) out.ccl = entry;
+    if (["wholesale", "mayorista"].includes(normalized)) out.wholesale = entry;
+  });
+
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 function pickNumber(record: UnknownRecord, keys: string[]): number | null {
   for (const key of keys) {
     const value = toNumber(record[key]);
@@ -132,7 +152,8 @@ function getDashboardRoot(payload: unknown): UnknownRecord {
 function buildDolarData(payload: unknown): { dolar: DolarData; meta: FinancialDashboardMeta } {
   const root = isRecord(payload) ? payload : {};
   const dashboard = getDashboardRoot(payload);
-  const fxRoot = pickRecord(dashboard, ["fx", "dolar", "dollars", "exchangeRates", "rates"]) ?? dashboard;
+  const fxArrayRoot = normalizeFxArray(dashboard.fx);
+  const fxRoot = fxArrayRoot ?? pickRecord(dashboard, ["fx", "dolar", "dollars", "exchangeRates", "rates"]) ?? dashboard;
   const sources = fxRoot === dashboard ? [fxRoot] : [fxRoot, dashboard];
 
   const officialRaw = pickValue(sources, ["official", "oficial"]);

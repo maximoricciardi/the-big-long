@@ -10,6 +10,8 @@ import { Search, TrendingUp, BarChart3 } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { EQUITIES, tvUrl } from "@/lib/data/equities";
+import { EquityIdentityMark } from "@/components/equity/equity-identity-mark";
+import { resolveEquityIdentity } from "@/lib/equity/identity";
 import type { BatchPrice } from "@/types";
 
 interface LiveEntry { price: number; change: number; changePct: number; high: number; low: number; }
@@ -131,8 +133,16 @@ export function EquityScreener() {
     const upside = upsideVsTarget ?? upsideVs52H;
     const udLabel = upsideVsTarget !== null ? "vs target" : (isAtHigh ? "correc. est." : "vs máx 52S");
 
+    const identity = resolveEquityIdentity({
+      ticker: e.t,
+      name: e.e,
+      market: e.mkt,
+      assetType: e.mkt === "ETF" ? "etf" : e.t === "MERV" ? "index" : "stock",
+    });
+
     return {
       ...e,
+      identity,
       p:       price,
       _1d:     lp?.changePct ?? null,
       s1:      hist?.s1   ?? e.s1,
@@ -310,13 +320,18 @@ export function EquityScreener() {
 
                     <td style={{ padding: "7px 10px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, color: e.mkt === "ARG" ? t.go : t.bl }}>{e.t}</span>
-                        {livePrices[e.t] && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 4px #22c55e" }} />}
+                        <EquityIdentityMark identity={e.identity} t={t} size="md" />
+                        <div>
+                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                            <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, color: e.mkt === "ARG" ? t.go : t.bl }}>{e.t}</span>
+                            {livePrices[e.t] && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 4px #22c55e" }} />}
+                          </div>
+                          <div style={{ fontFamily: FB, fontSize: 8, color: t.fa }}>{e.mkt}</div>
+                        </div>
                       </div>
-                      <div style={{ fontFamily: FB, fontSize: 8, color: t.fa }}>{e.mkt}</div>
                     </td>
 
-                    <td style={{ padding: "7px 10px", color: t.tx, fontWeight: 500, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.e}</td>
+                    <td style={{ padding: "7px 10px", color: t.tx, fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.identity.displayName}</td>
 
                     <td style={{ padding: "7px 10px", textAlign: "right", fontFamily: FH, fontSize: 14, fontWeight: 700, color: livePrices[e.t] ? t.tx : t.mu }}>
                       ${e.p.toFixed(2)}

@@ -4,15 +4,52 @@ import { useState, useEffect, useCallback } from "react";
 import type { LiveMarket } from "@/types";
 import { FINNHUB_PROXY, LIVE_MARKET_KEY } from "@/lib/constants";
 
+const LIVE_MARKET_TTL_MS = 2 * 60 * 1000;
+
+type LiveMarketCache = {
+  data?: LiveMarket;
+  market?: LiveMarket;
+  cachedAt?: number;
+  ttlMs?: number;
+  source?: "live" | "cache" | "stale" | "ref";
+};
+
 function quoteUrl(symbol: string) {
   return `${FINNHUB_PROXY}${encodeURIComponent(symbol)}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function loadFromStorage(): LiveMarket {
   try {
-    return JSON.parse(localStorage.getItem(LIVE_MARKET_KEY) || "null") || {};
+    const parsed = JSON.parse(localStorage.getItem(LIVE_MARKET_KEY) || "null") as LiveMarketCache | LiveMarket | null;
+    if (!parsed || !isRecord(parsed)) return {};
+
+    const envelope = parsed as LiveMarketCache;
+    const market = envelope.data ?? envelope.market;
+    if (market && isRecord(market)) return market as LiveMarket;
+
+    return parsed as LiveMarket;
   } catch {
     return {};
+  }
+}
+
+function writeToStorage(market: LiveMarket) {
+  try {
+    localStorage.setItem(
+      LIVE_MARKET_KEY,
+      JSON.stringify({
+        data: market,
+        cachedAt: Date.now(),
+        ttlMs: LIVE_MARKET_TTL_MS,
+        source: "live",
+      })
+    );
+  } catch {
+    /* silent */
   }
 }
 
@@ -61,7 +98,7 @@ export function useLiveMarket(): LiveMarket {
     if (Object.keys(updates).length > 0) {
       setMarket(prev => {
         const next = { ...prev, ...updates };
-        try { localStorage.setItem(LIVE_MARKET_KEY, JSON.stringify(next)); } catch { /* silent */ }
+        writeToStorage(next);
         return next;
       });
     }

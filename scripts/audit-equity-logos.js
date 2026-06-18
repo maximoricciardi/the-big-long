@@ -8,10 +8,21 @@ const ts = require("typescript");
 const root = process.cwd();
 const allowedRealStatuses = new Set([
   "official_logo",
-  "provider_logo",
   "curated_logo",
-  "domain_logo",
+  "provider_verified_logo",
+  "issuer_logo",
   "local_asset_logo",
+]);
+const allowedQualityStatuses = new Set([
+  "verified_high_quality",
+  "verified_acceptable",
+  "issuer_acceptable",
+]);
+const allowedSharedLogoUrls = new Map([
+  [
+    "https://cdn.prod.website-files.com/6697a441a50c6b926e1972e0/682f4f060a306e6d3804523d_BYMA-isologo.svg",
+    "MERV is an index and BYMA is the official market identity behind the local index presentation.",
+  ],
 ]);
 
 function loadIdentityResolver() {
@@ -59,7 +70,16 @@ const topCedears = extractObjects(
   ([, ticker, name, sector]) => ({ scope: "top_cedears", ticker, name, market: "CEDEAR", sector })
 );
 
-const universe = uniqueByTicker([...equities, ...cedears, ...topCedears]);
+const representativeQaTickers = "AAPL MSFT NVDA GOOGL AMZN META TSLA AVGO TSM LLY JPM V MA WMT COST XOM PG JNJ KO PEP MCD NFLX CRM ORCL AMD ADBE QCOM SPGI MELI BRKB BRK.B ASML SAP NVO SHEL TM BABA SHOP UBER ABNB RACE SONY HSBC TTE AZN RIO SPCX YPF YPFD GGAL BMA SUPV PAMP CEPU TGSU2 TRAN EDN BYMA VALO TXAR ALUA LOMA COME MIRG METR CRES IRSA BBAR TGNO4 AGRO HAVA AUSO CAPX".split(/\s+/);
+const argRepresentativeTickers = new Set("YPF YPFD GGAL BMA SUPV PAMP CEPU TGSU2 TRAN EDN BYMA VALO TXAR ALUA LOMA COME MIRG METR CRES IRSA BBAR TGNO4 AGRO HAVA AUSO CAPX".split(/\s+/));
+const representativeQa = representativeQaTickers.map((ticker) => ({
+  scope: "representative_qa",
+  ticker,
+  name: ticker,
+  market: argRepresentativeTickers.has(ticker) ? "ARG" : "US",
+}));
+
+const universe = uniqueByTicker([...equities, ...cedears, ...topCedears, ...representativeQa]);
 const rows = universe.map((item) => {
   const identity = resolveEquityIdentity({
     ticker: item.ticker,
@@ -69,10 +89,19 @@ const rows = universe.map((item) => {
     assetType: item.market === "ETF" ? "etf" : item.market === "CEDEAR" ? "cedear" : item.ticker === "SPCX" ? "private_market_exposure" : "stock",
   });
   const hasRealLogo = Boolean(identity.logoUrl) && allowedRealStatuses.has(identity.logoStatus);
-  return { ...item, identity, hasRealLogo };
+  const hasApprovedQuality = allowedQualityStatuses.has(identity.logoQuality);
+  const sourceIsFragileFavicon = String(identity.logoSource).includes("clearbit") || identity.logoStatus === "domain_logo";
+  const hasVisualApproval = hasRealLogo && hasApprovedQuality && !sourceIsFragileFavicon;
+  const failureReasons = [
+    !identity.logoUrl ? "missing_logo_url" : null,
+    !allowedRealStatuses.has(identity.logoStatus) ? `unapproved_status:${identity.logoStatus}` : null,
+    !hasApprovedQuality ? `unapproved_quality:${identity.logoQuality}` : null,
+    sourceIsFragileFavicon ? `fragile_favicon_source:${identity.logoSource}` : null,
+  ].filter(Boolean);
+  return { ...item, identity, hasRealLogo, hasApprovedQuality, hasVisualApproval, failureReasons };
 });
 
-const missing = rows.filter((row) => !row.hasRealLogo);
+const missing = rows.filter((row) => !row.hasVisualApproval);
 const initials = rows.filter((row) => row.identity.logoStatus === "emergency_fallback" || !row.identity.logoUrl);
 const screener = rows.filter((row) => row.scope === "screener");
 const cedearRows = rows.filter((row) => row.scope === "cedears" || row.scope === "top_cedears");
@@ -84,30 +113,84 @@ const bySource = rows.reduce((acc, row) => {
   return acc;
 }, {});
 
+const byQuality = rows.reduce((acc, row) => {
+  acc[row.identity.logoQuality] = (acc[row.identity.logoQuality] || 0) + 1;
+  return acc;
+}, {});
+
+const byLogoUrl = rows.reduce((acc, row) => {
+  if (!row.identity.logoUrl) return acc;
+  if (!acc[row.identity.logoUrl]) acc[row.identity.logoUrl] = [];
+  acc[row.identity.logoUrl].push(`${row.scope}:${row.ticker}->${row.identity.underlyingTicker}`);
+  return acc;
+}, {});
+const allLogoCollisions = Object.entries(byLogoUrl)
+  .filter(([, entries]) => {
+    const underlyings = new Set(entries.map((entry) => entry.split("->")[1]));
+    return underlyings.size > 1;
+  })
+  .map(([logoUrl, entries]) => ({ logoUrl, entries }));
+const allowedLogoCollisions = allLogoCollisions
+  .filter((collision) => allowedSharedLogoUrls.has(collision.logoUrl))
+  .map((collision) => ({ ...collision, reason: allowedSharedLogoUrls.get(collision.logoUrl) }));
+const suspiciousLogoCollisions = allLogoCollisions
+  .filter((collision) => !allowedSharedLogoUrls.has(collision.logoUrl));
+const providerOnlyLogos = rows.filter((row) => row.identity.logoStatus === "provider_verified_logo" && !row.identity.logoFallbackUrl);
+const domainFaviconOnlyLogos = rows.filter((row) => String(row.identity.logoSource).includes("clearbit") || row.identity.logoStatus === "domain_logo");
+const suspiciousLogoCount = missing.length + suspiciousLogoCollisions.length + domainFaviconOnlyLogos.length;
+const manualReviewTickers = [
+  ...missing.map((row) => `${row.scope}:${row.ticker}`),
+  ...suspiciousLogoCollisions.flatMap((collision) => collision.entries),
+  ...domainFaviconOnlyLogos.map((row) => `${row.scope}:${row.ticker}`),
+];
+
 const report = {
   totalInstruments: rows.length,
   screenerInstruments: screener.length,
   cedearsChecked: cedearRows.length,
+  representativeQaChecked: rows.filter((row) => row.scope === "representative_qa").length,
   argentineEquitiesChecked: argRows.length,
-  instrumentsWithRealLogos: rows.length - missing.length,
+  instrumentsWithApprovedVisualLogos: rows.length - missing.length,
   instrumentsUsingInitials: initials.length,
-  missingOrBrokenPlannedLogos: missing.length,
+  missingOrVisuallyUnapprovedLogos: missing.length,
+  suspiciousLogos: suspiciousLogoCount,
+  duplicateLogoUrls: suspiciousLogoCollisions.length,
+  providerOnlyLogos: providerOnlyLogos.length,
+  domainFaviconOnlyLogos: domainFaviconOnlyLogos.length,
+  tickersRequiringManualReview: manualReviewTickers,
   unresolvedTickers: missing.map((row) => `${row.scope}:${row.ticker}`),
+  unresolvedDetails: missing.map((row) => ({
+    instrument: `${row.scope}:${row.ticker}`,
+    logoStatus: row.identity.logoStatus,
+    logoQuality: row.identity.logoQuality,
+    logoSource: row.identity.logoSource,
+    reasons: row.failureReasons,
+  })),
   spcx: spcx ? {
     present: true,
     logoStatus: spcx.identity.logoStatus,
+    logoQuality: spcx.identity.logoQuality,
     logoSource: spcx.identity.logoSource,
     assetType: spcx.identity.assetType,
   } : { present: false },
   logoStatusBreakdown: bySource,
+  logoQualityBreakdown: byQuality,
+  suspiciousLogoCollisions,
+  allowedLogoCollisions,
+  visualQualityRules: [
+    "No Clearbit/domain favicon source may pass as a planned equity logo.",
+    "Approved logos must be official, curated, provider-verified, issuer, or local asset logos.",
+    "Approved logos must carry verified_high_quality, verified_acceptable, or issuer_acceptable quality.",
+    "Initials are allowed only as runtime emergency fallback, never as planned identity.",
+  ],
   logoSourceByTicker: Object.fromEntries(rows.map((row) => [
     `${row.scope}:${row.ticker}`,
-    `${row.identity.logoStatus} ${row.identity.logoSource}`,
+    `${row.identity.logoStatus} ${row.identity.logoQuality} ${row.identity.logoSource}`,
   ])),
 };
 
 console.log(JSON.stringify(report, null, 2));
 
-if (missing.length > 0 || initials.length > 0 || !spcx) {
+if (missing.length > 0 || initials.length > 0 || !spcx || suspiciousLogoCollisions.length > 0) {
   process.exitCode = 1;
 }

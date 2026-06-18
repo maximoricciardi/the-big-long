@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EquityIdentity } from "@/lib/equity/identity";
 import type { ThemeTokens } from "@/types";
 
@@ -28,22 +28,27 @@ export function EquityIdentityMark({
   size = "md",
   showTooltip = true,
 }: {
-  identity: Pick<EquityIdentity, "localTicker" | "underlyingTicker" | "displayName" | "fallbackInitials" | "logoUrl" | "logoFallbackUrl" | "logoSource" | "logoStatus" | "identityConfidence">;
+  identity: Pick<EquityIdentity, "localTicker" | "underlyingTicker" | "displayName" | "fallbackInitials" | "logoUrl" | "logoFallbackUrl" | "logoSource" | "logoStatus" | "logoQuality" | "logoNotes" | "logoBackground" | "identityConfidence">;
   t: ThemeTokens;
   size?: Size;
   showTooltip?: boolean;
 }) {
   const px = SIZE_PX[size];
   const colors = useMemo(() => colorFor(identity.underlyingTicker || identity.localTicker), [identity.localTicker, identity.underlyingTicker]);
-  const activeLogo = identity.logoUrl ?? identity.logoFallbackUrl ?? null;
-  const backgroundImage = identity.logoUrl && identity.logoFallbackUrl
-    ? `url("${identity.logoUrl}"), url("${identity.logoFallbackUrl}")`
-    : activeLogo
-      ? `url("${activeLogo}")`
-      : undefined;
+  const [activeSrc, setActiveSrc] = useState(identity.logoUrl ?? identity.logoFallbackUrl);
+  const [failedPrimary, setFailedPrimary] = useState(false);
+  const [failedAll, setFailedAll] = useState(false);
+
+  useEffect(() => {
+    setActiveSrc(identity.logoUrl ?? identity.logoFallbackUrl);
+    setFailedPrimary(false);
+    setFailedAll(false);
+  }, [identity.logoUrl, identity.logoFallbackUrl, identity.localTicker]);
+
+  const activeLogo = activeSrc && !failedAll ? activeSrc : null;
 
   const title = showTooltip
-    ? `${identity.displayName} · ${identity.localTicker}${identity.underlyingTicker !== identity.localTicker ? ` / ${identity.underlyingTicker}` : ""} · ${activeLogo ? identity.logoStatus : "generated_fallback"} · ${identity.identityConfidence}`
+    ? `${identity.displayName} · ${identity.localTicker}${identity.underlyingTicker !== identity.localTicker ? ` / ${identity.underlyingTicker}` : ""} · ${activeLogo ? identity.logoStatus : "emergency_fallback"} · ${identity.logoQuality} · ${identity.identityConfidence}${identity.logoNotes ? ` · ${identity.logoNotes}` : ""}`
     : undefined;
 
   return (
@@ -54,32 +59,48 @@ export function EquityIdentityMark({
         width:px,
         height:px,
         minWidth:px,
-        borderRadius:Math.max(7, Math.round(px * 0.24)),
-        background:`linear-gradient(135deg, ${colors.bg}, ${colors.bg}cc)`,
+        borderRadius:Math.max(8, Math.round(px * 0.25)),
+        background:activeLogo ? (identity.logoBackground ?? "#fff") : `linear-gradient(135deg, ${colors.bg}, ${colors.bg}cc)`,
         border:`1px solid ${t.brd}`,
         display:"inline-flex",
         alignItems:"center",
         justifyContent:"center",
         position:"relative",
         overflow:"hidden",
-        boxShadow:"0 1px 2px rgba(0,0,0,.08)",
+        boxShadow:activeLogo ? "0 1px 2px rgba(15,23,42,.08)" : "0 1px 2px rgba(0,0,0,.08)",
+        flexShrink:0,
       }}
     >
-      <span style={{ fontFamily:"monospace", fontSize:size === "sm" ? 9 : size === "lg" ? 13 : 11, fontWeight:850, color:colors.fg, letterSpacing:0 }}>
-        {identity.fallbackInitials}
-      </span>
       {activeLogo && (
-        <span
+        <img
+          key={`${identity.localTicker}-${activeLogo}`}
+          src={activeLogo}
+          alt=""
           aria-hidden
+          width={px}
+          height={px}
+          onError={() => {
+            if (!failedPrimary && identity.logoFallbackUrl && activeLogo !== identity.logoFallbackUrl) {
+              setFailedPrimary(true);
+              setActiveSrc(identity.logoFallbackUrl);
+              return;
+            }
+            setFailedAll(true);
+          }}
           style={{
             position:"absolute",
-            inset:0,
-            backgroundImage,
-            backgroundSize:"contain",
-            backgroundRepeat:"no-repeat",
-            backgroundPosition:"center",
+            inset:size === "sm" ? 3 : 5,
+            width:`calc(100% - ${size === "sm" ? 6 : 10}px)`,
+            height:`calc(100% - ${size === "sm" ? 6 : 10}px)`,
+            objectFit:"contain",
+            display:"block",
           }}
         />
+      )}
+      {!activeLogo && (
+        <span style={{ fontFamily:"monospace", fontSize:size === "sm" ? 9 : size === "lg" ? 13 : 11, fontWeight:850, color:colors.fg, letterSpacing:0 }}>
+          {identity.fallbackInitials}
+        </span>
       )}
     </div>
   );

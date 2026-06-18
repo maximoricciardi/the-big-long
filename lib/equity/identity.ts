@@ -1,5 +1,5 @@
-export type EquityAssetType = "stock" | "cedear" | "etf" | "index";
-export type EquityLogoStatus = "real_logo" | "provider_logo" | "mapped_logo" | "generated_fallback" | "unavailable";
+export type EquityAssetType = "stock" | "cedear" | "etf" | "index" | "private_market_exposure" | "custom_instrument";
+export type EquityLogoStatus = "official_logo" | "provider_logo" | "curated_logo" | "domain_logo" | "local_asset_logo" | "emergency_fallback" | "unavailable";
 export type EquityIdentityConfidence = "high" | "medium" | "low";
 
 export interface EquityIdentity {
@@ -25,11 +25,13 @@ type IdentitySeed = {
   companyName?: string;
   displayName?: string;
   domain?: string;
+  logoUrl?: string;
   country?: string;
   sector?: string;
   industry?: string;
   assetType?: EquityAssetType;
   logoSource?: string;
+  logoStatus?: EquityLogoStatus;
   confidence?: EquityIdentityConfidence;
 };
 
@@ -72,10 +74,22 @@ const DOMAIN_BY_TICKER: Record<string, string> = {
   MDT:"medtronic.com",BMY:"bms.com",GILD:"gilead.com",
   REGN:"regeneron.com",VRTX:"vrtx.com",BIIB:"biogen.com",
   BRK_B:"berkshirehathaway.com",BRKB:"berkshirehathaway.com",
+  SPCX:"spacex.com",BRK:"berkshirehathaway.com",ACN:"accenture.com",
+  LIN:"linde.com",INTU:"intuit.com",UPS:"ups.com",
+  SAP:"sap.com",NVO:"novonordisk.com",
+  SHEL:"shell.com",TM:"toyota-global.com",PDD:"pddholdings.com",
+  SE:"sea.com",RACE:"ferrari.com",SONY:"sony.com",HSBC:"hsbc.com",
+  ELV:"elevancehealth.com",LRCX:"lamresearch.com",KLAC:"kla.com",
+  ADP:"adp.com",MDLZ:"mondelezinternational.com",CB:"chubb.com",
+  FI:"fiserv.com",MMC:"marshmclennan.com",CME:"cmegroup.com",
+  ICE:"ice.com",WM:"wm.com",DUK:"duke-energy.com",APD:"airproducts.com",
+  TTE:"totalenergies.com",UL:"unilever.com",AZN:"astrazeneca.com",
+  SNY:"sanofi.com",RIO:"riotinto.com",
 };
 
 const CURATED_IDENTITY: Record<string, IdentitySeed> = {
   MERV: { companyName:"Indice Merval", displayName:"Merval", country:"Argentina", sector:"Indice", industry:"Equity index", assetType:"index", confidence:"medium" },
+  SPCX: { companyName:"SpaceX", displayName:"SpaceX", domain:"spacex.com", country:"Estados Unidos", sector:"Aeroespacial", industry:"Private space technology", assetType:"private_market_exposure", logoStatus:"official_logo", confidence:"high" },
   YPF:  { companyName:"YPF S.A.", domain:"ypf.com", country:"Argentina", sector:"Energia", industry:"Integrated oil & gas", confidence:"high" },
   YPFD: { underlyingTicker:"YPF", companyName:"YPF S.A.", domain:"ypf.com", country:"Argentina", sector:"Energia", industry:"Integrated oil & gas", confidence:"high" },
   GGAL: { companyName:"Grupo Financiero Galicia", domain:"galicia.ar", country:"Argentina", sector:"Financiero", industry:"Banking", confidence:"high" },
@@ -91,8 +105,10 @@ const CURATED_IDENTITY: Record<string, IdentitySeed> = {
   VIST: { companyName:"Vista Energy", domain:"vistaenergy.com", country:"Argentina", sector:"Energia", industry:"Oil & gas E&P", confidence:"high" },
   LOMA: { companyName:"Loma Negra", domain:"lomanegra.com", country:"Argentina", sector:"Materiales", industry:"Cement", confidence:"high" },
   GLOB: { companyName:"Globant", domain:"globant.com", country:"Argentina", sector:"Tecnologia", industry:"IT services", confidence:"high" },
-  CRESY:{ companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
-  IRS:  { companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
+  CRES: { companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
+  CRESY:{ underlyingTicker:"CRES", companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
+  IRSA: { companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
+  IRS:  { underlyingTicker:"IRSA", companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
   TX:   { companyName:"Ternium", domain:"ternium.com", country:"Argentina", sector:"Materiales", industry:"Steel", confidence:"high" },
   TXAR: { underlyingTicker:"TX", companyName:"Ternium Argentina", domain:"ternium.com", country:"Argentina", sector:"Materiales", industry:"Steel", confidence:"high" },
   ALUA: { companyName:"Aluar", domain:"aluar.com.ar", country:"Argentina", sector:"Materiales", industry:"Aluminum", confidence:"high" },
@@ -102,6 +118,13 @@ const CURATED_IDENTITY: Record<string, IdentitySeed> = {
   BYMA: { companyName:"Bolsas y Mercados Argentinos", domain:"byma.com.ar", country:"Argentina", sector:"Financiero", industry:"Exchange operator", confidence:"high" },
   VALO: { companyName:"Grupo Financiero Valores", domain:"grupovalores.com.ar", country:"Argentina", sector:"Financiero", industry:"Financial services", confidence:"medium" },
   METR: { companyName:"Metrogas", domain:"metrogas.com.ar", country:"Argentina", sector:"Utilities", industry:"Gas distribution", confidence:"high" },
+  TGNO4:{ companyName:"Transportadora de Gas del Norte", domain:"tgn.com.ar", country:"Argentina", sector:"Energia", industry:"Gas midstream", confidence:"high" },
+  AGRO: { companyName:"Agrometal", domain:"agrometal.com", country:"Argentina", sector:"Industrial", industry:"Agricultural machinery", confidence:"medium" },
+  HAVA: { companyName:"Havanna", domain:"havanna.com.ar", country:"Argentina", sector:"Consumo", industry:"Food retail", confidence:"high" },
+  AUSO: { companyName:"Autopistas del Sol", domain:"ausol.com.ar", country:"Argentina", sector:"Infraestructura", industry:"Toll roads", confidence:"medium" },
+  BOLT: { companyName:"Boldt", domain:"boldt.com.ar", country:"Argentina", sector:"Tecnologia", industry:"Technology services", confidence:"medium" },
+  DGCU2:{ companyName:"Distribuidora de Gas Cuyana", domain:"ecogas.com.ar", country:"Argentina", sector:"Utilities", industry:"Gas distribution", confidence:"medium" },
+  CAPX: { companyName:"Capex", domain:"capex.com.ar", country:"Argentina", sector:"Energia", industry:"Power / oil & gas", confidence:"high" },
   SPY:  { companyName:"SPDR S&P 500 ETF Trust", domain:"ssga.com", country:"Estados Unidos", sector:"ETF", industry:"US broad market ETF", assetType:"etf", confidence:"high" },
   QQQ:  { companyName:"Invesco QQQ Trust", domain:"invesco.com", country:"Estados Unidos", sector:"ETF", industry:"US growth ETF", assetType:"etf", confidence:"high" },
   DIA:  { companyName:"SPDR Dow Jones Industrial Average ETF", domain:"ssga.com", country:"Estados Unidos", sector:"ETF", industry:"US blue-chip ETF", assetType:"etf", confidence:"high" },
@@ -154,8 +177,9 @@ export function resolveEquityIdentity(input: {
   const companyName = curated?.companyName ?? input.name ?? localTicker;
   const displayName = curated?.displayName ?? companyName;
   const assetType = curated?.assetType ?? input.assetType ?? (input.market === "ETF" ? "etf" : input.market === "CEDEAR" ? "cedear" : "stock");
-  const logoUrl = domain ? domainLogoUrl(domain) : providerLogoUrl(underlyingTicker);
+  const logoUrl = curated?.logoUrl ?? (domain ? domainLogoUrl(domain) : providerLogoUrl(underlyingTicker));
   const logoFallbackUrl = domain ? providerLogoUrl(underlyingTicker) : null;
+  const logoStatus: EquityLogoStatus = curated?.logoStatus ?? (curated?.logoUrl ? "curated_logo" : domain ? "domain_logo" : "provider_logo");
 
   return {
     localTicker,
@@ -169,8 +193,8 @@ export function resolveEquityIdentity(input: {
     assetType,
     logoUrl,
     logoFallbackUrl,
-    logoSource: domain ? `domain:${domain}` : "financialmodelingprep:ticker-image",
-    logoStatus: domain ? "mapped_logo" : "provider_logo",
+    logoSource: curated?.logoSource ?? (curated?.logoUrl ? "curated:remote" : domain ? `domain:${domain}` : "financialmodelingprep:ticker-image"),
+    logoStatus,
     identityConfidence: curated?.confidence ?? (domain ? "high" : "medium"),
     fallbackInitials: fallbackInitials(localTicker, companyName),
   };

@@ -908,7 +908,7 @@ function EquityScreener() {
                     {/* Precio */}
                     <td style={{ padding:"7px 10px", textAlign:"right", whiteSpace:"nowrap" }}>
                       <div style={{ fontSize:13, fontWeight:700, color:t.tx }}>
-                        {e.cur==="ARS" ? `$${e.p.toLocaleString("es-AR")}` : `$${e.p.toFixed(2)}`}
+                        {e.p > 0 ? (e.cur==="ARS" ? `$${e.p.toLocaleString("es-AR")}` : `$${e.p.toFixed(2)}`) : "—"}
                       </div>
                     </td>
 

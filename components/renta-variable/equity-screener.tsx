@@ -334,7 +334,7 @@ export function EquityScreener() {
                     <td style={{ padding: "7px 10px", color: t.tx, fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.identity.displayName}</td>
 
                     <td style={{ padding: "7px 10px", textAlign: "right", fontFamily: FH, fontSize: 14, fontWeight: 700, color: livePrices[e.t] ? t.tx : t.mu }}>
-                      ${e.p.toFixed(2)}
+                      {e.p > 0 ? `$${e.p.toFixed(2)}` : "—"}
                     </td>
 
                     <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700, color: pctColor(e._1d) }}>

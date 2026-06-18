@@ -36,6 +36,11 @@ export function EquityIdentityMark({
   const px = SIZE_PX[size];
   const colors = useMemo(() => colorFor(identity.underlyingTicker || identity.localTicker), [identity.localTicker, identity.underlyingTicker]);
   const activeLogo = identity.logoUrl ?? identity.logoFallbackUrl ?? null;
+  const backgroundImage = identity.logoUrl && identity.logoFallbackUrl
+    ? `url("${identity.logoUrl}"), url("${identity.logoFallbackUrl}")`
+    : activeLogo
+      ? `url("${activeLogo}")`
+      : undefined;
 
   const title = showTooltip
     ? `${identity.displayName} · ${identity.localTicker}${identity.underlyingTicker !== identity.localTicker ? ` / ${identity.underlyingTicker}` : ""} · ${activeLogo ? identity.logoStatus : "generated_fallback"} · ${identity.identityConfidence}`
@@ -69,7 +74,7 @@ export function EquityIdentityMark({
           style={{
             position:"absolute",
             inset:0,
-            backgroundImage:`url("${activeLogo}")`,
+            backgroundImage,
             backgroundSize:"contain",
             backgroundRepeat:"no-repeat",
             backgroundPosition:"center",

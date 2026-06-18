@@ -1,5 +1,6 @@
 export type EquityAssetType = "stock" | "cedear" | "etf" | "index" | "private_market_exposure" | "custom_instrument";
-export type EquityLogoStatus = "official_logo" | "provider_logo" | "curated_logo" | "domain_logo" | "local_asset_logo" | "emergency_fallback" | "unavailable";
+export type EquityLogoStatus = "official_logo" | "curated_logo" | "provider_verified_logo" | "issuer_logo" | "local_asset_logo" | "emergency_fallback" | "unavailable";
+export type EquityLogoQuality = "verified_high_quality" | "verified_acceptable" | "issuer_acceptable" | "unverified" | "unavailable";
 export type EquityIdentityConfidence = "high" | "medium" | "low";
 
 export interface EquityIdentity {
@@ -16,6 +17,10 @@ export interface EquityIdentity {
   logoFallbackUrl: string | null;
   logoSource: string;
   logoStatus: EquityLogoStatus;
+  logoQuality: EquityLogoQuality;
+  logoNotes: string | null;
+  logoBackground: string | null;
+  officialDomain: string | null;
   identityConfidence: EquityIdentityConfidence;
   fallbackInitials: string;
 }
@@ -32,6 +37,9 @@ type IdentitySeed = {
   assetType?: EquityAssetType;
   logoSource?: string;
   logoStatus?: EquityLogoStatus;
+  logoQuality?: EquityLogoQuality;
+  logoNotes?: string;
+  logoBackground?: string;
   confidence?: EquityIdentityConfidence;
 };
 
@@ -87,9 +95,70 @@ const DOMAIN_BY_TICKER: Record<string, string> = {
   SNY:"sanofi.com",RIO:"riotinto.com",
 };
 
+const FINNHUB_VERIFIED_LOGO_TICKERS = new Set([
+  "GLOB","MELI","TX","MU","NVDA","AVGO","AMAT","AMD","INTC","QCOM",
+  "AAPL","MSFT","AMZN","GOOGL","TSLA","NFLX","ADBE","ORCL","PLTR",
+  "JPM","GS","BAC","MS","WFC","V","MA","AXP","XOM","CVX","GE","RTX",
+  "CAT","UBER","LLY","JNJ","UNH","ABBV","PFE","AMGN","MRK","WMT","MCD",
+  "KO","PEP","PG","COST","HD","NKE","DIS","BABA","IBM","NIO","COIN",
+  "MSTR","NU","BRK.B","COP","EOG","OXY","SLB","HAL","DVN","LMT","NOC",
+  "HON","BA","DE","MMM","ABT","MDT","CVS","BMY","CRWD","PANW","NET",
+  "SNOW","NOW","DDOG","SBUX","TGT","CMG","LOW","YUM","BX","KKR","SCHW",
+  "C","NEE","SO","T","VZ","CMCSA","SPCX","CRM","ACN","LIN","TMO","INTU",
+  "TXN","ISRG","UPS","BKNG","BLK","SPGI","PDD","SE","SHOP","ABNB","PM",
+  "MO","GILD","LRCX","KLAC","ADP","MDLZ","CB","MMC","CME","ICE","DUK",
+  "APD","DHR","TMUS","MAR","HLT","PYPL","REGN","VRTX","ROKU","SPOT","EA",
+  "TTWO","GM","F","DAL","UAL","AAL","LUV","COF","DASH","WDAY","ZS","MDB",
+  "CL","EL","GD","HOOD",
+]);
+
+const FMP_VERIFIED_LOGO_TICKERS = new Set([
+  "GGAL","BMA","BBAR","SUPV","YPF","PAM","CEPU","EDN","TGS","VIST","LOMA",
+  "TEO","CRESY","IRS","ASML","TSM","ARM","META","GEV","VALE","PBR","BBD",
+  "HUT","GPRK","NBIS","BITF","BRKB","CSCO","SAP","NVO","SHEL","TM","RACE",
+  "SONY","HSBC","ELV","FI","WM","TEAM","TTE","UL","AZN","SNY","RIO","SPY",
+  "QQQ","XLE","XLF","XLK","XLV","GLD","SLV","EWZ","SMH","EC","BRFS","DIA",
+  "IVV","TLT","ILF","XLI","ARKK","AGRO",
+]);
+
+const LOGO_OVERRIDES: Record<string, Pick<IdentitySeed, "logoUrl" | "logoSource" | "logoStatus" | "logoQuality" | "logoNotes" | "logoBackground">> = {
+  MERV: {
+    logoUrl:"https://cdn.prod.website-files.com/6697a441a50c6b926e1972e0/682f4f060a306e6d3804523d_BYMA-isologo.svg",
+    logoSource:"official:byma-press-kit",
+    logoStatus:"official_logo",
+    logoQuality:"verified_high_quality",
+    logoNotes:"Index identity uses official BYMA press-kit isologo because Merval is an index, not an issuer.",
+  },
+  PAMP: {
+    logoUrl:"https://financialmodelingprep.com/image-stock/PAM.png",
+    logoSource:"financialmodelingprep:verified-logo:PAM",
+    logoStatus:"curated_logo",
+    logoQuality:"verified_acceptable",
+    logoNotes:"Local ticker alias uses the verified Pampa Energia ADR logo.",
+  },
+  BRKB: {
+    logoUrl:"https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/BRK.B.png",
+    logoSource:"finnhub-static:verified-logo:BRK.B",
+    logoStatus:"curated_logo",
+    logoQuality:"verified_high_quality",
+    logoNotes:"Normalizes BRKB to the Berkshire Hathaway B visual identity.",
+  },
+  TRAN: { logoUrl:"https://www.transener.com.ar/wp-content/uploads/2018/06/Transener-logo-1.png", logoSource:"official:transener.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  BYMA: { logoUrl:"https://cdn.prod.website-files.com/6697a441a50c6b926e1972e0/682f4f060a306e6d3804523d_BYMA-isologo.svg", logoSource:"official:byma-press-kit", logoStatus:"official_logo", logoQuality:"verified_high_quality" },
+  VALO: { logoUrl:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Logo-VALO.svg", logoSource:"curated:wikimedia:Logo-VALO.svg", logoStatus:"curated_logo", logoQuality:"verified_acceptable" },
+  ALUA: { logoUrl:"https://www.aluar.com.ar/footer/aluar-logo.svg", logoSource:"official:aluar.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  COME: { logoUrl:"https://www.scp.com.ar/img/logo_scp.svg", logoSource:"official:scp.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  MIRG: { logoUrl:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Mirgor_company_logo.png", logoSource:"curated:wikimedia:Mirgor_company_logo.png", logoStatus:"curated_logo", logoQuality:"verified_acceptable" },
+  METR: { logoUrl:"https://www.metrogas.com.ar/assets/media/2022/08/metrogas-logo.svg", logoSource:"official:metrogas.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  TGNO4:{ logoUrl:"https://www.tgn.com.ar/assets/media/2023/12/TGN_logo_2023_50.png", logoSource:"official:tgn.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  HAVA: { logoUrl:"https://havanna.com.ar/images/logo.png?v=1.2", logoSource:"official:havanna.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  AUSO: { logoUrl:"https://back.ausol.com.ar/wp-content/uploads/2025/09/logo-sol-naranja.png", logoSource:"official:ausol.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable" },
+  CAPX: { logoUrl:"https://capex.com.ar/wp-content/uploads/2023/11/logo-capex-blanco.svg", logoSource:"official:capex.com.ar", logoStatus:"official_logo", logoQuality:"verified_acceptable", logoBackground:"#0f172a" },
+};
+
 const CURATED_IDENTITY: Record<string, IdentitySeed> = {
-  MERV: { companyName:"Indice Merval", displayName:"Merval", country:"Argentina", sector:"Indice", industry:"Equity index", assetType:"index", confidence:"medium" },
-  SPCX: { companyName:"SpaceX", displayName:"SpaceX", domain:"spacex.com", country:"Estados Unidos", sector:"Aeroespacial", industry:"Private space technology", assetType:"private_market_exposure", logoStatus:"official_logo", confidence:"high" },
+  MERV: { companyName:"Indice Merval", displayName:"Merval", domain:"byma.com.ar", country:"Argentina", sector:"Indice", industry:"Equity index", assetType:"index", confidence:"high" },
+  SPCX: { companyName:"SpaceX", displayName:"SpaceX", domain:"spacex.com", country:"Estados Unidos", sector:"Aeroespacial", industry:"Private space technology", assetType:"private_market_exposure", logoStatus:"official_logo", logoQuality:"verified_high_quality", confidence:"high" },
   YPF:  { companyName:"YPF S.A.", domain:"ypf.com", country:"Argentina", sector:"Energia", industry:"Integrated oil & gas", confidence:"high" },
   YPFD: { underlyingTicker:"YPF", companyName:"YPF S.A.", domain:"ypf.com", country:"Argentina", sector:"Energia", industry:"Integrated oil & gas", confidence:"high" },
   GGAL: { companyName:"Grupo Financiero Galicia", domain:"galicia.ar", country:"Argentina", sector:"Financiero", industry:"Banking", confidence:"high" },
@@ -105,10 +174,10 @@ const CURATED_IDENTITY: Record<string, IdentitySeed> = {
   VIST: { companyName:"Vista Energy", domain:"vistaenergy.com", country:"Argentina", sector:"Energia", industry:"Oil & gas E&P", confidence:"high" },
   LOMA: { companyName:"Loma Negra", domain:"lomanegra.com", country:"Argentina", sector:"Materiales", industry:"Cement", confidence:"high" },
   GLOB: { companyName:"Globant", domain:"globant.com", country:"Argentina", sector:"Tecnologia", industry:"IT services", confidence:"high" },
-  CRES: { companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
-  CRESY:{ underlyingTicker:"CRES", companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
-  IRSA: { companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
-  IRS:  { underlyingTicker:"IRSA", companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
+  CRES: { underlyingTicker:"CRESY", companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
+  CRESY:{ companyName:"Cresud", domain:"cresud.com.ar", country:"Argentina", sector:"Real estate", industry:"Agribusiness / real estate", confidence:"high" },
+  IRSA: { underlyingTicker:"IRS", companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
+  IRS:  { companyName:"IRSA", domain:"irsa.com.ar", country:"Argentina", sector:"Real estate", industry:"Real estate", confidence:"high" },
   TX:   { companyName:"Ternium", domain:"ternium.com", country:"Argentina", sector:"Materiales", industry:"Steel", confidence:"high" },
   TXAR: { underlyingTicker:"TX", companyName:"Ternium Argentina", domain:"ternium.com", country:"Argentina", sector:"Materiales", industry:"Steel", confidence:"high" },
   ALUA: { companyName:"Aluar", domain:"aluar.com.ar", country:"Argentina", sector:"Materiales", industry:"Aluminum", confidence:"high" },
@@ -139,6 +208,7 @@ const CURATED_IDENTITY: Record<string, IdentitySeed> = {
   SMH:  { companyName:"VanEck Semiconductor ETF", domain:"vaneck.com", country:"Estados Unidos", sector:"ETF", industry:"Semiconductors ETF", assetType:"etf", confidence:"high" },
   ARKK: { companyName:"ARK Innovation ETF", domain:"ark-funds.com", country:"Estados Unidos", sector:"ETF", industry:"Innovation ETF", assetType:"etf", confidence:"high" },
   TLT:  { companyName:"iShares 20+ Year Treasury Bond ETF", domain:"ishares.com", country:"Estados Unidos", sector:"ETF", industry:"Treasury ETF", assetType:"etf", confidence:"high" },
+  BRKB: { underlyingTicker:"BRK.B", companyName:"Berkshire Hathaway Inc. Class B", domain:"berkshirehathaway.com", country:"Estados Unidos", sector:"Financiero", industry:"Diversified holding company", confidence:"high" },
 };
 
 function normalizeTicker(ticker: string): string {
@@ -149,8 +219,70 @@ function providerLogoUrl(symbol: string): string {
   return `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`;
 }
 
-function domainLogoUrl(domain: string): string {
-  return `https://logo.clearbit.com/${domain}`;
+function highQualityProviderLogoUrl(symbol: string): string {
+  return `https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/${encodeURIComponent(symbol)}.png`;
+}
+
+function resolveLogo(localTicker: string, underlyingTicker: string, curated?: IdentitySeed) {
+  const override = LOGO_OVERRIDES[localTicker] ?? LOGO_OVERRIDES[underlyingTicker];
+  if (override?.logoUrl) {
+    return {
+      logoUrl: override.logoUrl,
+      logoFallbackUrl: FMP_VERIFIED_LOGO_TICKERS.has(underlyingTicker) ? providerLogoUrl(underlyingTicker) : null,
+      logoSource: override.logoSource ?? "curated:override",
+      logoStatus: override.logoStatus ?? "curated_logo",
+      logoQuality: override.logoQuality ?? "verified_high_quality",
+      logoNotes: override.logoNotes ?? null,
+      logoBackground: override.logoBackground ?? null,
+    };
+  }
+
+  if (curated?.logoUrl) {
+    return {
+      logoUrl: curated.logoUrl,
+      logoFallbackUrl: FMP_VERIFIED_LOGO_TICKERS.has(underlyingTicker) ? providerLogoUrl(underlyingTicker) : null,
+      logoSource: curated.logoSource ?? "curated:remote",
+      logoStatus: curated.logoStatus ?? "curated_logo",
+      logoQuality: curated.logoQuality ?? "verified_high_quality",
+      logoNotes: curated.logoNotes ?? null,
+      logoBackground: curated.logoBackground ?? null,
+    };
+  }
+
+  if (FINNHUB_VERIFIED_LOGO_TICKERS.has(underlyingTicker)) {
+    return {
+      logoUrl: highQualityProviderLogoUrl(underlyingTicker),
+      logoFallbackUrl: FMP_VERIFIED_LOGO_TICKERS.has(underlyingTicker) ? providerLogoUrl(underlyingTicker) : null,
+      logoSource: `finnhub-static:verified-logo:${underlyingTicker}`,
+      logoStatus: "provider_verified_logo" as const,
+      logoQuality: "verified_high_quality" as const,
+      logoNotes: null,
+      logoBackground: null,
+    };
+  }
+
+  if (FMP_VERIFIED_LOGO_TICKERS.has(underlyingTicker) || FMP_VERIFIED_LOGO_TICKERS.has(localTicker)) {
+    const symbol = FMP_VERIFIED_LOGO_TICKERS.has(underlyingTicker) ? underlyingTicker : localTicker;
+    return {
+      logoUrl: providerLogoUrl(symbol),
+      logoFallbackUrl: FINNHUB_VERIFIED_LOGO_TICKERS.has(underlyingTicker) ? highQualityProviderLogoUrl(underlyingTicker) : null,
+      logoSource: `financialmodelingprep:verified-logo:${symbol}`,
+      logoStatus: "provider_verified_logo" as const,
+      logoQuality: "verified_acceptable" as const,
+      logoNotes: null,
+      logoBackground: null,
+    };
+  }
+
+  return {
+    logoUrl: null,
+    logoFallbackUrl: null,
+    logoSource: "unavailable",
+    logoStatus: "unavailable" as const,
+    logoQuality: "unavailable" as const,
+    logoNotes: "No approved visual identity source is configured for this ticker.",
+    logoBackground: null,
+  };
 }
 
 function fallbackInitials(ticker: string, name: string): string {
@@ -177,9 +309,7 @@ export function resolveEquityIdentity(input: {
   const companyName = curated?.companyName ?? input.name ?? localTicker;
   const displayName = curated?.displayName ?? companyName;
   const assetType = curated?.assetType ?? input.assetType ?? (input.market === "ETF" ? "etf" : input.market === "CEDEAR" ? "cedear" : "stock");
-  const logoUrl = curated?.logoUrl ?? (domain ? domainLogoUrl(domain) : providerLogoUrl(underlyingTicker));
-  const logoFallbackUrl = domain ? providerLogoUrl(underlyingTicker) : null;
-  const logoStatus: EquityLogoStatus = curated?.logoStatus ?? (curated?.logoUrl ? "curated_logo" : domain ? "domain_logo" : "provider_logo");
+  const logo = resolveLogo(localTicker, underlyingTicker, curated);
 
   return {
     localTicker,
@@ -191,21 +321,24 @@ export function resolveEquityIdentity(input: {
     sector: curated?.sector ?? input.sector ?? "Sin clasificar",
     industry: curated?.industry ?? input.industry ?? "No informado",
     assetType,
-    logoUrl,
-    logoFallbackUrl,
-    logoSource: curated?.logoSource ?? (curated?.logoUrl ? "curated:remote" : domain ? `domain:${domain}` : "financialmodelingprep:ticker-image"),
-    logoStatus,
-    identityConfidence: curated?.confidence ?? (domain ? "high" : "medium"),
+    logoUrl: logo.logoUrl,
+    logoFallbackUrl: logo.logoFallbackUrl,
+    logoSource: logo.logoSource,
+    logoStatus: logo.logoStatus,
+    logoQuality: logo.logoQuality,
+    logoNotes: logo.logoNotes,
+    logoBackground: logo.logoBackground,
+    officialDomain: domain ?? null,
+    identityConfidence: curated?.confidence ?? (logo.logoQuality === "unavailable" ? "low" : domain ? "high" : "medium"),
     fallbackInitials: fallbackInitials(localTicker, companyName),
   };
 }
 
 export function resolveEarningsLogo(symbol: string): { logo: string | null; companyDomain: string | null; logoFallback: string | null } {
   const identity = resolveEquityIdentity({ ticker: symbol });
-  const domain = identity.logoSource.startsWith("domain:") ? identity.logoSource.slice("domain:".length) : null;
   return {
     logo: identity.logoUrl,
-    companyDomain: domain,
+    companyDomain: identity.officialDomain,
     logoFallback: identity.logoFallbackUrl,
   };
 }

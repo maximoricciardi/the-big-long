@@ -85,7 +85,7 @@ export async function GET() {
       to:       dates[dates.length - 1],
       windowDays: WINDOW_DAYS,
       source: "Nasdaq public earnings calendar",
-      logoStrategy: "Mapped domains, ticker image fallback, generated initials",
+      logoStrategy: "Curated equity logos with earnings-specific FMP/Finnhub fallback",
     },
     buildMeta({
       provider: "Nasdaq",

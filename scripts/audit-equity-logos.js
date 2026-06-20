@@ -33,7 +33,10 @@ function loadIdentityResolver() {
   }).outputText;
   const sandbox = { exports: {}, module: { exports: {} }, require, console };
   vm.runInNewContext(transpiled, sandbox, { filename: sourcePath });
-  return sandbox.module.exports.resolveEquityIdentity || sandbox.exports.resolveEquityIdentity;
+  return {
+    resolveEquityIdentity: sandbox.module.exports.resolveEquityIdentity || sandbox.exports.resolveEquityIdentity,
+    resolveEarningsLogo: sandbox.module.exports.resolveEarningsLogo || sandbox.exports.resolveEarningsLogo,
+  };
 }
 
 function extractObjects(filePath, regex, mapEntry) {
@@ -50,7 +53,7 @@ function uniqueByTicker(rows) {
   return [...out.values()];
 }
 
-const resolveEquityIdentity = loadIdentityResolver();
+const { resolveEquityIdentity, resolveEarningsLogo } = loadIdentityResolver();
 
 const equities = extractObjects(
   "lib/data/equities.ts",
@@ -72,6 +75,7 @@ const topCedears = extractObjects(
 
 const representativeQaTickers = "AAPL MSFT NVDA GOOGL AMZN META TSLA AVGO TSM LLY JPM V MA WMT COST XOM PG JNJ KO PEP MCD NFLX CRM ORCL AMD ADBE QCOM SPGI MELI BRKB BRK.B ASML SAP NVO SHEL TM BABA SHOP UBER ABNB RACE SONY HSBC TTE AZN RIO SPCX YPF YPFD GGAL BMA SUPV PAMP CEPU TGSU2 TRAN EDN BYMA VALO TXAR ALUA LOMA COME MIRG METR CRES IRSA BBAR TGNO4 AGRO HAVA AUSO CAPX".split(/\s+/);
 const argRepresentativeTickers = new Set("YPF YPFD GGAL BMA SUPV PAMP CEPU TGSU2 TRAN EDN BYMA VALO TXAR ALUA LOMA COME MIRG METR CRES IRSA BBAR TGNO4 AGRO HAVA AUSO CAPX".split(/\s+/));
+const representativeEarningsTickers = "ACN MU NKE FDX LEN DRI KMX GIS PAYX CCL WBA CAG STZ RPM LEVI HELE SMPL AAPL MSFT NVDA GOOGL AMZN META TSLA CRM ORCL ADBE".split(/\s+/);
 const representativeQa = representativeQaTickers.map((ticker) => ({
   scope: "representative_qa",
   ticker,
@@ -100,6 +104,19 @@ const rows = universe.map((item) => {
   ].filter(Boolean);
   return { ...item, identity, hasRealLogo, hasApprovedQuality, hasVisualApproval, failureReasons };
 });
+
+const earningsRows = representativeEarningsTickers.map((ticker) => {
+  const logo = resolveEarningsLogo(ticker);
+  const hasLogo = Boolean(logo.logo || logo.logoFallback);
+  const primary = logo.logo ?? "";
+  const fallback = logo.logoFallback ?? "";
+  const usesProviderFallback = /financialmodelingprep|finnhub/i.test(primary) || /financialmodelingprep|finnhub/i.test(fallback);
+  const usesEmergencyInitials = !hasLogo;
+  const suspicious = !hasLogo || /clearbit/i.test(primary) || /clearbit/i.test(fallback);
+  return { ticker, ...logo, hasLogo, usesProviderFallback, usesEmergencyInitials, suspicious };
+});
+const earningsMissing = earningsRows.filter((row) => !row.hasLogo);
+const earningsSuspicious = earningsRows.filter((row) => row.suspicious);
 
 const missing = rows.filter((row) => !row.hasVisualApproval);
 const initials = rows.filter((row) => row.identity.logoStatus === "emergency_fallback" || !row.identity.logoUrl);
@@ -151,6 +168,13 @@ const report = {
   representativeQaChecked: rows.filter((row) => row.scope === "representative_qa").length,
   argentineEquitiesChecked: argRows.length,
   instrumentsWithApprovedVisualLogos: rows.length - missing.length,
+  earningsTickersChecked: earningsRows.length,
+  earningsLogosPresent: earningsRows.length - earningsMissing.length,
+  earningsMissingLogos: earningsMissing.length,
+  earningsEmergencyFallbacks: earningsRows.filter((row) => row.usesEmergencyInitials).length,
+  earningsSuspiciousLogos: earningsSuspicious.length,
+  earningsProviderFallbackLogos: earningsRows.filter((row) => row.usesProviderFallback).length,
+  earningsTickersRequiringManualReview: earningsSuspicious.map((row) => row.ticker),
   instrumentsUsingInitials: initials.length,
   missingOrVisuallyUnapprovedLogos: missing.length,
   suspiciousLogos: suspiciousLogoCount,
@@ -191,6 +215,6 @@ const report = {
 
 console.log(JSON.stringify(report, null, 2));
 
-if (missing.length > 0 || initials.length > 0 || !spcx || suspiciousLogoCollisions.length > 0) {
+if (missing.length > 0 || initials.length > 0 || !spcx || suspiciousLogoCollisions.length > 0 || earningsMissing.length > 0 || earningsSuspicious.length > 0) {
   process.exitCode = 1;
 }

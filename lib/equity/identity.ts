@@ -335,10 +335,19 @@ export function resolveEquityIdentity(input: {
 }
 
 export function resolveEarningsLogo(symbol: string): { logo: string | null; companyDomain: string | null; logoFallback: string | null } {
-  const identity = resolveEquityIdentity({ ticker: symbol });
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  const identity = resolveEquityIdentity({ ticker: normalizedSymbol });
+  if (identity.logoUrl) {
+    return {
+      logo: identity.logoUrl,
+      companyDomain: identity.officialDomain,
+      logoFallback: identity.logoFallbackUrl ?? providerLogoUrl(identity.underlyingTicker),
+    };
+  }
+
   return {
-    logo: identity.logoUrl,
+    logo: providerLogoUrl(normalizedSymbol),
     companyDomain: identity.officialDomain,
-    logoFallback: identity.logoFallbackUrl,
+    logoFallback: highQualityProviderLogoUrl(normalizedSymbol),
   };
 }

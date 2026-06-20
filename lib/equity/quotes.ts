@@ -1,184 +1,25 @@
-import { fetchJsonWithRetry, normalizeError } from "@/lib/api/reliability";
+import { normalizeError } from "@/lib/api/reliability";
+import { fetchFinnhubQuote } from "@/lib/equity/providers/finnhub";
+import { fetchRailwayEquityQuotes } from "@/lib/equity/providers/railway";
+import { fetchYahooQuote } from "@/lib/equity/providers/yahoo";
+import type { EquityQuoteBatchResult, NormalizedEquityQuote } from "@/lib/equity/quote-types";
+import { isSpecialEquityExposure, normalizeEquitySymbol } from "@/lib/equity/symbols";
 
-export const EQUITY_QUOTE_CACHE_SECONDS = 90;
-export const EQUITY_QUOTE_STALE_SECONDS = 4 * 24 * 60 * 60;
-
-export type EquityQuoteAvailabilityStatus =
-  | "available"
-  | "unavailable"
-  | "provider_error"
-  | "private_market_not_listed";
-
-export type EquityQuoteFreshnessStatus =
-  | "live"
-  | "delayed"
-  | "recent"
-  | "stale"
-  | "special"
-  | "unavailable";
-
-export type EquityQuoteConfidence = "high" | "medium" | "low";
-
-export interface NormalizedEquityQuote {
-  requestedSymbol: string;
-  ticker: string;
-  resolvedSymbol: string | null;
-  price: number | null;
-  change: number | null;
-  changePct: number | null;
-  high: number | null;
-  low: number | null;
-  open: number | null;
-  previousClose: number | null;
-  volume: number | null;
-  currency: "USD" | "ARS" | string;
-  provider: string;
-  source: string;
-  fetchedAt: string;
-  sourceUpdatedAt: string | null;
-  ageSeconds: number | null;
-  stale: boolean;
-  availabilityStatus: EquityQuoteAvailabilityStatus;
-  freshnessStatus: EquityQuoteFreshnessStatus;
-  confidence: EquityQuoteConfidence;
-  fallbackUsed: boolean;
-  unavailableReason: string | null;
-}
-
-export interface EquityQuoteBatchResult {
-  prices: Record<string, NormalizedEquityQuote>;
-  quotes: Record<string, NormalizedEquityQuote>;
-  unavailable: Record<string, NormalizedEquityQuote>;
-  special: Record<string, NormalizedEquityQuote>;
-  errors: Array<{ provider: string; message: string; status?: number; symbol?: string }>;
-  matched: number;
-  standardTotal: number;
-  total: number;
-  fetchedAt: string;
-}
-
-type YahooChartResponse = {
-  chart?: {
-    result?: Array<{
-      meta?: {
-        currency?: string;
-        regularMarketPrice?: number;
-        regularMarketChange?: number;
-        regularMarketChangePercent?: number;
-        regularMarketDayHigh?: number;
-        regularMarketDayLow?: number;
-        regularMarketOpen?: number;
-        regularMarketTime?: number;
-        previousClose?: number;
-        chartPreviousClose?: number;
-      };
-      timestamp?: number[];
-      indicators?: {
-        quote?: Array<{
-          volume?: Array<number | null>;
-        }>;
-      };
-    }>;
-  };
-};
-
-type FinnhubQuoteResponse = {
-  c?: number;
-  d?: number;
-  dp?: number;
-  h?: number;
-  l?: number;
-  o?: number;
-  pc?: number;
-  t?: number;
-};
-
-function normalizeSymbol(symbol: string): string {
-  return symbol.trim().toUpperCase();
-}
-
-function normalizeProviderSymbol(symbol: string): string {
-  const normalized = normalizeSymbol(symbol);
-  if (normalized === "BRKB" || normalized === "BRK/B") return "BRK.B";
-  if (normalized === "BITF") return "KEEL";
-  if (normalized === "FI") return "FISV";
-  if (normalized === "MMC") return "MRSH";
-  return normalized;
-}
-
-export function isSpecialEquityExposure(symbol: string): boolean {
-  return normalizeSymbol(symbol) === "SPCX";
-}
-
-function sourceTimeFromUnix(unixSeconds?: number): { sourceUpdatedAt: string | null; ageSeconds: number | null; stale: boolean } {
-  if (!unixSeconds || unixSeconds <= 0) {
-    return { sourceUpdatedAt: null, ageSeconds: null, stale: false };
-  }
-  const updatedAt = new Date(unixSeconds * 1000);
-  const ageSeconds = Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / 1000));
-  return {
-    sourceUpdatedAt: updatedAt.toISOString(),
-    ageSeconds,
-    stale: ageSeconds > EQUITY_QUOTE_STALE_SECONDS,
-  };
-}
-
-function freshnessFor(provider: string, ageSeconds: number | null, stale: boolean): EquityQuoteFreshnessStatus {
-  if (stale) return "stale";
-  if (ageSeconds === null) return provider === "Yahoo Finance" ? "delayed" : "recent";
-  if (provider === "Finnhub" && ageSeconds <= 15 * 60) return "live";
-  if (ageSeconds <= EQUITY_QUOTE_STALE_SECONDS) return provider === "Yahoo Finance" ? "delayed" : "recent";
-  return "stale";
-}
-
-function lastFinite(values: Array<number | null | undefined> | undefined): number | null {
-  if (!values) return null;
-  for (let i = values.length - 1; i >= 0; i -= 1) {
-    const value = values[i];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-  }
-  return null;
-}
-
-function yahooCandidates(symbol: string): string[] {
-  const base = normalizeProviderSymbol(symbol);
-  const out = new Set<string>();
-
-  if (base === "SPCX") return [];
-  if (base === "MERV") {
-    out.add("^MERV");
-    out.add("MERV.BA");
-    return [...out];
-  }
-  if (base === "BRK.B") {
-    out.add("BRK-B");
-    out.add("BRK.B");
-    out.add("BRKB");
-    return [...out];
-  }
-  if (base === "YPFD") {
-    out.add("YPF");
-    out.add("YPF.BA");
-  }
-
-  out.add(base);
-  if (base.endsWith("D") && base.length > 2) {
-    const noD = base.slice(0, -1);
-    out.add(noD);
-    out.add(`${noD}.BA`);
-  }
-  if (!base.includes(".") && !base.startsWith("^")) out.add(`${base}.BA`);
-  return [...out];
-}
-
-function finnhubSymbol(symbol: string): string {
-  const normalized = normalizeProviderSymbol(symbol);
-  if (normalized === "MERV") return "^MERV";
-  return normalized;
-}
+export {
+  EQUITY_QUOTE_CACHE_SECONDS,
+  EQUITY_QUOTE_STALE_SECONDS,
+  type EquityQuoteAvailabilityStatus,
+  type EquityQuoteBatchResult,
+  type EquityQuoteChangeSource,
+  type EquityQuoteConfidence,
+  type EquityQuoteFreshnessStatus,
+  type EquityQuoteVariationStatus,
+  type NormalizedEquityQuote,
+} from "@/lib/equity/quote-types";
+export { isSpecialEquityExposure } from "@/lib/equity/symbols";
 
 export function buildPrivateMarketQuote(symbol: string): NormalizedEquityQuote {
-  const ticker = normalizeSymbol(symbol);
+  const ticker = normalizeEquitySymbol(symbol);
   return {
     requestedSymbol: ticker,
     ticker,
@@ -186,6 +27,8 @@ export function buildPrivateMarketQuote(symbol: string): NormalizedEquityQuote {
     price: null,
     change: null,
     changePct: null,
+    changeSource: "unavailable",
+    variationStatus: "not_applicable",
     high: null,
     low: null,
     open: null,
@@ -203,112 +46,6 @@ export function buildPrivateMarketQuote(symbol: string): NormalizedEquityQuote {
     confidence: "high",
     fallbackUsed: false,
     unavailableReason: "SPCX represents private-market SpaceX exposure; no listed public equity quote is available.",
-  };
-}
-
-async function fetchYahooQuote(symbol: string, fallbackUsed: boolean): Promise<NormalizedEquityQuote> {
-  const ticker = normalizeSymbol(symbol);
-  let lastError: unknown = null;
-
-  for (const candidate of yahooCandidates(symbol)) {
-    try {
-      const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(candidate)}`);
-      url.searchParams.set("range", "5d");
-      url.searchParams.set("interval", "1d");
-      url.searchParams.set("includePrePost", "false");
-      url.searchParams.set("events", "div,splits");
-
-      const json = await fetchJsonWithRetry<YahooChartResponse>(url.toString(), {
-        provider: "Yahoo Finance",
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "Mozilla/5.0",
-        },
-        timeoutMs: 8_000,
-        retries: 1,
-      });
-
-      const result = json.chart?.result?.[0];
-      const meta = result?.meta;
-      const price = meta?.regularMarketPrice ?? 0;
-      if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
-        lastError = new Error(`No market price for ${candidate}`);
-        continue;
-      }
-
-      const time = sourceTimeFromUnix(meta?.regularMarketTime ?? lastFinite(result?.timestamp) ?? undefined);
-      return {
-        requestedSymbol: ticker,
-        ticker,
-        resolvedSymbol: candidate,
-        price,
-        change: meta?.regularMarketChange ?? null,
-        changePct: meta?.regularMarketChangePercent ?? null,
-        high: meta?.regularMarketDayHigh ?? null,
-        low: meta?.regularMarketDayLow ?? null,
-        open: meta?.regularMarketOpen ?? null,
-        previousClose: meta?.previousClose ?? meta?.chartPreviousClose ?? null,
-        volume: lastFinite(result?.indicators?.quote?.[0]?.volume),
-        currency: meta?.currency ?? "USD",
-        provider: "Yahoo Finance",
-        source: "https://query1.finance.yahoo.com/v8/finance/chart",
-        fetchedAt: new Date().toISOString(),
-        sourceUpdatedAt: time.sourceUpdatedAt,
-        ageSeconds: time.ageSeconds,
-        stale: time.stale,
-        availabilityStatus: "available",
-        freshnessStatus: freshnessFor("Yahoo Finance", time.ageSeconds, time.stale),
-        confidence: time.stale ? "medium" : "high",
-        fallbackUsed,
-        unavailableReason: null,
-      };
-    } catch (err) {
-      lastError = err;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(`No market price for ${ticker}`);
-}
-
-async function fetchFinnhubQuote(symbol: string, key: string): Promise<NormalizedEquityQuote> {
-  const ticker = normalizeSymbol(symbol);
-  const providerSymbol = finnhubSymbol(symbol);
-  const source = "https://finnhub.io/api/v1/quote";
-  const data = await fetchJsonWithRetry<FinnhubQuoteResponse>(
-    `${source}?token=${key}&symbol=${encodeURIComponent(providerSymbol)}`,
-    { provider: "Finnhub", timeoutMs: 8_000, retries: 1 }
-  );
-
-  const price = data.c ?? 0;
-  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
-    throw new Error(`No valid Finnhub price for ${providerSymbol}`);
-  }
-
-  const time = sourceTimeFromUnix(data.t);
-  return {
-    requestedSymbol: ticker,
-    ticker,
-    resolvedSymbol: providerSymbol,
-    price,
-    change: data.d ?? null,
-    changePct: data.dp ?? null,
-    high: data.h ?? null,
-    low: data.l ?? null,
-    open: data.o ?? null,
-    previousClose: data.pc ?? null,
-    volume: null,
-    currency: "USD",
-    provider: "Finnhub",
-    source,
-    fetchedAt: new Date().toISOString(),
-    sourceUpdatedAt: time.sourceUpdatedAt,
-    ageSeconds: time.ageSeconds,
-    stale: time.stale,
-    availabilityStatus: "available",
-    freshnessStatus: freshnessFor("Finnhub", time.ageSeconds, time.stale),
-    confidence: time.stale ? "medium" : "high",
-    fallbackUsed: false,
-    unavailableReason: null,
   };
 }
 
@@ -341,27 +78,103 @@ export async function resolveEquityQuote(
   }
 }
 
+function unavailableQuote(symbol: string, error: { provider: string; message: string }): NormalizedEquityQuote {
+  return {
+    requestedSymbol: symbol,
+    ticker: symbol,
+    resolvedSymbol: null,
+    price: null,
+    change: null,
+    changePct: null,
+    changeSource: "unavailable",
+    variationStatus: "unavailable",
+    high: null,
+    low: null,
+    open: null,
+    previousClose: null,
+    volume: null,
+    currency: "USD",
+    provider: error.provider,
+    source: "equity-quote-provider-chain",
+    fetchedAt: new Date().toISOString(),
+    sourceUpdatedAt: null,
+    ageSeconds: null,
+    stale: true,
+    availabilityStatus: "provider_error",
+    freshnessStatus: "unavailable",
+    confidence: "low",
+    fallbackUsed: true,
+    unavailableReason: error.message,
+  };
+}
+
+function storeQuote(
+  symbol: string,
+  quote: NormalizedEquityQuote,
+  buckets: Pick<EquityQuoteBatchResult, "prices" | "quotes" | "special" | "unavailable">
+) {
+  buckets.quotes[symbol] = quote;
+  if (quote.availabilityStatus === "private_market_not_listed") {
+    buckets.special[symbol] = quote;
+  } else if (quote.price != null && quote.price > 0) {
+    buckets.prices[symbol] = quote;
+  } else {
+    buckets.unavailable[symbol] = quote;
+  }
+}
+
 export async function fetchBatchEquityQuotes(
   symbols: string[],
   {
     finnhubKey = process.env.FINNHUB_KEY ?? null,
     preferFinnhub = false,
     batchSize = 20,
+    useRailway = true,
   }: {
     finnhubKey?: string | null;
     preferFinnhub?: boolean;
     batchSize?: number;
+    useRailway?: boolean;
   } = {}
 ): Promise<EquityQuoteBatchResult> {
-  const uniqueSymbols = [...new Set(symbols.map(normalizeSymbol).filter(Boolean))];
+  const uniqueSymbols = [...new Set(symbols.map(normalizeEquitySymbol).filter(Boolean))];
   const prices: Record<string, NormalizedEquityQuote> = {};
   const quotes: Record<string, NormalizedEquityQuote> = {};
   const unavailable: Record<string, NormalizedEquityQuote> = {};
   const special: Record<string, NormalizedEquityQuote> = {};
   const errors: EquityQuoteBatchResult["errors"] = [];
+  const providerStatuses: EquityQuoteBatchResult["providerStatuses"] = [];
 
-  for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
-    const batch = uniqueSymbols.slice(i, i + batchSize);
+  uniqueSymbols.filter(isSpecialEquityExposure).forEach((symbol) => {
+    storeQuote(symbol, buildPrivateMarketQuote(symbol), { prices, quotes, special, unavailable });
+  });
+
+  let remaining = uniqueSymbols.filter((symbol) => !isSpecialEquityExposure(symbol));
+
+  if (useRailway && remaining.length > 0) {
+    const railway = await fetchRailwayEquityQuotes(remaining);
+    providerStatuses.push(railway.status);
+    errors.push(...railway.errors);
+    Object.entries(railway.quotes).forEach(([symbol, quote]) => {
+      storeQuote(symbol, quote, { prices, quotes, special, unavailable });
+    });
+    remaining = remaining.filter((symbol) => !railway.quotes[symbol]);
+  }
+
+  if (remaining.length > 0) {
+    providerStatuses.push({
+      provider: finnhubKey
+        ? preferFinnhub
+          ? "Finnhub / Yahoo Finance"
+          : "Yahoo Finance / Finnhub"
+        : "Yahoo Finance",
+      status: "fallback",
+      message: useRailway ? "Used for symbols not covered by Railway Financial API." : undefined,
+    });
+  }
+
+  for (let i = 0; i < remaining.length; i += batchSize) {
+    const batch = remaining.slice(i, i + batchSize);
     const settled = await Promise.allSettled(
       batch.map(async (symbol) => resolveEquityQuote(symbol, { finnhubKey, preferFinnhub }))
     );
@@ -369,48 +182,16 @@ export async function fetchBatchEquityQuotes(
     settled.forEach((result, index) => {
       const symbol = batch[index];
       if (result.status === "fulfilled") {
-        const quote = result.value;
-        quotes[symbol] = quote;
-        if (quote.availabilityStatus === "private_market_not_listed") {
-          special[symbol] = quote;
-        } else if (quote.price != null && quote.price > 0) {
-          prices[symbol] = quote;
-        } else {
-          unavailable[symbol] = quote;
-        }
+        storeQuote(symbol, result.value, { prices, quotes, special, unavailable });
         return;
       }
 
       const normalized = normalizeError(result.reason, finnhubKey ? "Yahoo Finance / Finnhub" : "Yahoo Finance");
       errors.push({ ...normalized, symbol });
-      unavailable[symbol] = {
-        requestedSymbol: symbol,
-        ticker: symbol,
-        resolvedSymbol: null,
-        price: null,
-        change: null,
-        changePct: null,
-        high: null,
-        low: null,
-        open: null,
-        previousClose: null,
-        volume: null,
-        currency: "USD",
-        provider: normalized.provider,
-        source: "equity-quote-provider-chain",
-        fetchedAt: new Date().toISOString(),
-        sourceUpdatedAt: null,
-        ageSeconds: null,
-        stale: true,
-        availabilityStatus: "provider_error",
-        freshnessStatus: "unavailable",
-        confidence: "low",
-        fallbackUsed: Boolean(finnhubKey),
-        unavailableReason: normalized.message,
-      };
+      storeQuote(symbol, unavailableQuote(symbol, normalized), { prices, quotes, special, unavailable });
     });
 
-    if (i + batchSize < uniqueSymbols.length) {
+    if (i + batchSize < remaining.length) {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
   }
@@ -422,6 +203,7 @@ export async function fetchBatchEquityQuotes(
     unavailable,
     special,
     errors,
+    providerStatuses,
     matched: Object.keys(prices).length,
     standardTotal,
     total: uniqueSymbols.length,

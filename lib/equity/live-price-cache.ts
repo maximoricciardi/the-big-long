@@ -1,4 +1,5 @@
-export const LIVE_PRICES_CACHE_KEY = "tbl-live-prices";
+export const LIVE_PRICES_CACHE_KEY = "tbl-live-prices:v2:equities";
+export const LIVE_PRICES_LEGACY_CACHE_KEY = "tbl-live-prices";
 export const LIVE_PRICES_TTL_MS = 2 * 60 * 1000;
 
 export type LivePricesCacheState = "empty" | "cache" | "stale" | "legacy";
@@ -21,25 +22,37 @@ export function readLivePricesCache<T>(): {
   cachedAt: number | null;
 } {
   try {
-    const raw = localStorage.getItem(LIVE_PRICES_CACHE_KEY);
-    if (!raw) return { prices: {}, state: "empty", cachedAt: null };
+    const primary = readCacheKey<T>(LIVE_PRICES_CACHE_KEY, false);
+    if (primary.state !== "empty" || Object.keys(primary.prices).length > 0) return primary;
 
-    const parsed = JSON.parse(raw) as CacheEnvelope<T> | Record<string, T>;
-    if (!isRecord(parsed)) return { prices: {}, state: "empty", cachedAt: null };
-
-    const envelope = parsed as CacheEnvelope<T>;
-    const prices = envelope.prices ?? envelope.data;
-    if (prices && isRecord(prices)) {
-      const cachedAt = typeof envelope.cachedAt === "number" ? envelope.cachedAt : null;
-      const ttlMs = typeof envelope.ttlMs === "number" ? envelope.ttlMs : LIVE_PRICES_TTL_MS;
-      const state = cachedAt !== null && Date.now() - cachedAt <= ttlMs ? "cache" : "stale";
-      return { prices: prices as Record<string, T>, state, cachedAt };
-    }
-
-    return { prices: parsed as Record<string, T>, state: "legacy", cachedAt: null };
+    return readCacheKey<T>(LIVE_PRICES_LEGACY_CACHE_KEY, true);
   } catch {
     return { prices: {}, state: "empty", cachedAt: null };
   }
+}
+
+function readCacheKey<T>(key: string, legacyKey: boolean): {
+  prices: Record<string, T>;
+  state: LivePricesCacheState;
+  cachedAt: number | null;
+} {
+  const raw = localStorage.getItem(key);
+  if (!raw) return { prices: {}, state: "empty", cachedAt: null };
+
+  const parsed = JSON.parse(raw) as CacheEnvelope<T> | Record<string, T>;
+  if (!isRecord(parsed)) return { prices: {}, state: "empty", cachedAt: null };
+
+  const envelope = parsed as CacheEnvelope<T>;
+  const prices = envelope.prices ?? envelope.data;
+  if (prices && isRecord(prices)) {
+    const cachedAt = typeof envelope.cachedAt === "number" ? envelope.cachedAt : null;
+    const ttlMs = typeof envelope.ttlMs === "number" ? envelope.ttlMs : LIVE_PRICES_TTL_MS;
+    if (legacyKey || cachedAt === null) return { prices: prices as Record<string, T>, state: "legacy", cachedAt };
+    const state = Date.now() - cachedAt <= ttlMs ? "cache" : "stale";
+    return { prices: prices as Record<string, T>, state, cachedAt };
+  }
+
+  return { prices: parsed as Record<string, T>, state: "legacy", cachedAt: null };
 }
 
 export function writeLivePricesCache<T>(prices: Record<string, T>) {

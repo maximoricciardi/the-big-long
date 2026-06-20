@@ -53,6 +53,10 @@ export function InicioView({ dolar, riesgoPais, liveMarket, setTab, goResearch }
     setMounted(true);
     try {
       const cached = readLivePricesCache<{ changePct: number; price: number }>();
+      if (cached.state !== "cache") {
+        setTopMovers([]);
+        return;
+      }
       const withData = Object.entries(cached.prices)
         .filter(([, v]) => v && typeof v.changePct === "number" && v.price > 0)
         .map(([ticker, v]) => ({ ticker, price: v.price, pct: v.changePct }));

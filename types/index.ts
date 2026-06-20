@@ -33,6 +33,8 @@ export interface BatchPrice {
   price:     number;
   change:    number;
   changePct: number;
+  changeSource?: "provider" | "computed_from_previous_close" | "unavailable";
+  variationStatus?: "available" | "unavailable" | "not_applicable";
   high:      number;
   low:       number;
   open:      number;

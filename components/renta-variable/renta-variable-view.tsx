@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Globe, Activity, LineChart, Search, X } from "lucide-react";
+import { Globe, Activity, LineChart, Search } from "lucide-react";
 import { useAppTheme } from "@/lib/theme-context";
 import { FB, FH } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { CompanyDetailDrawer } from "@/components/equity/company-detail-drawer";
 import { EquityIdentityMark } from "@/components/equity/equity-identity-mark";
 import { EQUITIES, tvUrl } from "@/lib/data/equities";
 import { resolveEquityIdentity } from "@/lib/equity/identity";
@@ -19,7 +20,9 @@ import {
   formatUnavailable,
   type EquityIntelligenceRow,
 } from "@/lib/equity/intelligence";
+import { formatDailyChange } from "@/lib/equity/formatters";
 import { readLivePricesCache, writeLivePricesCache } from "@/lib/equity/live-price-cache";
+import type { EquityDetailRecord, EquityLive, LiveHist, LivePrice } from "@/lib/equity/client-types";
 import type { ThemeTokens } from "@/types";
 
 interface RentaVariableViewProps {
@@ -420,101 +423,31 @@ function CEDEARsPanel() {
 }
 
 // ─────────────────────────────────────────────
-interface LivePrice  {
-  price: number | null;
-  change: number | null;
-  changePct: number | null;
-  high: number | null;
-  low: number | null;
-  open: number | null;
-  previousClose?: number | null;
-  volume?: number | null;
-  currency?: string;
-  provider?: string;
-  source?: string;
-  fetchedAt?: string;
-  sourceUpdatedAt?: string | null;
-  ageSeconds?: number | null;
-  stale?: boolean;
-  availabilityStatus?: string;
-  freshnessStatus?: string;
-  confidence?: string;
-  fallbackUsed?: boolean;
-  unavailableReason?: string | null;
-}
-interface LiveHist   { s1: number; m1: number; ytd: number; distHi52: number }
-interface EquityLive {
-  t: string; e: string; p: number | null; mkt: string;
-  tg: number | null; an: string | null; fpe: number | null;
-  rw: number | null; val: string | null; cal: string | null; mom: string;
-  sc: number | null; s1: number | null; m1: number | null; ytd: number | null;
-  cur?: "ARS";
-  _1d: number | null; _d52: number | null; _isAtHigh: boolean;
-  _upsideVsTarget: number | null; _upsideVs52H: number | null; _up: number | null;
-  up: string | null;
-}
-
-interface EquityDetailRecord {
-  ticker: string;
-  underlyingTicker: string;
-  fundamentalsTicker: string;
-  companyName: string;
-  displayName: string;
-  assetType: string;
-  market: string;
-  exchange: string | null;
-  country: string;
-  currency: string;
-  sector: string;
-  industry: string;
-  description: string | null;
-  businessSummary: string | null;
-  investorFocus: string | null;
-  keyRisks: string | null;
-  marketCap: number | null;
-  enterpriseValue: number | null;
-  peRatio: number | null;
-  forwardPE: number | null;
-  priceToSales: number | null;
-  priceToBook: number | null;
-  evToEbitda: number | null;
-  beta: number | null;
-  dividendYield: number | null;
-  dividendRate: number | null;
-  payoutRatio: number | null;
-  eps: number | null;
-  revenue: number | null;
-  grossMargin: number | null;
-  operatingMargin: number | null;
-  netMargin: number | null;
-  returnOnEquity: number | null;
-  returnOnAssets: number | null;
-  debtToEquity: number | null;
-  freeCashFlow: number | null;
-  averageVolume: number | null;
-  sharesOutstanding: number | null;
-  fiftyTwoWeekHigh: number | null;
-  fiftyTwoWeekLow: number | null;
-  nextEarningsDate: string | null;
-  lastEarningsDate: string | null;
-  analystTargetPrice: number | null;
-  recommendation: string | null;
-  quote: LivePrice | null;
-  source: string;
-  profileSource: string;
-  fundamentalsSource: string;
-  sourceUpdatedAt: string | null;
-  fetchedAt: string;
-  stale: boolean;
-  confidence: string;
-  availabilityStatus: string;
-  mappingConfidence: string;
-  unavailableReason: string | null;
-}
-
 const calColor:  Record<string, string> = { EXCELENTE:"green", ALTA:"blue",  MEDIA:"gold", BAJA:"red" };
 const valColor:  Record<string, string> = { BARATA:"green",    RAZONABLE:"blue", CARA:"red" };
 const momColor:  Record<string, string> = { "MUY FUERTE":"green", FUERTE:"blue", NEUTRO:"gray", "DÉBIL":"red" };
+
+function hasDefensibleLivePrice(value: LivePrice | undefined): value is LivePrice {
+  return Boolean(
+    value &&
+    value.price !== null &&
+    value.price > 0 &&
+    value.previousClose !== null &&
+    value.previousClose !== undefined &&
+    value.previousClose > 0 &&
+    value.change !== null &&
+    value.changePct !== null &&
+    value.variationStatus === "available"
+  );
+}
+
+function getEquityUpsideCategory(uPct: number | null): string | null {
+  if (uPct === null) return null;
+  if (uPct > 40) return "MUY ALTO";
+  if (uPct > 20) return "ALTO";
+  if (uPct > 5)  return "MEDIO";
+  return "BAJO";
+}
 
 function EquityScreener() {
   const t = useAppTheme();
@@ -542,7 +475,14 @@ function EquityScreener() {
   // Load cached prices from localStorage (client-only)
   useEffect(() => {
     const cached = readLivePricesCache<LivePrice>();
-    if (Object.keys(cached.prices).length) setLivePrices(cached.prices);
+    if (cached.state !== "cache") return;
+    const defensible = Object.fromEntries(
+      Object.entries(cached.prices).filter(([, value]) => hasDefensibleLivePrice(value))
+    ) as Record<string, LivePrice>;
+    if (Object.keys(defensible).length) {
+      livePricesRef.current = defensible;
+      setLivePrices(defensible);
+    }
   }, []);
 
   // Phase 1 — batch quotes
@@ -554,9 +494,11 @@ function EquityScreener() {
         const r = await fetch(`/api/batch?symbols=${encodeURIComponent(tickers.join(","))}`);
         const data = await r.json() as { prices?: Record<string, LivePrice>; _meta?: { status?: string } };
         if (cancelled) return;
-        const prices = data.prices ?? {};
+        const prices = Object.fromEntries(
+          Object.entries(data.prices ?? {}).filter(([, value]) => hasDefensibleLivePrice(value))
+        ) as Record<string, LivePrice>;
         if (r.ok && Object.keys(prices).length > 0 && data._meta?.status !== "error") {
-          livePricesRef.current = prices;
+          livePricesRef.current = { ...livePricesRef.current, ...prices };
           setLivePrices(prev => {
             const next = { ...prev, ...prices };
             writeLivePricesCache(next);
@@ -630,15 +572,7 @@ function EquityScreener() {
     return () => { cancelled = true; };
   }, [quotesComplete]);
 
-  const getUpCategory = (uPct: number | null): string | null => {
-    if (uPct === null) return null;
-    if (uPct > 40) return "MUY ALTO";
-    if (uPct > 20) return "ALTO";
-    if (uPct > 5)  return "MEDIO";
-    return "BAJO";
-  };
-
-  const equitiesLive: EquityLive[] = EQUITIES.map(e => {
+  const equitiesLive: EquityLive[] = useMemo(() => EQUITIES.map(e => {
     const lp   = livePrices[e.t];
     const hist = liveHistory[e.t];
     const seedPrice = e.p > 0 ? e.p : null;
@@ -663,14 +597,15 @@ function EquityScreener() {
       m1:  hist?.m1   ?? e.m1,
       ytd: hist?.ytd  ?? e.ytd,
       _1d:     lp?.changePct ?? null,
+      _1dAbs:  lp?.change ?? null,
       _d52:    dist52,
       _isAtHigh: isAtHigh,
       _upsideVsTarget: upsideVsTarget,
       _upsideVs52H:    upsideVs52H,
       _up:  upside,
-      up:   upside !== null ? getUpCategory(upside) : e.up,
+      up:   upside !== null ? getEquityUpsideCategory(upside) : e.up,
     };
-  });
+  }), [liveHistory, livePrices]);
 
   const intelligenceRows = useMemo(
     () => buildEquityIntelligenceRows(EQUITIES, livePrices, liveHistory),
@@ -733,7 +668,7 @@ function EquityScreener() {
     else { setSortCol(col); setSortDir(col === "sc" ? -1 : 1); }
   };
 
-  const filtered = equitiesLive.filter(e => {
+  const filtered = useMemo(() => equitiesLive.filter(e => {
     if (fMkt !== "Todos" && e.mkt !== fMkt) return false;
     if (fAn  !== "Todos" && e.an  !== fAn)  return false;
     if (fCal !== "Todas" && e.cal !== fCal) return false;
@@ -750,7 +685,7 @@ function EquityScreener() {
     if (bv === null) return -1;
     if (typeof av === "string") return (av as string).localeCompare(bv as string) * sortDir;
     return ((av as number) > (bv as number) ? 1 : -1) * sortDir;
-  });
+  }), [equitiesLive, fAn, fCal, fMkt, fMom, fVal, search, sortCol, sortDir]);
 
   const mktBadge: Record<string, { bg: string; tx: string; label: string }> = {
     ARG: { bg:t.goBg, tx:t.go, label:"AR" },
@@ -989,6 +924,7 @@ function EquityScreener() {
                 const udStr   = ud !== null ? `${ud >= 0 ? "+" : ""}${ud.toFixed(1)}%` : null;
                 const isAtHigh = e._isAtHigh;
                 const udLabel = e._upsideVsTarget !== null ? "vs target" : (isAtHigh ? "correc. est." : "vs máx 52S");
+                const daily = formatDailyChange(e._1dAbs, e._1d, e.cur ?? "USD");
 
                 return (
                   <tr key={e.t}
@@ -1048,7 +984,10 @@ function EquityScreener() {
                     {/* Hoy 1D% */}
                     <td style={{ padding:"7px 10px", textAlign:"right" }}>
                       {e._1d !== null
-                        ? <span style={{ fontSize:12, fontWeight:600, color:perfColor(e._1d) }}>{perfFmt(e._1d)}</span>
+                        ? <div>
+                            <span style={{ fontSize:12, fontWeight:700, color:perfColor(e._1d) }}>{perfFmt(e._1d)}</span>
+                            <div style={{ fontSize:8, color:perfColor(e._1d), marginTop:1 }}>{daily.abs}</div>
+                          </div>
                         : <span style={{ color:t.fa }}>—</span>}
                     </td>
 
@@ -1178,200 +1117,6 @@ function EquityScreener() {
         status={detailStatus}
         onClose={() => setSelectedTicker(null)}
       />
-    </div>
-  );
-}
-
-function formatLargeMoney(value: number | null, currency = "USD") {
-  if (value === null || !Number.isFinite(value)) return "—";
-  const abs = Math.abs(value);
-  const prefix = currency === "ARS" ? "$" : "US$";
-  if (abs >= 1_000_000_000_000) return `${prefix}${(value / 1_000_000_000_000).toFixed(2)}T`;
-  if (abs >= 1_000_000_000) return `${prefix}${(value / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `${prefix}${(value / 1_000_000).toFixed(1)}M`;
-  return `${prefix}${value.toLocaleString("es-AR", { maximumFractionDigits: 0 })}`;
-}
-
-function formatNumberMetric(value: number | null, digits = 2) {
-  if (value === null || !Number.isFinite(value)) return "—";
-  return value.toLocaleString("es-AR", { maximumFractionDigits: digits });
-}
-
-function formatPercentMetric(value: number | null) {
-  if (value === null || !Number.isFinite(value)) return "—";
-  const normalized = Math.abs(value) <= 1 ? value * 100 : value;
-  return `${normalized >= 0 ? "+" : ""}${normalized.toFixed(2)}%`;
-}
-
-function DetailMetric({ label, value, t, muted }: { label: string; value: string; t: ThemeTokens; muted?: boolean }) {
-  return (
-    <div style={{ border:`1px solid ${t.brd}`, borderRadius:8, padding:"10px 11px", background:t.alt, minHeight:58 }}>
-      <div style={{ fontFamily:FB, fontSize:9, fontWeight:800, color:t.fa, letterSpacing:".08em", textTransform:"uppercase", marginBottom:5 }}>{label}</div>
-      <div style={{ fontFamily:FB, fontSize:14, fontWeight:800, color:muted ? t.fa : t.tx }}>{value}</div>
-    </div>
-  );
-}
-
-function DetailLine({ label, value, t }: { label: string; value: string | null; t: ThemeTokens }) {
-  return (
-    <div style={{ display:"flex", justifyContent:"space-between", gap:12, padding:"7px 0", borderBottom:`1px solid ${t.brd}55` }}>
-      <span style={{ fontFamily:FB, fontSize:11, color:t.fa }}>{label}</span>
-      <span style={{ fontFamily:FB, fontSize:11, color:value ? t.mu : t.fa, textAlign:"right" }}>{value ?? "—"}</span>
-    </div>
-  );
-}
-
-function CompanyDetailDrawer({
-  t,
-  row,
-  detail,
-  status,
-  onClose,
-}: {
-  t: ThemeTokens;
-  row: EquityIntelligenceRow | null;
-  detail: EquityDetailRecord | null;
-  status: "idle" | "loading" | "ok" | "error";
-  onClose: () => void;
-}) {
-  if (!row) return null;
-
-  const quote = detail?.quote ?? null;
-  const price = quote?.price ?? row.price;
-  const changePct = quote?.changePct ?? row.changePct;
-  const currency = detail?.currency ?? quote?.currency ?? row.currency;
-  const isPrivate = detail?.assetType === "private_market_exposure" || row.identity.assetType === "private_market_exposure";
-  const sourceLabel = detail?.source ?? (status === "loading" ? "cargando" : "no disponible");
-  const quoteLabel = quote?.availabilityStatus === "private_market_not_listed"
-    ? "exposición privada"
-    : quote?.provider
-      ? `${quote.provider} · ${quote.freshnessStatus ?? "recent"}`
-      : row.quoteProvider
-        ? `${row.quoteProvider} · ${row.quoteFreshness ?? "recent"}`
-        : "sin quote confirmado";
-
-  return (
-    <div
-      role="presentation"
-      onClick={onClose}
-      style={{
-        position:"fixed",
-        inset:0,
-        zIndex:80,
-        background:"rgba(2,6,23,.58)",
-        display:"flex",
-        justifyContent:"flex-end",
-        backdropFilter:"blur(6px)",
-      }}
-    >
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Detalle de ${row.name}`}
-        onClick={(event) => event.stopPropagation()}
-        style={{
-          width:"min(520px, 100vw)",
-          height:"100%",
-          background:t.bg,
-          borderLeft:`1px solid ${t.brd}`,
-          boxShadow:"-24px 0 60px rgba(0,0,0,.35)",
-          overflowY:"auto",
-          padding:"18px",
-        }}
-      >
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, marginBottom:18 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:12, minWidth:0 }}>
-            <EquityIdentityMark identity={row.identity} t={t} size="lg" />
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:FH, fontSize:20, fontWeight:800, color:t.tx, lineHeight:1.1 }}>{detail?.companyName ?? row.name}</div>
-              <div style={{ fontFamily:"monospace", fontSize:12, fontWeight:800, color:t.go, marginTop:5 }}>
-                {row.ticker}{row.underlyingTicker !== row.ticker ? ` / ${row.underlyingTicker}` : ""} · {detail?.exchange ?? row.market}
-              </div>
-              {isPrivate && (
-                <div style={{ display:"inline-block", marginTop:7, padding:"3px 7px", borderRadius:5, border:`1px solid ${t.go}55`, background:t.goBg, color:t.go, fontFamily:FB, fontSize:10, fontWeight:800 }}>
-                  private_market_exposure
-                </div>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar detalle"
-            style={{ width:30, height:30, borderRadius:6, border:`1px solid ${t.brd}`, background:t.srf, color:t.mu, display:"inline-flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {status === "loading" && (
-          <div style={{ border:`1px solid ${t.brd}`, background:t.srf, borderRadius:8, padding:14, fontFamily:FB, fontSize:12, color:t.mu, marginBottom:14 }}>
-            Cargando perfil y fundamentos...
-          </div>
-        )}
-        {status === "error" && (
-          <div style={{ border:`1px solid ${t.rd}55`, background:t.rdBg, borderRadius:8, padding:14, fontFamily:FB, fontSize:12, color:t.rd, marginBottom:14 }}>
-            No se pudo cargar el detalle. El screener conserva quote e identidad disponibles.
-          </div>
-        )}
-
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,minmax(0,1fr))", gap:8, marginBottom:16 }}>
-          <DetailMetric t={t} label="Precio" value={price !== null && price > 0 ? `${currency === "ARS" ? "$" : "US$"}${price.toLocaleString("es-AR", { maximumFractionDigits: 2 })}` : isPrivate ? "No listado" : "—"} muted={price === null || price <= 0} />
-          <DetailMetric t={t} label="Hoy" value={changePct !== null ? formatPercentMetric(changePct) : "—"} muted={changePct === null} />
-          <DetailMetric t={t} label="Market cap" value={formatLargeMoney(detail?.marketCap ?? null, detail?.currency ?? "USD")} muted={!detail?.marketCap} />
-          <DetailMetric t={t} label="P/E" value={formatNumberMetric(detail?.peRatio ?? detail?.forwardPE ?? row.peForward, 2)} muted={(detail?.peRatio ?? detail?.forwardPE ?? row.peForward) === null} />
-        </div>
-
-        <section style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:850, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>Perfil de negocio</div>
-          <div style={{ border:`1px solid ${t.brd}`, borderRadius:8, background:t.srf, padding:13 }}>
-            <p style={{ margin:0, fontFamily:FB, fontSize:12, lineHeight:1.55, color:detail?.description ? t.mu : t.fa }}>
-              {detail?.description ?? "Perfil no disponible con fuente suficiente para este instrumento."}
-            </p>
-            {detail?.businessSummary && (
-              <p style={{ margin:"10px 0 0", fontFamily:FB, fontSize:12, lineHeight:1.55, color:t.mu }}>{detail.businessSummary}</p>
-            )}
-          </div>
-        </section>
-
-        <section style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:850, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>Fundamentales</div>
-          <div style={{ border:`1px solid ${t.brd}`, borderRadius:8, background:t.srf, padding:"5px 12px" }}>
-            <DetailLine t={t} label="Sector" value={detail?.sector ?? row.sector} />
-            <DetailLine t={t} label="Industria" value={detail?.industry ?? row.industry} />
-            <DetailLine t={t} label="Pais" value={detail?.country ?? row.country} />
-            <DetailLine t={t} label="Beta" value={formatNumberMetric(detail?.beta ?? row.beta, 2)} />
-            <DetailLine t={t} label="Dividend yield" value={formatPercentMetric(detail?.dividendYield ?? row.dividendYield)} />
-            <DetailLine t={t} label="Volumen promedio" value={formatNumberMetric(detail?.averageVolume ?? row.avgVolume, 0)} />
-            <DetailLine t={t} label="EV/EBITDA" value={formatNumberMetric(detail?.evToEbitda ?? row.evEbitda, 2)} />
-            <DetailLine t={t} label="Proximo earnings" value={detail?.nextEarningsDate ?? row.earningsDate} />
-          </div>
-        </section>
-
-        {(detail?.investorFocus || detail?.keyRisks) && (
-          <section style={{ marginBottom:16 }}>
-            <div style={{ fontFamily:FB, fontSize:10, fontWeight:850, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>Contexto inversor</div>
-            <div style={{ border:`1px solid ${t.brd}`, borderRadius:8, background:t.srf, padding:13 }}>
-              {detail.investorFocus && <p style={{ margin:0, fontFamily:FB, fontSize:12, lineHeight:1.55, color:t.mu }}>{detail.investorFocus}</p>}
-              {detail.keyRisks && <p style={{ margin:"10px 0 0", fontFamily:FB, fontSize:12, lineHeight:1.55, color:t.fa }}>{detail.keyRisks}</p>}
-            </div>
-          </section>
-        )}
-
-        <section>
-          <div style={{ fontFamily:FB, fontSize:10, fontWeight:850, color:t.fa, letterSpacing:".1em", textTransform:"uppercase", marginBottom:8 }}>Calidad de datos</div>
-          <div style={{ border:`1px solid ${t.brd}`, borderRadius:8, background:t.alt, padding:"5px 12px" }}>
-            <DetailLine t={t} label="Quote" value={quoteLabel} />
-            <DetailLine t={t} label="Fundamentos" value={sourceLabel} />
-            <DetailLine t={t} label="Perfil" value={detail?.profileSource ?? null} />
-            <DetailLine t={t} label="Confianza" value={detail?.confidence ?? row.identityConfidence} />
-            <DetailLine t={t} label="Actualizado" value={detail?.sourceUpdatedAt ?? quote?.sourceUpdatedAt ?? row.quoteFetchedAt} />
-          </div>
-          <p style={{ margin:"10px 0 0", fontFamily:FB, fontSize:10, lineHeight:1.45, color:t.fa }}>
-            Informacion para analisis. No constituye recomendacion de inversion.
-          </p>
-        </section>
-      </aside>
     </div>
   );
 }

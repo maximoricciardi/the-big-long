@@ -28,6 +28,46 @@ function isSpecial(symbol) {
   return normalizeSymbol(symbol) === "SPCX";
 }
 
+function positiveNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function finiteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeVariation(price, previousClose, change, changePct) {
+  const currentPrice = positiveNumber(price);
+  const priorClose = positiveNumber(previousClose);
+  if (currentPrice !== null && priorClose !== null) {
+    const computedChange = currentPrice - priorClose;
+    return {
+      change: computedChange,
+      changePct: computedChange / priorClose * 100,
+      changeSource: "computed_from_previous_close",
+      variationStatus: "available",
+    };
+  }
+
+  const providerChange = finiteNumber(change);
+  const providerChangePct = finiteNumber(changePct);
+  if (providerChange !== null && providerChangePct !== null) {
+    return {
+      change: providerChange,
+      changePct: providerChangePct,
+      changeSource: "provider",
+      variationStatus: "available",
+    };
+  }
+
+  return {
+    change: null,
+    changePct: null,
+    changeSource: "unavailable",
+    variationStatus: "unavailable",
+  };
+}
+
 function candidates(symbol) {
   const base = providerSymbol(symbol);
   const out = new Set();
@@ -72,12 +112,24 @@ async function fetchYahoo(symbol) {
       const meta = result?.meta;
       const price = meta?.regularMarketPrice;
       if (typeof price === "number" && Number.isFinite(price) && price > 0) {
+        const previousClose = positiveNumber(meta?.previousClose) ?? positiveNumber(meta?.chartPreviousClose);
+        const variation = normalizeVariation(
+          price,
+          previousClose,
+          meta?.regularMarketChange,
+          meta?.regularMarketChangePercent
+        );
         const unixTime = meta?.regularMarketTime ?? result?.timestamp?.at?.(-1);
         const ageSeconds = unixTime ? Math.max(0, Math.floor((Date.now() - unixTime * 1000) / 1000)) : null;
         return {
           ok: true,
           resolvedSymbol: candidate,
           price,
+          previousClose,
+          change: variation.change,
+          changePct: variation.changePct,
+          changeSource: variation.changeSource,
+          variationStatus: variation.variationStatus,
           currency: meta?.currency ?? "USD",
           ageSeconds,
           stale: ageSeconds !== null && ageSeconds > STALE_SECONDS,
@@ -105,9 +157,13 @@ async function run() {
           status: "special",
           reason: "private_market_not_listed",
           resolvedSymbol: null,
-          price: null,
-          stale: false,
-        };
+        price: null,
+        previousClose: null,
+        change: null,
+        changePct: null,
+        variationStatus: "not_applicable",
+        stale: false,
+      };
       }
       const quote = await fetchYahoo(item.ticker);
       return {
@@ -116,6 +172,11 @@ async function run() {
         reason: quote.ok ? null : quote.error,
         resolvedSymbol: quote.resolvedSymbol ?? null,
         price: quote.price ?? null,
+        previousClose: quote.previousClose ?? null,
+        change: quote.change ?? null,
+        changePct: quote.changePct ?? null,
+        changeSource: quote.changeSource ?? null,
+        variationStatus: quote.variationStatus ?? "unavailable",
         currency: quote.currency ?? null,
         ageSeconds: quote.ageSeconds ?? null,
         stale: Boolean(quote.stale),
@@ -128,29 +189,44 @@ async function run() {
   const standard = rows.filter((row) => row.status !== "special");
   const missing = standard.filter((row) => row.status === "missing");
   const stale = standard.filter((row) => row.stale);
+  const missingDailyVariation = standard.filter((row) => row.status === "available" && row.variationStatus !== "available");
   const special = rows.filter((row) => row.status === "special");
   const report = {
     totalScreenerInstruments: rows.length,
     standardListedInstruments: standard.length,
     quoteAvailable: standard.length - missing.length,
     quoteMissing: missing.length,
+    dailyVariationAvailable: standard.length - missing.length - missingDailyVariation.length,
+    dailyVariationMissing: missingDailyVariation.length,
     staleQuote: stale.length,
     providerError: missing.length,
     specialNonListed: special.map((row) => row.ticker),
     unresolvedTickers: missing.map((row) => row.ticker),
     unresolvedDetails: missing.map((row) => ({ ticker: row.ticker, name: row.name, reason: row.reason })),
+    variationMissingDetails: missingDailyVariation.map((row) => ({
+      ticker: row.ticker,
+      name: row.name,
+      resolvedSymbol: row.resolvedSymbol,
+      price: row.price,
+      previousClose: row.previousClose,
+      reason: "Missing defensible daily absolute and percentage variation",
+    })),
     staleTickers: stale.map((row) => ({ ticker: row.ticker, resolvedSymbol: row.resolvedSymbol, ageSeconds: row.ageSeconds })),
     sample: rows.slice(0, 12).map((row) => ({
       ticker: row.ticker,
       status: row.status,
       resolvedSymbol: row.resolvedSymbol,
       price: row.price,
+      previousClose: row.previousClose,
+      change: row.change,
+      changePct: row.changePct,
+      changeSource: row.changeSource,
     })),
   };
 
   console.log(JSON.stringify(report, null, 2));
 
-  if (missing.length > 0) {
+  if (missing.length > 0 || missingDailyVariation.length > 0) {
     process.exitCode = 1;
   }
 }

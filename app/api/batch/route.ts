@@ -45,15 +45,14 @@ export async function GET(req: NextRequest) {
       standardTotal: batch.standardTotal,
       unresolved: Object.keys(batch.unavailable),
       specialSymbols: Object.keys(batch.special),
+      providerStatuses: batch.providerStatuses,
       ts: Date.now(),
     },
     buildMeta({
       provider: finnhubKey
-        ? preferFinnhub
-          ? "Finnhub with Yahoo Finance fallback"
-          : "Yahoo Finance with Finnhub fallback"
-        : "Yahoo Finance",
-      source: "server-side equity quote provider chain",
+        ? "Railway Financial API with Finnhub/Yahoo fallback"
+        : "Railway Financial API with Yahoo Finance fallback",
+      source: "server-side normalized equity quote provider chain",
       status,
       startedAt,
       cacheSeconds: EQUITY_QUOTE_CACHE_SECONDS,

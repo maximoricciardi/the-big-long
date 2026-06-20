@@ -72,6 +72,7 @@ export interface EquityIntelligenceRow {
   country: string;
   currency: "ARS" | "USD";
   price: number | null;
+  change: number | null;
   changePct: number | null;
   volume: number | null;
   avgVolume: number | null;
@@ -250,6 +251,7 @@ export function buildEquityIntelligenceRows(
     });
     const seedPrice = equity.p > 0 ? equity.p : null;
     const price = quote?.price ?? seedPrice;
+    const change = quote?.change ?? null;
     const changePct = quote?.changePct ?? null;
     const distance52wHigh = hist?.distHi52 ?? equity.ma ?? null;
 
@@ -270,6 +272,7 @@ export function buildEquityIntelligenceRows(
       country: identity.country,
       currency: equity.cur === "ARS" ? "ARS" : "USD",
       price,
+      change,
       changePct,
       volume: quote?.volume ?? null,
       avgVolume: null,
@@ -302,6 +305,7 @@ export function buildEquityIntelligenceRows(
       quoteUnavailableReason: quote?.unavailableReason ?? null,
       availability: {
         price: quoteAvailability(quote) === "unavailable" && seedPrice != null ? "static" : quoteAvailability(quote),
+        change: availability(change, quote?.stale ? "stale" : "live"),
         changePct: availability(changePct, quote?.stale ? "stale" : "live"),
         volume: availability(quote?.volume, quote?.stale ? "stale" : "live"),
         marketCap: "unavailable",
@@ -352,6 +356,7 @@ export function buildCedearIntelligenceRows(
       country: identity.country,
       currency: "ARS",
       price: quote?.price ?? null,
+      change: quote?.change ?? null,
       changePct: quote?.changePct ?? null,
       volume,
       avgVolume: null,
@@ -379,6 +384,7 @@ export function buildCedearIntelligenceRows(
       quoteUnavailableReason: quote?.unavailableReason ?? null,
       availability: {
         price: quoteAvailability(quote),
+        change: availability(quote?.change, quote?.stale ? "stale" : "live"),
         changePct: availability(quote?.changePct, quote?.stale ? "stale" : "live"),
         volume: availability(volume, quote?.stale ? "stale" : "live"),
         marketCap: "unavailable",

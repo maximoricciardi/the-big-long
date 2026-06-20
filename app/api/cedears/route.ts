@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 const UPSTREAM_TIMEOUT_MS = 12_000;
 const CACHE_SECONDS = 60;
 const STALE_SECONDS = 120;
+const DIRECT_DATA912_CEDEARS_URL = "https://data912.com/live/arg_cedears";
 
 type CedearQuote = { price: number; pct: number; vol: number };
 type CedearRawRow = { symbol?: string; c?: number; pct_change?: number; v?: number };
@@ -150,13 +151,78 @@ function sanitizedError(startedAt: number, status = 502) {
   );
 }
 
+function normalizeDirectData912Payload(raw: CedearRawRow[], startedAt: number, fallbackReason: string) {
+  const map: Record<string, CedearQuote> = {};
+
+  raw.forEach((row) => {
+    if (!row.symbol || row.c == null) return;
+    addAliases(map, row.symbol, {
+      price: row.c,
+      pct: row.pct_change ?? 0,
+      vol: row.v ?? 0,
+    });
+  });
+
+  const hasData = raw.length > 0 && Object.keys(map).length > 0;
+  return {
+    map,
+    raw,
+    count: raw.length,
+    sample: raw.slice(0, 3).map((row) => row.symbol).filter(Boolean),
+    ts: Date.now(),
+    _meta: {
+      provider: "DATA912",
+      source: DIRECT_DATA912_CEDEARS_URL,
+      upstream: "DATA912-direct-fallback",
+      status: hasData ? "partial" : "empty",
+      fetchedAt: new Date().toISOString(),
+      latencyMs: Date.now() - startedAt,
+      cacheSeconds: CACHE_SECONDS,
+      staleAfterSeconds: STALE_SECONDS,
+      sourceUpdatedAt: null,
+      stale: false,
+      staleReason: null,
+      cached: false,
+      sources: ["DATA912"],
+      errors: [{ provider: "financial-data-api", message: fallbackReason }],
+    },
+  };
+}
+
+async function directData912Fallback(startedAt: number, fallbackReason: string) {
+  try {
+    const response = await fetch(DIRECT_DATA912_CEDEARS_URL, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      return sanitizedError(startedAt);
+    }
+
+    const raw = await response.json() as CedearRawRow[];
+    if (!Array.isArray(raw)) {
+      return sanitizedError(startedAt);
+    }
+
+    return NextResponse.json(normalizeDirectData912Payload(raw, startedAt, fallbackReason), {
+      headers: {
+        "Cache-Control": `s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${STALE_SECONDS}`,
+      },
+    });
+  } catch {
+    return sanitizedError(startedAt);
+  }
+}
+
 export async function GET() {
   const startedAt = Date.now();
   const baseUrl = process.env.FINANCIAL_API_URL;
   const token = process.env.FINANCIAL_API_TOKEN;
 
   if (!baseUrl || !token) {
-    return sanitizedError(startedAt, 500);
+    return directData912Fallback(startedAt, "financial_api_env_missing");
   }
 
   try {
@@ -170,12 +236,12 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      return sanitizedError(startedAt);
+      return directData912Fallback(startedAt, "financial_api_upstream_unavailable");
     }
 
     const payload = await response.json() as RailwayCedearsResponse;
     if (!payload.data || !payload.data.map) {
-      return sanitizedError(startedAt);
+      return directData912Fallback(startedAt, "financial_api_payload_invalid");
     }
 
     return NextResponse.json(normalizePayload(payload, startedAt), {
@@ -184,6 +250,6 @@ export async function GET() {
       },
     });
   } catch {
-    return sanitizedError(startedAt);
+    return directData912Fallback(startedAt, "financial_api_request_failed");
   }
 }

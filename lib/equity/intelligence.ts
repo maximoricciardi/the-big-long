@@ -1,15 +1,25 @@
 import { resolveEquityIdentity, type EquityIdentity } from "@/lib/equity/identity";
 
 export type EquityMarket = "ARG" | "US" | "ETF" | "CEDEAR";
-export type DataAvailability = "live" | "static" | "derived" | "unavailable";
+export type DataAvailability = "live" | "recent" | "stale" | "static" | "derived" | "special" | "unavailable";
 
 export interface EquityQuoteLike {
   price?: number | null;
   changePct?: number | null;
+  change?: number | null;
   volume?: number | null;
   high?: number | null;
   low?: number | null;
   open?: number | null;
+  currency?: string | null;
+  provider?: string | null;
+  source?: string | null;
+  fetchedAt?: string | null;
+  sourceUpdatedAt?: string | null;
+  stale?: boolean | null;
+  freshnessStatus?: string | null;
+  availabilityStatus?: string | null;
+  unavailableReason?: string | null;
 }
 
 export interface EquityHistoryLike {
@@ -82,6 +92,11 @@ export interface EquityIntelligenceRow {
   valuation: string | null;
   momentum: string | null;
   liquidity: string | null;
+  quoteSource: string | null;
+  quoteProvider: string | null;
+  quoteFreshness: string | null;
+  quoteFetchedAt: string | null;
+  quoteUnavailableReason: string | null;
   availability: Record<string, DataAvailability>;
   sourceNote: string;
 }
@@ -199,6 +214,15 @@ function availability(value: unknown, fallback: DataAvailability): DataAvailabil
   return value === null || value === undefined ? "unavailable" : fallback;
 }
 
+function quoteAvailability(quote?: EquityQuoteLike): DataAvailability {
+  if (!quote) return "unavailable";
+  if (quote.availabilityStatus === "private_market_not_listed") return "special";
+  if (quote.price == null || quote.price <= 0) return "unavailable";
+  if (quote.stale) return "stale";
+  if (quote.freshnessStatus === "delayed" || quote.freshnessStatus === "recent") return "recent";
+  return "live";
+}
+
 function liquidityFromVolume(volume: number | null): string | null {
   if (volume === null || volume <= 0) return null;
   if (volume >= 1_000_000) return "Alta";
@@ -224,7 +248,8 @@ export function buildEquityIntelligenceRows(
       country: metadata.country,
       assetType: equity.mkt === "ETF" ? "etf" : equity.t === "MERV" ? "index" : "stock",
     });
-    const price = quote?.price ?? equity.p ?? null;
+    const seedPrice = equity.p > 0 ? equity.p : null;
+    const price = quote?.price ?? seedPrice;
     const changePct = quote?.changePct ?? null;
     const distance52wHigh = hist?.distHi52 ?? equity.ma ?? null;
 
@@ -265,10 +290,20 @@ export function buildEquityIntelligenceRows(
       valuation: equity.val,
       momentum: equity.mom,
       liquidity: liquidityFromVolume(quote?.volume ?? null),
+      sourceNote: quote?.price != null
+        ? `${quote.provider ?? "Proveedor"} · ${quote.freshnessStatus ?? "recent"} · fundamentales disponibles como snapshot interno.`
+        : seedPrice != null
+          ? "Precio semilla historico; sin cotizacion viva confirmada."
+          : "Sin cotizacion viva confirmada; no se muestra precio ficticio.",
+      quoteSource: quote?.source ?? null,
+      quoteProvider: quote?.provider ?? null,
+      quoteFreshness: quote?.freshnessStatus ?? null,
+      quoteFetchedAt: quote?.fetchedAt ?? null,
+      quoteUnavailableReason: quote?.unavailableReason ?? null,
       availability: {
-        price: quote?.price == null ? availability(equity.p, "static") : "live",
-        changePct: availability(changePct, "live"),
-        volume: availability(quote?.volume, "live"),
+        price: quoteAvailability(quote) === "unavailable" && seedPrice != null ? "static" : quoteAvailability(quote),
+        changePct: availability(changePct, quote?.stale ? "stale" : "live"),
+        volume: availability(quote?.volume, quote?.stale ? "stale" : "live"),
         marketCap: "unavailable",
         beta: "unavailable",
         peForward: availability(equity.fpe, "static"),
@@ -278,9 +313,6 @@ export function buildEquityIntelligenceRows(
         history: hist ? "live" : "static",
         sector: metadata.sector === "Sin clasificar" ? "unavailable" : "static",
       },
-      sourceNote: quote?.price != null
-        ? "Precio en vivo; fundamentales disponibles como snapshot interno."
-        : "Precio semilla; sin cotizacion viva confirmada.",
     };
   });
 }
@@ -340,10 +372,15 @@ export function buildCedearIntelligenceRows(
       valuation: null,
       momentum: null,
       liquidity: liquidityFromVolume(volume),
+      quoteSource: quote?.source ?? null,
+      quoteProvider: quote?.provider ?? null,
+      quoteFreshness: quote?.freshnessStatus ?? null,
+      quoteFetchedAt: quote?.fetchedAt ?? null,
+      quoteUnavailableReason: quote?.unavailableReason ?? null,
       availability: {
-        price: availability(quote?.price, "live"),
-        changePct: availability(quote?.changePct, "live"),
-        volume: availability(volume, "live"),
+        price: quoteAvailability(quote),
+        changePct: availability(quote?.changePct, quote?.stale ? "stale" : "live"),
+        volume: availability(volume, quote?.stale ? "stale" : "live"),
         marketCap: "unavailable",
         beta: "unavailable",
         peForward: "unavailable",

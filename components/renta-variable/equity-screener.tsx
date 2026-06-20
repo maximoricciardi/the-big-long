@@ -122,9 +122,10 @@ export function EquityScreener() {
   const equitiesLive = useMemo(() => EQUITIES.map(e => {
     const lp   = livePrices[e.t];
     const hist = liveHistory[e.t];
-    const price = lp?.price ?? e.p;
+    const seedPrice = e.p > 0 ? e.p : null;
+    const price = lp?.price ?? seedPrice;
 
-    const upsideVsTarget = e.tg ? (e.tg / price - 1) * 100 : null;
+    const upsideVsTarget = e.tg && price !== null && price > 0 ? (e.tg / price - 1) * 100 : null;
     const dist52         = hist?.distHi52 ?? e.ma;
     const isAtHigh       = dist52 !== null && dist52 > -8;
     const upsideVs52H    = dist52 !== null
@@ -334,7 +335,7 @@ export function EquityScreener() {
                     <td style={{ padding: "7px 10px", color: t.tx, fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.identity.displayName}</td>
 
                     <td style={{ padding: "7px 10px", textAlign: "right", fontFamily: FH, fontSize: 14, fontWeight: 700, color: livePrices[e.t] ? t.tx : t.mu }}>
-                      {e.p > 0 ? `$${e.p.toFixed(2)}` : "—"}
+                        {e.p !== null && e.p > 0 ? `$${e.p.toFixed(2)}` : "—"}
                     </td>
 
                     <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700, color: pctColor(e._1d) }}>

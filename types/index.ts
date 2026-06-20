@@ -36,6 +36,20 @@ export interface BatchPrice {
   high:      number;
   low:       number;
   open:      number;
+  previousClose?: number | null;
+  volume?: number | null;
+  currency?: string;
+  provider?: string;
+  source?: string;
+  fetchedAt?: string;
+  sourceUpdatedAt?: string | null;
+  ageSeconds?: number | null;
+  stale?: boolean;
+  availabilityStatus?: string;
+  freshnessStatus?: string;
+  confidence?: string;
+  fallbackUsed?: boolean;
+  unavailableReason?: string | null;
 }
 
 export interface BatchResult {
